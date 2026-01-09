@@ -1,0 +1,115 @@
+[project]
+name = "analisador-questoes-concurso"
+version = "0.1.0"
+description = "Sistema de análise forense de questões de concurso com IA"
+authors = [
+    {name = "Antonio Santos", email = "antonio.santos@example.com"}
+]
+requires-python = ">=3.11"
+readme = "README.md"
+license = {text = "MIT"}
+
+dependencies = [
+    # Core
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+
+    # Database
+    "sqlalchemy>=2.0.25",
+    "asyncpg>=0.29.0",  # PostgreSQL async
+    "alembic>=1.13.0",  # Migrations
+    "pgvector>=0.2.4",  # Vector extension
+
+    # API
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.6",  # File uploads
+    "httpx>=0.26.0",  # HTTP client
+
+    # PDF Processing
+    "pymupdf>=1.23.8",  # PyMuPDF (fitz)
+    "pdfplumber>=0.11.0",
+    "pillow>=10.2.0",
+    "pytesseract>=0.3.10",
+    "paddleocr>=2.7.0",
+
+    # LLMs
+    "groq>=0.4.0",
+    "anthropic>=0.23.0",
+    "huggingface-hub>=0.20.0",
+    "openai>=1.10.0",  # OpenAI-compatible clients
+
+    # ML & Embeddings
+    "sentence-transformers>=2.3.0",
+    "scikit-learn>=1.4.0",
+    "numpy>=1.26.0",
+    "torch>=2.1.0",  # PyTorch for transformers
+
+    # Data Processing
+    "pandas>=2.2.0",
+    "openpyxl>=3.1.0",  # Excel
+
+    # Report Generation
+    "reportlab>=4.0.0",  # PDF generation
+    "markdown>=3.5.0",
+    "jinja2>=3.1.3",  # Templates
+    "matplotlib>=3.8.0",
+    "plotly>=5.18.0",
+    "seaborn>=0.13.0",
+
+    # CLI
+    "typer[all]>=0.9.0",
+    "rich>=13.7.0",  # Beautiful terminal output
+    "tqdm>=4.66.0",  # Progress bars
+
+    # Logging
+    "loguru>=0.7.2",
+
+    # Utilities
+    "python-slugify>=8.0.0",
+    "dateparser>=1.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "ipython>=8.20.0",
+    "jupyter>=1.0.0",
+]
+
+[project.scripts]
+analisador = "src.cli.main:app"
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"

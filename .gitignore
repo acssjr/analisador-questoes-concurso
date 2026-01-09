@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Data (sensitive)
+data/raw/
+data/processed/
+data/outputs/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+logs/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# Models (large files)
+models/
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# Reports generated
+reports/
+exports/
+
+# Continuous Claude cache (local only)
+.claude/cache/
+
+# Thoughts/ledgers (session-specific)
+thoughts/
+
+# Subprojects
+claude-continuity-kit/
+
+# Windows artifacts
+nul

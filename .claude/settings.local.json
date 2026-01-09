@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where claude:*)",
+      "Bash(dir \"%LOCALAPPDATA%\\\\Claude*\" /b /s)",
+      "Bash(findstr:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}
