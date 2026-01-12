@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Dataset, Questao, FiltrosGlobais, ModoCanvas, TabLaboratorio, QuestaoCompleta, Edital } from '../types';
+import type { Dataset, Questao, FiltrosGlobais, ModoCanvas, TabLaboratorio, QuestaoCompleta, Edital, IncidenciaNode } from '../types';
 
 interface AppState {
   // Datasets
@@ -39,6 +39,14 @@ interface AppState {
   setEditais: (editais: Edital[]) => void;
   setActiveEdital: (edital: Edital | null) => void;
 
+  // Incidência hierárquica
+  incidencia: IncidenciaNode[];
+  setIncidencia: (incidencia: IncidenciaNode[]) => void;
+
+  // Nó expandido na árvore de incidência
+  expandedNodes: Set<string>;
+  toggleNodeExpanded: (nodePath: string) => void;
+
   // Loading states
   isLoading: boolean;
   setLoading: (loading: boolean) => void;
@@ -61,6 +69,8 @@ export const useAppStore = create<AppState>((set) => ({
   questaoSelecionada: null,
   editais: [],
   activeEdital: null,
+  incidencia: [],
+  expandedNodes: new Set<string>(),
   isLoading: false,
 
   // Actions
@@ -79,5 +89,15 @@ export const useAppStore = create<AppState>((set) => ({
   }),
   setEditais: (editais) => set({ editais }),
   setActiveEdital: (activeEdital) => set({ activeEdital }),
+  setIncidencia: (incidencia) => set({ incidencia }),
+  toggleNodeExpanded: (nodePath) => set((state) => {
+    const newSet = new Set(state.expandedNodes);
+    if (newSet.has(nodePath)) {
+      newSet.delete(nodePath);
+    } else {
+      newSet.add(nodePath);
+    }
+    return { expandedNodes: newSet };
+  }),
   setLoading: (isLoading) => set({ isLoading }),
 }));

@@ -71,7 +71,7 @@ class Settings(BaseSettings):
 
     # LLM Settings
     default_llm_provider: str = "groq"
-    default_text_model: str = "llama-3.3-70b-versatile"
+    default_text_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
     default_vision_model: str = "claude-3-5-sonnet-20241022"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 4096

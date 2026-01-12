@@ -83,13 +83,15 @@ async def upload_edital(file: UploadFile = File(...)):
 
             logger.info(f"Edital created: {edital.id}")
 
-            logger.info(f"[DEBUG] About to create response with disciplinas={disciplinas}")
+            # Get cargos list from metadata
+            cargos = metadata.get("cargos") or []
+            logger.info(f"[DEBUG] About to create response with disciplinas={disciplinas}, cargos={cargos}")
             return EditalUploadResponse(
                 success=True,
                 edital_id=edital.id,
                 nome=edital.nome,
                 banca=edital.banca,
-                cargo=edital.cargo,
+                cargos=cargos,
                 ano=edital.ano,
                 disciplinas=disciplinas,
             )
@@ -102,7 +104,11 @@ async def upload_edital(file: UploadFile = File(...)):
 
 
 @router.post("/{edital_id}/conteudo-programatico", response_model=ConteudoProgramaticoResponse)
-async def upload_conteudo_programatico(edital_id: uuid.UUID, file: UploadFile = File(...)):
+async def upload_conteudo_programatico(
+    edital_id: uuid.UUID,
+    file: UploadFile = File(...),
+    cargo: Optional[str] = None
+):
     """
     Upload and extract conteúdo programático taxonomy
 
@@ -139,8 +145,8 @@ async def upload_conteudo_programatico(edital_id: uuid.UUID, file: UploadFile = 
 
             logger.info(f"Conteúdo programático uploaded: {file_path}")
 
-            # Extract taxonomy using LLM
-            taxonomia = extract_conteudo_programatico(file_path)
+            # Extract taxonomy using LLM (filtered by cargo if provided)
+            taxonomia = extract_conteudo_programatico(file_path, cargo=cargo)
 
             # Update edital with taxonomy
             edital.taxonomia = taxonomia
@@ -167,6 +173,7 @@ async def upload_conteudo_programatico(edital_id: uuid.UUID, file: UploadFile = 
                 total_disciplinas=total_disciplinas,
                 total_assuntos=total_assuntos,
                 total_topicos=total_topicos,
+                taxonomia=taxonomia,
             )
 
     except HTTPException:

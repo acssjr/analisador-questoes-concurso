@@ -1,14 +1,60 @@
+import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { Card, CardHeader, CardBody, Badge, Button } from '../components/ui';
 import { calcularDistribuicao, filtrarQuestoes } from '../utils/calculations';
 import { getDisciplinaColor } from '../utils/colors';
+import { EditalWorkflowModal } from '../components/features/EditalWorkflowModal';
 
 export function Insights() {
   const questoes = useAppStore(state => state.questoes);
+  const activeEdital = useAppStore(state => state.activeEdital);
   const activeDisciplina = useAppStore(state => state.activeDisciplina);
   const filtros = useAppStore(state => state.filtros);
   const setModoCanvas = useAppStore(state => state.setModoCanvas);
   const setPainelDireito = useAppStore(state => state.setPainelDireito);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+
+  // Se não há edital ativo, mostrar tela inicial
+  if (!activeEdital) {
+    return (
+      <>
+        <div className="flex flex-col items-center justify-center h-full">
+          <div className="text-center max-w-lg">
+            <div className="text-8xl mb-6">📊</div>
+            <h1 className="text-3xl font-bold text-text-primary mb-4">
+              Analisador de Questões de Concurso
+            </h1>
+            <p className="text-text-secondary mb-8">
+              Importe um edital com o conteúdo programático e as provas anteriores
+              para analisar a incidência de assuntos e identificar o que mais cai.
+            </p>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => setIsUploadModalOpen(true)}
+            >
+              📋 Importar Edital e Provas
+            </Button>
+            <div className="mt-8 p-4 bg-dark-surface rounded-lg text-left">
+              <p className="text-sm font-medium text-text-primary mb-2">Como funciona:</p>
+              <ol className="text-sm text-text-secondary space-y-2 list-decimal list-inside">
+                <li>Faça upload do PDF do edital do concurso</li>
+                <li>Adicione o conteúdo programático detalhado (opcional)</li>
+                <li>Importe as provas anteriores em PDF</li>
+                <li>O sistema extrai e classifica as questões automaticamente</li>
+                <li>Analise a incidência em 5 níveis hierárquicos</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <EditalWorkflowModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onUploadSuccess={() => setIsUploadModalOpen(false)}
+        />
+      </>
+    );
+  }
 
   const questoesFiltradas = filtrarQuestoes(questoes, { ...filtros, disciplina: activeDisciplina || undefined });
 

@@ -20,6 +20,7 @@ export interface Questao {
   anulada: boolean;
   motivo_anulacao?: string;
   imagens?: string[];
+  classificacao?: Classificacao;
 }
 
 export interface Classificacao {
@@ -28,13 +29,45 @@ export interface Classificacao {
   topico: string;
   subtopico: string;
   conceito_especifico: string;
+  confianca_disciplina: number;
   confianca_assunto: number;
   confianca_topico: number;
   confianca_subtopico: number;
-  confianca_conceito: number;
   conceito_testado: string;
   habilidade_bloom: 'lembrar' | 'entender' | 'aplicar' | 'analisar' | 'avaliar' | 'criar';
   nivel_dificuldade: 'basico' | 'intermediario' | 'avancado';
+  conceitos_adjacentes?: string[];
+  item_edital_path?: string;
+}
+
+// Estrutura hierárquica do conteúdo programático
+export interface ConteudoProgramatico {
+  disciplinas: DisciplinaConteudo[];
+}
+
+export interface DisciplinaConteudo {
+  nome: string;
+  assuntos: AssuntoConteudo[];
+}
+
+export interface AssuntoConteudo {
+  nome: string;
+  topicos: TopicoConteudo[];
+}
+
+export interface TopicoConteudo {
+  nome: string;
+  subtopicos: string[];
+}
+
+// Estrutura para análise de incidência
+export interface IncidenciaNode {
+  nome: string;
+  count: number;
+  percentual: number;
+  children?: IncidenciaNode[];
+  questoes?: Questao[];
+  confianca_media?: number;
 }
 
 export interface AnaliseAlternativa {
@@ -95,11 +128,35 @@ export interface Edital {
   arquivo_url: string;
   data_upload: string;
   conteudo_programatico_url?: string;
+  conteudo_programatico?: ConteudoProgramatico;
   total_provas: number;
+  total_questoes: number;
+  banca?: string;
+  orgao?: string;
+  ano?: number;
+  cargos?: string[];
 }
 
 export interface EditalUploadResponse {
+  success: boolean;
   edital_id: string;
   nome: string;
-  status: string;
+  banca?: string;
+  cargos: string[];  // Lista de todos os cargos do edital
+  ano?: number;
+  disciplinas: string[];
+}
+
+export interface ConteudoProgramaticoUploadResponse {
+  success: boolean;
+  edital_id: string;
+  total_disciplinas: number;
+  total_assuntos: number;
+  total_topicos: number;
+  taxonomia: ConteudoProgramatico;
+}
+
+export interface EditalComAnalise extends Edital {
+  questoes: Questao[];
+  incidencia: IncidenciaNode[];
 }

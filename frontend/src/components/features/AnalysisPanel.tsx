@@ -93,8 +93,7 @@ export function AnalysisPanel() {
                 <Badge variant="info">{Math.round(questaoSelecionada.classificacao.confianca_subtopico * 100)}%</Badge>
               </div>
               <div className="pl-16">
-                ⚡ {questaoSelecionada.classificacao.conceito_especifico}{' '}
-                <Badge variant="info">{Math.round(questaoSelecionada.classificacao.confianca_conceito * 100)}%</Badge>
+                ⚡ {questaoSelecionada.classificacao.conceito_especifico}
               </div>
             </div>
 

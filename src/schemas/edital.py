@@ -51,7 +51,7 @@ class EditalUploadResponse(BaseModel):
     edital_id: UUID
     nome: str
     banca: Optional[str]
-    cargo: Optional[str]
+    cargos: list[str] = Field(default_factory=list)  # Lista de todos os cargos
     ano: Optional[int]
     disciplinas: list[str] = Field(default_factory=list)
 
@@ -64,3 +64,4 @@ class ConteudoProgramaticoResponse(BaseModel):
     total_disciplinas: int
     total_assuntos: int
     total_topicos: int
+    taxonomia: dict = Field(default_factory=dict)  # Full hierarchical taxonomy

@@ -52,30 +52,32 @@ def extract_edital_metadata(pdf_path: str | Path) -> dict:
         dict: {
             "nome": str,
             "banca": str,
-            "cargo": str,
+            "cargos": list[str],  # Lista de todos os cargos do edital
             "ano": int,
             "disciplinas": list[str]
         }
     """
     try:
         # Extract text
-        text = extract_edital_text(pdf_path, max_pages=10)
+        text = extract_edital_text(pdf_path, max_pages=15)
 
         # Build LLM prompt
         prompt = f"""Analise este edital de concurso público e extraia as seguintes informações:
 
 TEXTO DO EDITAL (primeiras páginas):
-{text[:8000]}
+{text[:10000]}
 
 TAREFA:
 Extraia as seguintes informações em formato JSON:
-- nome: Nome completo do concurso (ex: "TRF 5ª Região 2024 - Analista Judiciário")
+- nome: Nome completo do concurso (ex: "TRF 5ª Região 2024")
 - banca: Banca organizadora (ex: "CESPE/CEBRASPE", "FCC", "FGV")
-- cargo: Cargo específico (ex: "Analista Judiciário - Tecnologia da Informação")
+- cargos: Lista de TODOS os cargos disponíveis no edital (ex: ["Analista Judiciário - TI", "Analista Judiciário - Contabilidade", "Técnico Judiciário"])
 - ano: Ano do concurso (número inteiro)
-- disciplinas: Lista de disciplinas cobradas (ex: ["Língua Portuguesa", "Raciocínio Lógico", "Direito Constitucional"])
+- disciplinas: Lista de disciplinas comuns cobradas (ex: ["Língua Portuguesa", "Raciocínio Lógico"])
 
 IMPORTANTE:
+- Extraia TODOS os cargos mencionados no edital, não apenas um
+- Se houver apenas um cargo, retorne uma lista com um item
 - Seja preciso e extraia exatamente o que está escrito
 - Se não encontrar uma informação, use null
 - Retorne APENAS o JSON, sem explicações
@@ -84,9 +86,14 @@ Exemplo de resposta:
 {{
   "nome": "Concurso Público TRF 5ª Região 2024",
   "banca": "CESPE/CEBRASPE",
-  "cargo": "Analista Judiciário - Área: Tecnologia da Informação",
+  "cargos": [
+    "Analista Judiciário - Área: Tecnologia da Informação",
+    "Analista Judiciário - Área: Contabilidade",
+    "Analista Judiciário - Área: Administrativa",
+    "Técnico Judiciário - Área: Administrativa"
+  ],
   "ano": 2024,
-  "disciplinas": ["Língua Portuguesa", "Raciocínio Lógico", "Direito Constitucional", "Direito Administrativo", "Tecnologia da Informação"]
+  "disciplinas": ["Língua Portuguesa", "Raciocínio Lógico", "Direito Constitucional", "Direito Administrativo"]
 }}
 """
 
@@ -95,7 +102,7 @@ Exemplo de resposta:
             prompt=prompt,
             system_prompt="Você é um especialista em análise de editais de concursos públicos brasileiros.",
             temperature=0.1,
-            max_tokens=1024,
+            max_tokens=2048,
         )
 
         # Parse JSON response
@@ -109,7 +116,22 @@ Exemplo de resposta:
 
         metadata = json.loads(content.strip())
 
-        logger.info(f"Extracted edital metadata: {metadata.get('nome')}")
+        # Ensure cargos is always a list
+        if "cargo" in metadata and "cargos" not in metadata:
+            # Legacy format - convert single cargo to list
+            cargo_str = metadata["cargo"] or ""
+            # Try to split combined cargo strings like "Analista e Técnico"
+            if " e " in cargo_str:
+                # Split by " e " and clean up each part
+                parts = [p.strip() for p in cargo_str.split(" e ")]
+                metadata["cargos"] = parts
+            else:
+                metadata["cargos"] = [cargo_str] if cargo_str else []
+
+        if not metadata.get("cargos"):
+            metadata["cargos"] = []
+
+        logger.info(f"Extracted edital metadata: {metadata.get('nome')} with {len(metadata.get('cargos', []))} cargos: {metadata.get('cargos')}")
 
         return metadata
 
@@ -118,12 +140,13 @@ Exemplo de resposta:
         raise ExtractionError(f"Edital metadata extraction failed: {e}")
 
 
-def extract_conteudo_programatico(pdf_path: str | Path) -> dict:
+def extract_conteudo_programatico(pdf_path: str | Path, cargo: Optional[str] = None) -> dict:
     """
     Extract hierarchical taxonomy from conteúdo programático PDF
 
     Args:
         pdf_path: Path to conteúdo programático PDF
+        cargo: Optional cargo name to filter content for specific cargo
 
     Returns:
         dict: Taxonomia hierárquica
@@ -148,18 +171,40 @@ def extract_conteudo_programatico(pdf_path: str | Path) -> dict:
     """
     try:
         # Extract full text (conteúdo programático can be long)
-        text = extract_edital_text(pdf_path, max_pages=30)
+        text = extract_edital_text(pdf_path, max_pages=50)
 
-        # Build LLM prompt for taxonomy extraction
-        prompt = f"""Analise este conteúdo programático de concurso público e extraia a taxonomia hierárquica COMPLETA.
+        # Build cargo-specific instruction
+        cargo_instruction = ""
+        if cargo:
+            cargo_instruction = f"""
+ATENÇÃO - CARGO ESPECÍFICO:
+Extraia APENAS o conteúdo programático do cargo: "{cargo}"
+Ignore disciplinas e conteúdos de outros cargos.
+Se o documento tiver seções por cargo, foque apenas na seção deste cargo.
+"""
+
+        # Build LLM prompt for taxonomy extraction - use more text for complete extraction
+        # Use up to 25000 chars to capture full content
+        text_to_analyze = text[:25000]
+
+        prompt = f"""Analise este conteúdo programático de concurso público e extraia a taxonomia hierárquica COMPLETA E DETALHADA.
 
 TEXTO DO CONTEÚDO PROGRAMÁTICO:
-{text[:12000]}
+{text_to_analyze}
+{cargo_instruction}
+TAREFA CRÍTICA:
+Extraia a estrutura hierárquica COMPLETA de todas as disciplinas e seus conteúdos.
+NÃO RESUMA. NÃO ABREVIE. Extraia CADA ITEM INDIVIDUAL.
 
-TAREFA:
-Extraia a estrutura hierárquica completa de todas as disciplinas e seus conteúdos:
+ESTRUTURA HIERÁRQUICA:
+DISCIPLINA → ASSUNTO → TÓPICO → SUBTÓPICO
 
-DISCIPLINA → ASSUNTO → TÓPICO → SUBTÓPICO → CONCEITO
+REGRAS OBRIGATÓRIAS:
+1. EXTRAIA CADA LEI INDIVIDUALMENTE com número completo (ex: "Lei Federal nº 8.429/1992", "Lei nº 13.709/2018 - LGPD")
+2. EXTRAIA CADA ARTIGO mencionado (ex: "Art. 37 da Constituição Federal")
+3. EXTRAIA CADA ITEM numerado do edital como subtópico separado
+4. NÃO agrupe itens - cada lei, cada artigo, cada tópico deve ser um item separado
+5. Use os NOMES EXATOS como aparecem no edital, sem resumir
 
 Estrutura do JSON:
 {{
@@ -172,7 +217,7 @@ Estrutura do JSON:
           "topicos": [
             {{
               "nome": "Nome do Tópico",
-              "subtopicos": ["Subtópico 1", "Subtópico 2", ...]
+              "subtopicos": ["Item específico 1", "Item específico 2", ...]
             }}
           ]
         }}
@@ -181,48 +226,43 @@ Estrutura do JSON:
   ]
 }}
 
-IMPORTANTE:
-- Preserve a hierarquia EXATA do documento
-- Inclua TODOS os itens, mesmo os mais detalhados
-- Use os nomes EXATOS como aparecem no edital
-- Organize em níveis hierárquicos claros
-- Retorne APENAS o JSON, sem explicações
-
-Exemplo:
+EXEMPLO CORRETO para Legislação:
 {{
-  "disciplinas": [
+  "nome": "Legislação Federal",
+  "topicos": [
     {{
-      "nome": "Língua Portuguesa",
-      "assuntos": [
-        {{
-          "nome": "Sintaxe",
-          "topicos": [
-            {{
-              "nome": "Período Composto",
-              "subtopicos": [
-                "Orações Subordinadas Substantivas",
-                "Orações Subordinadas Adjetivas",
-                "Orações Subordinadas Adverbiais"
-              ]
-            }},
-            {{
-              "nome": "Concordância",
-              "subtopicos": ["Concordância Nominal", "Concordância Verbal"]
-            }}
-          ]
-        }}
+      "nome": "Constituição Federal de 1988",
+      "subtopicos": [
+        "Dos Princípios Fundamentais",
+        "Dos Direitos e Garantias Fundamentais",
+        "Da Organização do Estado",
+        "Art. 37 - Princípios da Administração Pública"
       ]
+    }},
+    {{
+      "nome": "Lei Federal nº 8.429/1992",
+      "subtopicos": ["Improbidade Administrativa", "Sanções aplicáveis"]
+    }},
+    {{
+      "nome": "Lei Federal nº 9.784/1999",
+      "subtopicos": ["Processo Administrativo Federal"]
+    }},
+    {{
+      "nome": "Lei Federal nº 13.709/2018 - LGPD",
+      "subtopicos": ["Lei Geral de Proteção de Dados Pessoais"]
     }}
   ]
 }}
+
+IMPORTANTE: Retorne APENAS o JSON completo, sem explicações. Inclua TODOS os detalhes do documento.
 """
 
         llm = LLMOrchestrator()
         response = llm.generate(
             prompt=prompt,
-            system_prompt="Você é um especialista em análise de editais de concursos públicos brasileiros. Sua especialidade é extrair taxonomias hierárquicas precisas.",
+            system_prompt="Você é um especialista em análise de editais de concursos públicos brasileiros. Sua tarefa é extrair taxonomias hierárquicas COMPLETAS E DETALHADAS, preservando CADA lei, artigo e item mencionado no edital. NUNCA resuma ou agrupe itens.",
             temperature=0.1,
-            max_tokens=4096,
+            max_tokens=8192,
         )
 
         # Parse JSON response
@@ -237,7 +277,8 @@ Exemplo:
         taxonomia = json.loads(content.strip())
 
         total_disciplinas = len(taxonomia.get("disciplinas", []))
-        logger.info(f"Extracted taxonomia with {total_disciplinas} disciplinas")
+        cargo_info = f" for cargo '{cargo}'" if cargo else ""
+        logger.info(f"Extracted taxonomia with {total_disciplinas} disciplinas{cargo_info}")
 
         return taxonomia
 

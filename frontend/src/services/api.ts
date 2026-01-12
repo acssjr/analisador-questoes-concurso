@@ -1,4 +1,4 @@
-import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse } from '../types';
+import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -115,11 +115,17 @@ export const api = {
     return response.json();
   },
 
-  async uploadConteudoProgramatico(editalId: string, file: File): Promise<{ status: string; url: string }> {
+  async uploadConteudoProgramatico(editalId: string, file: File, cargo?: string): Promise<ConteudoProgramaticoUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/editais/${editalId}/conteudo-programatico`, {
+    // Build URL with cargo parameter if provided
+    let url = `${API_BASE_URL}/editais/${editalId}/conteudo-programatico`;
+    if (cargo) {
+      url += `?cargo=${encodeURIComponent(cargo)}`;
+    }
+
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
     });
@@ -131,7 +137,22 @@ export const api = {
     return response.json();
   },
 
-  async uploadProvasVinculadas(editalId: string, files: File[]): Promise<{ job_ids: string[]; status: string }> {
+  async uploadProvasVinculadas(editalId: string, files: File[]): Promise<{
+    success: boolean;
+    total_files: number;
+    successful_files: number;
+    failed_files: number;
+    total_questoes: number;
+    results: Array<{
+      success: boolean;
+      filename: string;
+      format?: string;
+      total_questoes?: number;
+      questoes?: any[];
+      metadados?: any;
+      error?: string;
+    }>;
+  }> {
     const formData = new FormData();
     files.forEach(file => {
       formData.append('files', file);
