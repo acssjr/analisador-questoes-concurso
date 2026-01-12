@@ -40,24 +40,35 @@ export interface Classificacao {
   item_edital_path?: string;
 }
 
-// Estrutura hierárquica do conteúdo programático
-export interface ConteudoProgramatico {
-  disciplinas: DisciplinaConteudo[];
+// Estrutura hierárquica do conteúdo programático - RECURSIVA E ADAPTATIVA
+// Suporta 1 a N níveis de profundidade conforme o edital real
+
+export interface ItemConteudo {
+  id: string | null;  // null para itens sem numeração
+  texto: string;
+  filhos: ItemConteudo[];
 }
 
 export interface DisciplinaConteudo {
   nome: string;
-  assuntos: AssuntoConteudo[];
+  itens: ItemConteudo[];
+  // Legacy fields for backward compatibility during migration
+  assuntos?: AssuntoConteudo[];
 }
 
+export interface ConteudoProgramatico {
+  disciplinas: DisciplinaConteudo[];
+}
+
+// Legacy types for backward compatibility
 export interface AssuntoConteudo {
   nome: string;
-  topicos: TopicoConteudo[];
+  topicos?: TopicoConteudo[];
 }
 
 export interface TopicoConteudo {
   nome: string;
-  subtopicos: string[];
+  subtopicos?: string[];
 }
 
 // Estrutura para análise de incidência

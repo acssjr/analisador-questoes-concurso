@@ -144,24 +144,31 @@ def extract_conteudo_programatico(pdf_path: str | Path, cargo: Optional[str] = N
     """
     Extract hierarchical taxonomy from conteúdo programático PDF
 
+    Uses adaptive recursive structure that preserves the exact hierarchy from the edital,
+    supporting 1 to N levels of depth as needed.
+
     Args:
         pdf_path: Path to conteúdo programático PDF
         cargo: Optional cargo name to filter content for specific cargo
 
     Returns:
-        dict: Taxonomia hierárquica
+        dict: Taxonomia hierárquica adaptativa
         {
             "disciplinas": [
                 {
                     "nome": "Língua Portuguesa",
-                    "assuntos": [
+                    "itens": [
                         {
-                            "nome": "Sintaxe",
-                            "topicos": [
-                                {
-                                    "nome": "Período Composto",
-                                    "subtopicos": ["Orações Subordinadas", ...]
-                                }
+                            "id": "1",
+                            "texto": "Compreensão e interpretação de texto",
+                            "filhos": []
+                        },
+                        {
+                            "id": "8",
+                            "texto": "Estatística",
+                            "filhos": [
+                                {"id": "8.1", "texto": "Medidas de tendência central", "filhos": []},
+                                {"id": "8.2", "texto": "Medidas de dispersão", "filhos": []}
                             ]
                         }
                     ]
@@ -187,37 +194,56 @@ Se o documento tiver seções por cargo, foque apenas na seção deste cargo.
         # Use up to 25000 chars to capture full content
         text_to_analyze = text[:25000]
 
-        prompt = f"""Analise este conteúdo programático de concurso público e extraia a taxonomia hierárquica COMPLETA E DETALHADA.
+        prompt = f"""Analise este conteúdo programático de concurso público e extraia a estrutura hierárquica EXATA como aparece no documento.
 
 TEXTO DO CONTEÚDO PROGRAMÁTICO:
 {text_to_analyze}
 {cargo_instruction}
 TAREFA CRÍTICA:
-Extraia a estrutura hierárquica COMPLETA de todas as disciplinas e seus conteúdos.
-NÃO RESUMA. NÃO ABREVIE. Extraia CADA ITEM INDIVIDUAL.
+Extraia a estrutura hierárquica EXATA preservando a numeração original do edital.
+A estrutura é RECURSIVA e ADAPTATIVA - pode ter 1, 2, 3 ou mais níveis conforme o edital.
 
-ESTRUTURA HIERÁRQUICA:
-DISCIPLINA → ASSUNTO → TÓPICO → SUBTÓPICO
+REGRAS ABSOLUTAS:
+1. PRESERVE a numeração EXATA do edital (ex: "1", "1.2", "2.1.3")
+2. Se um item NÃO tem número, use id: null
+3. Item X.Y é SEMPRE filho de X (ex: 8.1 é filho de 8)
+4. Item X.Y.Z é SEMPRE filho de X.Y (ex: 2.1.1 é filho de 2.1)
+5. NÃO INVENTE números que não existem no edital
+6. NÃO "CORRIJA" erros de numeração do edital - preserve como está
+7. Itens sem sub-itens têm filhos: []
+8. Use o TEXTO EXATO como aparece no edital
 
-REGRAS OBRIGATÓRIAS:
-1. EXTRAIA CADA LEI INDIVIDUALMENTE com número completo (ex: "Lei Federal nº 8.429/1992", "Lei nº 13.709/2018 - LGPD")
-2. EXTRAIA CADA ARTIGO mencionado (ex: "Art. 37 da Constituição Federal")
-3. EXTRAIA CADA ITEM numerado do edital como subtópico separado
-4. NÃO agrupe itens - cada lei, cada artigo, cada tópico deve ser um item separado
-5. Use os NOMES EXATOS como aparecem no edital, sem resumir
-
-Estrutura do JSON:
+ESTRUTURA RECURSIVA DO JSON:
 {{
   "disciplinas": [
     {{
-      "nome": "Nome da Disciplina",
-      "assuntos": [
+      "nome": "Nome da Disciplina (ex: MATEMÁTICA E RACIOCÍNIO LÓGICO)",
+      "itens": [
         {{
-          "nome": "Nome do Assunto",
-          "topicos": [
+          "id": "1",
+          "texto": "Texto do item 1",
+          "filhos": []
+        }},
+        {{
+          "id": "8",
+          "texto": "Estatística",
+          "filhos": [
+            {{"id": "8.1", "texto": "Medidas de tendência central (média, mediana e moda)", "filhos": []}},
+            {{"id": "8.2", "texto": "Medidas de dispersão (variância, desvio-padrão, amplitude)", "filhos": []}}
+          ]
+        }},
+        {{
+          "id": "2",
+          "texto": "Noções de Direito Administrativo",
+          "filhos": [
             {{
-              "nome": "Nome do Tópico",
-              "subtopicos": ["Item específico 1", "Item específico 2", ...]
+              "id": "2.1",
+              "texto": "Poderes Administrativos",
+              "filhos": [
+                {{"id": "2.1.1", "texto": "Vinculado", "filhos": []}},
+                {{"id": "2.1.2", "texto": "Discricionário", "filhos": []}},
+                {{"id": "2.1.3", "texto": "Hierárquico", "filhos": []}}
+              ]
             }}
           ]
         }}
@@ -226,35 +252,15 @@ Estrutura do JSON:
   ]
 }}
 
-EXEMPLO CORRETO para Legislação:
-{{
-  "nome": "Legislação Federal",
-  "topicos": [
-    {{
-      "nome": "Constituição Federal de 1988",
-      "subtopicos": [
-        "Dos Princípios Fundamentais",
-        "Dos Direitos e Garantias Fundamentais",
-        "Da Organização do Estado",
-        "Art. 37 - Princípios da Administração Pública"
-      ]
-    }},
-    {{
-      "nome": "Lei Federal nº 8.429/1992",
-      "subtopicos": ["Improbidade Administrativa", "Sanções aplicáveis"]
-    }},
-    {{
-      "nome": "Lei Federal nº 9.784/1999",
-      "subtopicos": ["Processo Administrativo Federal"]
-    }},
-    {{
-      "nome": "Lei Federal nº 13.709/2018 - LGPD",
-      "subtopicos": ["Lei Geral de Proteção de Dados Pessoais"]
-    }}
-  ]
-}}
+EXEMPLO - Como interpretar texto corrido:
+Texto: "8. Estatística: 8.1 Medidas de tendência central; 8.2 Medidas de dispersão"
+Resultado: item 8 com dois filhos (8.1 e 8.2)
 
-IMPORTANTE: Retorne APENAS o JSON completo, sem explicações. Inclua TODOS os detalhes do documento.
+EXEMPLO - Item sem número:
+Texto: "Conceitos e princípios básicos da Administração Pública"
+Resultado: {{"id": null, "texto": "Conceitos e princípios básicos da Administração Pública", "filhos": []}}
+
+IMPORTANTE: Retorne APENAS o JSON. Extraia TODOS os itens do documento com a hierarquia correta.
 """
 
         llm = LLMOrchestrator()

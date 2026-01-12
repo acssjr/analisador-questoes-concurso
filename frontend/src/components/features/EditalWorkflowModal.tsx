@@ -3,7 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button, Badge } from '../ui';
 import { api } from '../../services/api';
 import { useAppStore } from '../../store/appStore';
-import type { Edital, Questao, IncidenciaNode, EditalUploadResponse, ConteudoProgramaticoUploadResponse, DisciplinaConteudo } from '../../types';
+import type { Edital, Questao, IncidenciaNode, EditalUploadResponse, ConteudoProgramaticoUploadResponse, DisciplinaConteudo, ItemConteudo } from '../../types';
 
 interface EditalWorkflowModalProps {
   isOpen: boolean;
@@ -140,7 +140,90 @@ function EditalPreview({ data, selectedCargo, onCargoSelect }: {
   );
 }
 
-// Componente para mostrar preview da taxonomia extraída com hierarquia inteligente
+// Componente recursivo para renderizar um item e seus filhos
+function RecursiveItemRenderer({
+  item,
+  itemKey,
+  depth,
+  expandedItems,
+  toggleItem
+}: {
+  item: ItemConteudo;
+  itemKey: string;
+  depth: number;
+  expandedItems: Set<string>;
+  toggleItem: (key: string) => void;
+}) {
+  const hasChildren = item.filhos && item.filhos.length > 0;
+  const isExpanded = expandedItems.has(itemKey);
+
+  // Opacidade diminui com a profundidade
+  const opacityClass = depth === 0 ? 'text-text-secondary' :
+                       depth === 1 ? 'text-text-secondary/80' :
+                       'text-text-secondary/60';
+
+  // Formato do ID para exibição
+  const displayId = item.id ? `${item.id}. ` : '';
+
+  if (!hasChildren) {
+    // Item folha - sem expansão
+    return (
+      <div className={`${opacityClass} text-xs p-0.5 pl-1`}>
+        <span className="text-text-secondary/50 mr-1">–</span>
+        {displayId}{item.texto}
+      </div>
+    );
+  }
+
+  // Item com filhos - expansível
+  return (
+    <div>
+      <button
+        onClick={() => toggleItem(itemKey)}
+        className="flex items-center gap-1 w-full text-left hover:bg-dark-border/20 p-0.5 rounded text-xs"
+      >
+        <span className="text-text-secondary/60 w-3">
+          {isExpanded ? '▼' : '▶'}
+        </span>
+        <span className={opacityClass}>
+          {displayId}{item.texto}
+        </span>
+        <span className="text-text-secondary/40 text-[10px]">
+          ({item.filhos.length})
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div className="ml-3 pl-2 border-l border-dark-border/30 space-y-0.5">
+          {item.filhos.map((filho, idx) => (
+            <RecursiveItemRenderer
+              key={idx}
+              item={filho}
+              itemKey={`${itemKey}-${idx}`}
+              depth={depth + 1}
+              expandedItems={expandedItems}
+              toggleItem={toggleItem}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Conta total de itens (recursivo)
+function countTotalItems(itens: ItemConteudo[]): number {
+  let total = 0;
+  for (const item of itens) {
+    total += 1;
+    if (item.filhos && item.filhos.length > 0) {
+      total += countTotalItems(item.filhos);
+    }
+  }
+  return total;
+}
+
+// Componente para mostrar preview da taxonomia extraída - VERSÃO RECURSIVA
 function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -156,66 +239,18 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
     });
   };
 
-  // Helper para singular/plural correto
-  const pluralize = (count: number, singular: string, plural: string) => {
-    return count === 1 ? `${count} ${singular}` : `${count} ${plural}`;
-  };
-
-  // Verifica se um nome é "útil" (não vazio, não só números, não igual ao pai)
-  const isUsefulName = (nome: string, parentNome?: string): boolean => {
-    if (!nome || nome.trim() === '') return false;
-    if (/^\d+\.?\s*$/.test(nome.trim())) return false; // Só números como "1." ou "2"
-    if (parentNome && nome.toLowerCase().trim() === parentNome.toLowerCase().trim()) return false;
-    return true;
-  };
-
-  // Conta total de itens folha em um assunto (para mostrar contagem real)
-  const countLeafItems = (assunto: { topicos?: Array<{ nome: string; subtopicos?: string[] }> }): number => {
-    if (!assunto.topicos) return 0;
-    let total = 0;
-    for (const topico of assunto.topicos) {
-      if (topico.subtopicos && topico.subtopicos.length > 0) {
-        total += topico.subtopicos.length;
-      } else {
-        total += 1; // O próprio tópico é um item folha
-      }
-    }
-    return total;
-  };
-
-  // Obtém todos os itens folha de um assunto (achatando a hierarquia quando necessário)
-  const getLeafItems = (assunto: { nome: string; topicos?: Array<{ nome: string; subtopicos?: string[] }> }): string[] => {
-    const items: string[] = [];
-    if (!assunto.topicos) return items;
-
-    for (const topico of assunto.topicos) {
-      if (topico.subtopicos && topico.subtopicos.length > 0) {
-        // Se o tópico tem nome útil, prefixar os subtópicos
-        if (isUsefulName(topico.nome, assunto.nome)) {
-          items.push(...topico.subtopicos.map(s => `${topico.nome}: ${s}`));
-        } else {
-          items.push(...topico.subtopicos);
-        }
-      } else if (isUsefulName(topico.nome, assunto.nome)) {
-        items.push(topico.nome);
-      }
-    }
-    return items;
-  };
-
-  // Verifica se deve mostrar hierarquia intermediária ou achatar direto
-  const shouldFlatten = (assunto: { nome: string; topicos?: Array<{ nome: string; subtopicos?: string[] }> }): boolean => {
-    if (!assunto.topicos || assunto.topicos.length === 0) return true;
-    // Achatar se todos os tópicos têm nome inútil
-    const hasUsefulTopicName = assunto.topicos.some(t => isUsefulName(t.nome, assunto.nome));
-    // Ou se tem só 1 tópico com nome igual ao assunto
-    if (assunto.topicos.length === 1 && !isUsefulName(assunto.topicos[0].nome, assunto.nome)) {
-      return true;
-    }
-    return !hasUsefulTopicName;
-  };
-
   const disciplinas = data.taxonomia?.disciplinas || [];
+
+  // Calcula totais baseado na nova estrutura
+  const totalDisciplinas = disciplinas.length;
+  const totalItens = disciplinas.reduce((acc, disc) => {
+    // Nova estrutura usa 'itens', legada usa 'assuntos'
+    if (disc.itens) {
+      return acc + countTotalItems(disc.itens);
+    }
+    // Fallback para estrutura legada
+    return acc + (disc.assuntos?.length || 0);
+  }, 0);
 
   return (
     <div className="surface p-4 space-y-3 border border-semantic-success rounded-lg">
@@ -226,16 +261,12 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
 
       <div className="flex gap-4 text-sm">
         <div className="text-center">
-          <p className="text-2xl font-bold text-disciplinas-portugues">{data.total_disciplinas}</p>
+          <p className="text-2xl font-bold text-disciplinas-portugues">{totalDisciplinas}</p>
           <p className="text-text-secondary">Disciplinas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-disciplinas-matematica">{data.total_assuntos}</p>
-          <p className="text-text-secondary">Assuntos</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-disciplinas-constitucional">{data.total_topicos}</p>
-          <p className="text-text-secondary">Tópicos</p>
+          <p className="text-2xl font-bold text-disciplinas-matematica">{totalItens}</p>
+          <p className="text-text-secondary">Itens</p>
         </div>
       </div>
 
@@ -245,9 +276,13 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
             const discKey = `d-${dIdx}`;
             const isDiscExpanded = expandedItems.has(discKey);
 
+            // Usa nova estrutura (itens) ou fallback para legada (assuntos)
+            const hasItens = disc.itens && disc.itens.length > 0;
+            const itemCount = hasItens ? disc.itens.length : (disc.assuntos?.length || 0);
+
             return (
               <div key={dIdx} className="text-sm">
-                {/* Nível 1: Disciplina */}
+                {/* Nível Disciplina */}
                 <button
                   onClick={() => toggleItem(discKey)}
                   className="flex items-center gap-2 w-full text-left hover:bg-dark-border/20 p-1 rounded"
@@ -257,106 +292,33 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
                   </span>
                   <span className="text-text-primary font-medium">{disc.nome}</span>
                   <span className="text-text-secondary text-xs">
-                    ({pluralize(disc.assuntos?.length || 0, 'assunto', 'assuntos')})
+                    ({itemCount} {itemCount === 1 ? 'item' : 'itens'})
                   </span>
                 </button>
 
-                {isDiscExpanded && disc.assuntos && (
-                  <div className="ml-4 pl-2 border-l border-dark-border space-y-1">
-                    {disc.assuntos.map((assunto, aIdx) => {
-                      const assuntoKey = `${discKey}-a-${aIdx}`;
-                      const isAssuntoExpanded = expandedItems.has(assuntoKey);
-                      const leafCount = countLeafItems(assunto);
-                      const flatten = shouldFlatten(assunto);
-                      const hasContent = leafCount > 0 || (assunto.topicos && assunto.topicos.length > 0);
+                {isDiscExpanded && hasItens && (
+                  <div className="ml-4 pl-2 border-l border-dark-border space-y-0.5">
+                    {disc.itens.map((item, iIdx) => (
+                      <RecursiveItemRenderer
+                        key={iIdx}
+                        item={item}
+                        itemKey={`${discKey}-i-${iIdx}`}
+                        depth={0}
+                        expandedItems={expandedItems}
+                        toggleItem={toggleItem}
+                      />
+                    ))}
+                  </div>
+                )}
 
-                      if (!hasContent) {
-                        // Assunto sem conteúdo - mostrar só o nome
-                        return (
-                          <div key={aIdx} className="text-text-secondary text-xs p-1">
-                            • {assunto.nome}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div key={aIdx}>
-                          {/* Nível 2: Assunto */}
-                          <button
-                            onClick={() => toggleItem(assuntoKey)}
-                            className="flex items-center gap-2 w-full text-left hover:bg-dark-border/20 p-1 rounded text-xs"
-                          >
-                            <span className="text-text-secondary">
-                              {isAssuntoExpanded ? '▼' : '▶'}
-                            </span>
-                            <span className="text-text-secondary">{assunto.nome}</span>
-                            <span className="text-text-secondary/60">
-                              ({pluralize(leafCount, 'item', 'itens')})
-                            </span>
-                          </button>
-
-                          {/* Conteúdo expandido */}
-                          {isAssuntoExpanded && (
-                            <div className="ml-4 pl-2 border-l border-dark-border/50 space-y-0.5">
-                              {flatten ? (
-                                // Modo achatado: mostrar todos os itens folha diretamente
-                                getLeafItems(assunto).map((item, iIdx) => (
-                                  <div key={iIdx} className="text-text-secondary/70 text-xs p-0.5">
-                                    – {item}
-                                  </div>
-                                ))
-                              ) : (
-                                // Modo hierárquico: mostrar tópicos com expansão
-                                assunto.topicos!.map((topico, tIdx) => {
-                                  const topicoKey = `${assuntoKey}-t-${tIdx}`;
-                                  const isTopicoExpanded = expandedItems.has(topicoKey);
-                                  const hasSubtopicos = topico.subtopicos && topico.subtopicos.length > 0;
-                                  const topicoLeafCount = hasSubtopicos ? topico.subtopicos!.length : 0;
-
-                                  if (!hasSubtopicos) {
-                                    // Tópico sem subtópicos - mostrar só o nome
-                                    return (
-                                      <div key={tIdx} className="text-text-secondary/70 text-xs p-0.5">
-                                        ◦ {topico.nome}
-                                      </div>
-                                    );
-                                  }
-
-                                  return (
-                                    <div key={tIdx}>
-                                      <button
-                                        onClick={() => toggleItem(topicoKey)}
-                                        className="flex items-center gap-2 w-full text-left hover:bg-dark-border/20 p-0.5 rounded text-xs"
-                                      >
-                                        <span className="text-text-secondary/60">
-                                          {isTopicoExpanded ? '▼' : '▶'}
-                                        </span>
-                                        <span className="text-text-secondary/70">
-                                          {isUsefulName(topico.nome, assunto.nome) ? topico.nome : `Grupo ${tIdx + 1}`}
-                                        </span>
-                                        <span className="text-text-secondary/50">
-                                          ({pluralize(topicoLeafCount, 'item', 'itens')})
-                                        </span>
-                                      </button>
-
-                                      {isTopicoExpanded && (
-                                        <div className="ml-4 pl-2 border-l border-dark-border/30 space-y-0.5">
-                                          {topico.subtopicos!.map((subtopico, sIdx) => (
-                                            <div key={sIdx} className="text-text-secondary/60 text-xs p-0.5">
-                                              – {subtopico}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                {/* Fallback para estrutura legada */}
+                {isDiscExpanded && !hasItens && disc.assuntos && (
+                  <div className="ml-4 pl-2 border-l border-dark-border space-y-0.5">
+                    {disc.assuntos.map((assunto, aIdx) => (
+                      <div key={aIdx} className="text-text-secondary text-xs p-0.5">
+                        – {assunto.nome}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
