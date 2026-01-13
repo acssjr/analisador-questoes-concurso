@@ -99,6 +99,14 @@ export const api = {
   },
 
   // Edital endpoints
+  async listEditais(): Promise<any[]> {
+    return fetchApi('/editais/');
+  },
+
+  async getEdital(id: string): Promise<any> {
+    return fetchApi(`/editais/${id}`);
+  },
+
   async uploadEdital(file: File): Promise<EditalUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);

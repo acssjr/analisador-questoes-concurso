@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EditalWorkflowModal } from '../components/features/EditalWorkflowModal';
 import { ProjectsList } from '../components/features/ProjectsList';
+import { EditaisList } from '../components/features/EditaisList';
 import { api } from '../services/api';
 import { useAppStore } from '../store/appStore';
 import type { Projeto, Edital } from '../types';
@@ -197,29 +198,37 @@ function Footer() {
 export function Home() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [hasProjects, setHasProjects] = useState(false);
+  const [hasEditais, setHasEditais] = useState(false);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const setActiveEdital = useAppStore((state) => state.setActiveEdital);
 
   const [projectsKey, setProjectsKey] = useState(0);
+  const [editaisKey, setEditaisKey] = useState(0);
 
-  // Check if user has projects
+  // Check if user has projects and editais
   useEffect(() => {
-    async function checkProjects() {
+    async function checkData() {
       try {
-        const response = await api.listProjetos();
-        setHasProjects(response.projetos.length > 0);
+        // Check projects
+        const projectsResponse = await api.listProjetos();
+        setHasProjects(projectsResponse.projetos.length > 0);
+
+        // Check editais
+        const editaisResponse = await api.listEditais();
+        setHasEditais(editaisResponse.length > 0);
       } catch (err) {
-        console.error('Erro ao verificar projetos:', err);
+        console.error('Erro ao verificar dados:', err);
       } finally {
         setLoadingProjects(false);
       }
     }
-    checkProjects();
-  }, [projectsKey]);
+    checkData();
+  }, [projectsKey, editaisKey]);
 
-  // Refresh projects list
+  // Refresh lists
   function refreshProjects() {
     setProjectsKey(k => k + 1);
+    setEditaisKey(k => k + 1);
   }
 
   // Handle project selection - load edital and go to dashboard
@@ -243,6 +252,12 @@ export function Home() {
     };
 
     setActiveEdital(edital);
+  }
+
+  // Handle edital selection - set as active edital
+  function handleSelectEdital(edital: Edital) {
+    setActiveEdital(edital);
+    // TODO: navigate to edital details or analysis page
   }
 
   const features = [
@@ -357,6 +372,17 @@ export function Home() {
           </div>
         </motion.div>
 
+        {/* Editais List - always show if user has editais */}
+        {!loadingProjects && hasEditais && (
+          <div className="mb-8">
+            <EditaisList
+              key={editaisKey}
+              onSelectEdital={handleSelectEdital}
+              onNewEdital={() => setIsUploadModalOpen(true)}
+            />
+          </div>
+        )}
+
         {/* Projects List - only show if user has projects */}
         {!loadingProjects && hasProjects && (
           <div className="mb-8">
@@ -368,8 +394,8 @@ export function Home() {
           </div>
         )}
 
-        {/* Stats Grid - Empty State (only show if no projects) */}
-        {!hasProjects && (
+        {/* Stats Grid - Empty State (only show if no editais and no projects) */}
+        {!hasEditais && !hasProjects && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <StatCard
               icon={IconBookOpen}

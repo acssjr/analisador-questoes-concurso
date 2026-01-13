@@ -1,6 +1,8 @@
 """
 Upload routes - for PDF upload and extraction
 """
+import re
+import unicodedata
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -13,53 +15,68 @@ from src.core.config import get_settings
 from src.core.database import get_db
 from src.extraction.pci_parser import parse_pci_pdf
 from src.extraction.pdf_detector import detect_pdf_format
+from src.extraction.llm_parser import extract_questions_with_llm, extract_questions_chunked
+from src.llm.llm_orchestrator import LLMOrchestrator
 from src.models.edital import Edital
 
 settings = get_settings()
 router = APIRouter()
 
 
-# Mapeamento de variações comuns de nomes de disciplinas
+# Mapeamento de variações comuns de nomes de disciplinas (SEM ACENTOS - normalizado)
 DISCIPLINA_ALIASES = {
     # Português
-    "português": ["língua portuguesa", "português", "redação", "interpretação de texto"],
-    "língua portuguesa": ["português", "língua portuguesa", "redação"],
+    "portugues": ["lingua portuguesa", "portugues", "redacao", "interpretacao de texto"],
+    "lingua portuguesa": ["portugues", "lingua portuguesa", "redacao"],
     # Matemática e Raciocínio
-    "matemática": ["matemática", "raciocínio lógico", "raciocínio lógico-matemático", "rlm"],
-    "raciocínio lógico": ["matemática", "raciocínio lógico", "raciocínio lógico-matemático", "rlm"],
-    "raciocínio lógico-matemático": ["matemática", "raciocínio lógico", "rlm"],
+    "matematica": ["matematica", "raciocinio logico", "raciocinio logico-matematico", "rlm", "matematica e raciocinio logico"],
+    "raciocinio logico": ["matematica", "raciocinio logico", "raciocinio logico-matematico", "rlm", "matematica e raciocinio logico"],
+    "raciocinio logico-matematico": ["matematica", "raciocinio logico", "rlm"],
+    "matematica e raciocinio logico": ["matematica", "raciocinio logico", "rlm"],
     # Informática
-    "informática": ["informática", "noções de informática", "tecnologia da informação", "ti"],
-    "noções de informática": ["informática", "noções de informática"],
+    "informatica": ["informatica", "nocoes de informatica", "tecnologia da informacao", "ti", "tecnologia"],
+    "nocoes de informatica": ["informatica", "nocoes de informatica"],
+    "tecnologia": ["informatica", "tecnologia"],
     # Direitos
     "direito constitucional": ["direito constitucional", "constitucional"],
     "direito administrativo": ["direito administrativo", "administrativo"],
     "direito penal": ["direito penal", "penal"],
     "direito civil": ["direito civil", "civil"],
-    "direito tributário": ["direito tributário", "tributário"],
+    "direito tributario": ["direito tributario", "tributario"],
     "direito processual": ["direito processual", "processual"],
     # Administração
-    "administração": ["administração", "administração pública", "adm"],
-    "administração pública": ["administração", "administração pública"],
+    "administracao": ["administracao", "administracao publica", "adm"],
+    "administracao publica": ["administracao", "administracao publica"],
     # Contabilidade
-    "contabilidade": ["contabilidade", "contabilidade geral", "contabilidade pública"],
+    "contabilidade": ["contabilidade", "contabilidade geral", "contabilidade publica"],
     "contabilidade geral": ["contabilidade", "contabilidade geral"],
     # Economia
     "economia": ["economia", "economia brasileira", "macroeconomia", "microeconomia"],
     # AFO
-    "afo": ["afo", "administração financeira e orçamentária", "orçamento público"],
-    "administração financeira e orçamentária": ["afo", "administração financeira e orçamentária"],
+    "afo": ["afo", "administracao financeira e orcamentaria", "orcamento publico"],
+    "administracao financeira e orcamentaria": ["afo", "administracao financeira e orcamentaria"],
+    # Legislação
+    "legislacao": ["legislacao", "legislacao basica", "nocoes de legislacao"],
+    "legislacao basica": ["legislacao", "legislacao basica"],
     # Outros
     "atualidades": ["atualidades", "conhecimentos gerais", "realidade brasileira"],
     "conhecimentos gerais": ["atualidades", "conhecimentos gerais"],
+    # Redação
+    "redacao": ["redacao", "portugues", "lingua portuguesa"],
 }
 
 
+def remove_accents(text: str) -> str:
+    """Remove accents from text for comparison"""
+    nfkd = unicodedata.normalize('NFKD', text)
+    return ''.join(c for c in nfkd if not unicodedata.combining(c))
+
+
 def normalize_disciplina(nome: str) -> str:
-    """Normaliza nome de disciplina para comparação"""
+    """Normaliza nome de disciplina para comparação (lowercase, sem acentos)"""
     if not nome:
         return ""
-    return nome.lower().strip()
+    return remove_accents(nome.lower().strip())
 
 
 def get_edital_disciplinas(taxonomia: dict) -> list[str]:
@@ -221,10 +238,20 @@ async def upload_pdf(
                 # Detect format
                 format_type = detect_pdf_format(file_path)
 
-                # Extract based on format (PCI and GABARITO use same parser)
-                if format_type in ["PCI", "GABARITO"]:
-                    extraction_result = parse_pci_pdf(file_path)
-                    questoes_extraidas = extraction_result["questoes"]
+                # Extract using LLM (more robust than regex)
+                # Falls back to regex parser if LLM fails
+                if format_type in ["PCI", "GABARITO", "PROVA_GENERICA"]:
+                    try:
+                        # Use LLM for intelligent extraction (chunked for large PDFs)
+                        llm = LLMOrchestrator()
+                        extraction_result = extract_questions_chunked(file_path, llm, pages_per_chunk=4)
+                        questoes_extraidas = extraction_result["questoes"]
+                        logger.info(f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}")
+                    except Exception as llm_error:
+                        # Fallback to regex parser
+                        logger.warning(f"LLM extraction failed, falling back to regex: {llm_error}")
+                        extraction_result = parse_pci_pdf(file_path)
+                        questoes_extraidas = extraction_result["questoes"]
 
                     # Filtrar questões por disciplinas do edital (se vinculado)
                     if edital_taxonomia:

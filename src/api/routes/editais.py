@@ -77,9 +77,9 @@ async def upload_edital(file: UploadFile = File(...)):
                 Edital.nome == nome,
                 Edital.banca == banca,
                 Edital.ano == ano
-            )
+            ).limit(1)
             existing_result = await db.execute(existing_stmt)
-            existing_edital = existing_result.scalar_one_or_none()
+            existing_edital = existing_result.scalars().first()
 
             if existing_edital:
                 logger.info(f"Found existing edital: {existing_edital.id}, reusing instead of creating duplicate")
