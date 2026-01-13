@@ -66,22 +66,41 @@ async def upload_edital(file: UploadFile = File(...)):
         disciplinas = metadata.get("disciplinas") or []
         logger.info(f"[DEBUG] Disciplinas extracted: {disciplinas} (type: {type(disciplinas)})")
 
-        # Create edital in database
+        # Check for existing edital to avoid duplicates
         async for db in get_db():
-            edital = Edital(
-                nome=metadata.get("nome", file.filename),
-                banca=metadata.get("banca"),
-                cargo=metadata.get("cargo"),
-                ano=metadata.get("ano"),
-                arquivo_original=str(file_path),
-                taxonomia={"disciplinas": []},  # Will be populated with conteúdo programático
+            nome = metadata.get("nome", file.filename)
+            banca = metadata.get("banca")
+            ano = metadata.get("ano")
+
+            # Search for existing edital with same nome, banca, ano
+            existing_stmt = select(Edital).where(
+                Edital.nome == nome,
+                Edital.banca == banca,
+                Edital.ano == ano
             )
+            existing_result = await db.execute(existing_stmt)
+            existing_edital = existing_result.scalar_one_or_none()
 
-            db.add(edital)
-            await db.commit()
-            await db.refresh(edital)
+            if existing_edital:
+                logger.info(f"Found existing edital: {existing_edital.id}, reusing instead of creating duplicate")
+                # Delete the uploaded file since we're reusing existing
+                file_path.unlink(missing_ok=True)
+                edital = existing_edital
+            else:
+                # Create new edital
+                edital = Edital(
+                    nome=nome,
+                    banca=banca,
+                    cargo=metadata.get("cargo"),
+                    ano=ano,
+                    arquivo_original=str(file_path),
+                    taxonomia={"disciplinas": []},  # Will be populated with conteúdo programático
+                )
 
-            logger.info(f"Edital created: {edital.id}")
+                db.add(edital)
+                await db.commit()
+                await db.refresh(edital)
+                logger.info(f"Edital created: {edital.id}")
 
             # Get cargos list from metadata
             cargos = metadata.get("cargos") or []

@@ -5,14 +5,18 @@ Prompts for question classification
 
 SYSTEM_PROMPT_CLASSIFICACAO = """Você é um especialista em análise de questões de concursos públicos brasileiros.
 
-Sua tarefa é classificar questões de forma hierárquica e detalhada, seguindo a taxonomia do edital quando disponível.
+Classifique questões seguindo a taxonomia do edital quando disponível.
 
-IMPORTANTE:
-- Seja preciso e específico nas classificações
-- Identifique o conceito EXATO sendo testado, não apenas categorias gerais
-- Analise profundamente o que a questão REALMENTE está avaliando
-- Forneça scores de confiança honestos
-- Sempre responda em formato JSON válido"""
+REGRAS:
+1. Use APENAS categorias que existam na taxonomia do edital (se fornecida)
+2. Se a questão não se encaixa na taxonomia, use "fora_taxonomia": true
+3. Scores de confiança: 0.0-1.0 (seja honesto, não inflacione)
+4. SEMPRE responda em JSON válido, sem texto adicional"""
+
+
+SYSTEM_PROMPT_CLASSIFICACAO_LITE = """Classifique questões de concurso em JSON.
+Use a taxonomia do edital quando fornecida.
+Responda APENAS JSON válido."""
 
 
 def build_classification_prompt(
@@ -57,60 +61,62 @@ Use os nomes EXATOS como aparecem na estrutura acima. Não invente categorias qu
 
     prompt += """
 
-TAREFA:
-Classifique esta questão fornecendo:
-
-1. CLASSIFICAÇÃO HIERÁRQUICA:
-   - Disciplina (ex: "Língua Portuguesa", "Matemática")
-   - Assunto (ex: "Sintaxe", "Geometria")
-   - Tópico (ex: "Período Composto", "Triângulos")
-   - Subtópico (ex: "Orações Subordinadas Adverbiais", "Teorema de Pitágoras")
-   - Conceito específico (ex: "Orações concessivas com inversão sintática", "Cálculo de hipotenusa com catetos dados")
-
-2. SCORES DE CONFIANÇA (0.0 a 1.0):
-   - confianca_disciplina
-   - confianca_assunto
-   - confianca_topico
-   - confianca_subtopico
-
-3. ANÁLISE CONCEITUAL:
-   - conceito_testado: Explicação detalhada do que está sendo testado
-   - habilidade_bloom: Uma de ["lembrar", "entender", "aplicar", "analisar", "avaliar", "criar"]
-   - nivel_dificuldade: Uma de ["basico", "intermediario", "avancado"]
-   - conceitos_adjacentes: Lista de conceitos relacionados necessários
-
-4. ANÁLISE DE ALTERNATIVAS:
-   Para cada alternativa (A-E), explique:
-   - Se é correta ou incorreta
-   - Justificativa/motivo do erro
-   - Tipo de pegadinha usada (se aplicável)
-
-RESPONDA EM JSON:
+RESPONDA em JSON com estes campos:
 ```json
 {
-  "disciplina": "...",
-  "assunto": "...",
-  "topico": "...",
-  "subtopico": "...",
-  "conceito_especifico": "...",
-  "item_edital_path": "Disciplina > Assunto > Tópico > Subtópico",
-  "confianca_disciplina": 0.0,
-  "confianca_assunto": 0.0,
-  "confianca_topico": 0.0,
-  "confianca_subtopico": 0.0,
-  "conceito_testado": "Explicação detalhada aqui...",
-  "habilidade_bloom": "...",
-  "nivel_dificuldade": "...",
-  "conceitos_adjacentes": ["conceito1", "conceito2"],
-  "analise_alternativas": {
-    "A": {"correta": false, "justificativa": "..."},
-    "B": {"correta": true, "justificativa": "..."}
-  }
+  "disciplina": "nome da disciplina",
+  "assunto": "assunto principal",
+  "topico": "tópico específico ou null",
+  "subtopico": "subtópico ou null",
+  "conceito_especifico": "conceito exato sendo testado",
+  "item_edital_path": "Caminho > Na > Taxonomia",
+  "confianca_disciplina": 0.95,
+  "confianca_assunto": 0.85,
+  "confianca_topico": 0.7,
+  "confianca_subtopico": 0.6,
+  "conceito_testado": "O que a questão avalia",
+  "habilidade_bloom": "aplicar",
+  "nivel_dificuldade": "intermediario",
+  "fora_taxonomia": false,
+  "motivo_fora_taxonomia": null
 }
 ```
 
-NOTA: O campo "item_edital_path" só é obrigatório quando a taxonomia do edital for fornecida. Deve ser o caminho completo na hierarquia, ex: "Língua Portuguesa > Sintaxe > Período Composto > Orações Subordinadas"
+NOTAS:
+- habilidade_bloom: lembrar|entender|aplicar|analisar|avaliar|criar
+- nivel_dificuldade: basico|intermediario|avancado
+- Se não encaixar na taxonomia: fora_taxonomia=true + motivo
+- Se não tiver certeza do subtopico, use null (não invente)
 """
+
+    return prompt
+
+
+def build_classification_prompt_lite(
+    questao: dict,
+    disciplinas_permitidas: list[str] = None,
+) -> str:
+    """
+    Build lightweight prompt for batch classification (saves tokens).
+
+    Args:
+        questao: Question dict
+        disciplinas_permitidas: List of allowed discipline names
+
+    Returns:
+        str: Compact prompt
+    """
+    prompt = f"""Q{questao['numero']}: {questao['enunciado'][:500]}
+"""
+
+    if questao.get("gabarito"):
+        prompt += f"Resp: {questao['gabarito']}\n"
+
+    if disciplinas_permitidas:
+        prompt += f"\nDisciplinas válidas: {', '.join(disciplinas_permitidas)}\n"
+
+    prompt += """
+JSON: {"disciplina":"...","assunto":"...","topico":"...","conceito_testado":"...","confianca":0.0-1.0,"habilidade_bloom":"...","nivel":"..."}"""
 
     return prompt
 
@@ -120,10 +126,21 @@ def format_taxonomia(taxonomia: dict) -> str:
     lines = []
     for disc in taxonomia.get("disciplinas", []):
         lines.append(f"• {disc['nome']}")
-        for assunto in disc.get("assuntos", []):
-            lines.append(f"  ├─ {assunto['nome']}")
-            for topico in assunto.get("topicos", []):
-                lines.append(f"    ├─ {topico['nome']}")
-                for subtopico in topico.get("subtopicos", []):
-                    lines.append(f"      └─ {subtopico}")
+        # Handle both old format (assuntos list) and new format (itens list)
+        items = disc.get("assuntos", []) or disc.get("itens", [])
+        for item in items:
+            item_name = item.get("nome") or item.get("texto", "")
+            lines.append(f"  ├─ {item_name}")
+            # Handle nested items (topicos or filhos)
+            sub_items = item.get("topicos", []) or item.get("filhos", [])
+            for sub in sub_items:
+                sub_name = sub.get("nome") or sub.get("texto", "") if isinstance(sub, dict) else sub
+                lines.append(f"    └─ {sub_name}")
     return "\n".join(lines)
+
+
+def get_disciplinas_from_taxonomia(taxonomia: dict) -> list[str]:
+    """Extract discipline names from taxonomy for filtering"""
+    if not taxonomia:
+        return []
+    return [d.get("nome", "") for d in taxonomia.get("disciplinas", []) if d.get("nome")]

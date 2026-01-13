@@ -7,9 +7,10 @@ from typing import Literal, Optional
 from loguru import logger
 
 from src.core.config import get_settings
-from src.core.exceptions import LLMError
+from src.core.exceptions import LLMError, LLMRateLimitError
 from src.llm.providers.anthropic_client import AnthropicClient
 from src.llm.providers.groq_client import GroqClient
+from src.llm.quota_tracker import get_quota_tracker
 
 settings = get_settings()
 
@@ -24,6 +25,7 @@ class LLMOrchestrator:
     def __init__(self):
         self.groq_client: Optional[GroqClient] = None
         self.anthropic_client: Optional[AnthropicClient] = None
+        self.quota_tracker = get_quota_tracker()
 
         # Initialize available clients
         try:
@@ -82,11 +84,28 @@ class LLMOrchestrator:
             try:
                 logger.debug(f"Trying LLM provider: {provider}")
 
+                # Check quota before making request
+                quota_check = self.quota_tracker.check_quota(provider)
+                if not quota_check["can_proceed"]:
+                    logger.warning(f"Quota exceeded for {provider}: {quota_check.get('reason')}")
+                    errors.append(f"{provider}: Quota exceeded - {quota_check.get('reason')}")
+                    continue
+
                 if provider == "groq" and self.groq_client:
                     result = self.groq_client.generate(
                         prompt, system_prompt, temperature, max_tokens
                     )
                     result["provider"] = "groq"
+
+                    # Record successful request
+                    self.quota_tracker.record_request(
+                        provider="groq",
+                        tokens_used=result.get("tokens", {}).get("total", 0),
+                        prompt_tokens=result.get("tokens", {}).get("prompt", 0),
+                        completion_tokens=result.get("tokens", {}).get("completion", 0),
+                        model=result.get("model", ""),
+                        success=True,
+                    )
                     return result
 
                 elif provider == "anthropic" and self.anthropic_client:
@@ -94,9 +113,38 @@ class LLMOrchestrator:
                         prompt, system_prompt, temperature, max_tokens
                     )
                     result["provider"] = "anthropic"
+
+                    # Record successful request
+                    self.quota_tracker.record_request(
+                        provider="anthropic",
+                        tokens_used=result.get("tokens", {}).get("total", 0),
+                        prompt_tokens=result.get("tokens", {}).get("prompt", 0),
+                        completion_tokens=result.get("tokens", {}).get("completion", 0),
+                        model=result.get("model", ""),
+                        success=True,
+                    )
                     return result
 
+            except LLMRateLimitError as e:
+                # Record failed request due to rate limit
+                self.quota_tracker.record_request(
+                    provider=provider,
+                    tokens_used=0,
+                    success=False,
+                    error=f"Rate limit: {str(e)}",
+                )
+                logger.warning(f"Provider {provider} rate limited: {e}")
+                errors.append(f"{provider}: Rate limit - {str(e)}")
+                continue
+
             except Exception as e:
+                # Record failed request
+                self.quota_tracker.record_request(
+                    provider=provider,
+                    tokens_used=0,
+                    success=False,
+                    error=str(e),
+                )
                 logger.warning(f"Provider {provider} failed: {e}")
                 errors.append(f"{provider}: {str(e)}")
                 continue

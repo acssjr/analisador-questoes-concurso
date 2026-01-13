@@ -1,0 +1,336 @@
+"""
+Projeto routes - CRUD for projects
+"""
+import uuid
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Query
+from loguru import logger
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
+
+from src.core.database import get_db
+from src.models.projeto import Projeto
+from src.models.edital import Edital
+from src.models.prova import Prova
+from src.models.questao import Questao
+from src.schemas.projeto import (
+    ProjetoCreate,
+    ProjetoRead,
+    ProjetoReadWithEdital,
+    ProjetoUpdate,
+    ProjetoStats,
+    ProjetoListResponse,
+)
+
+router = APIRouter()
+
+
+@router.get("/", response_model=ProjetoListResponse)
+async def list_projetos(
+    status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """
+    List all projetos with their edital info
+    """
+    try:
+        async for db in get_db():
+            # Build query
+            stmt = select(Projeto).options(selectinload(Projeto.edital))
+
+            if status:
+                stmt = stmt.where(Projeto.status == status)
+
+            stmt = stmt.order_by(Projeto.updated_at.desc())
+            stmt = stmt.limit(limit).offset(offset)
+
+            result = await db.execute(stmt)
+            projetos = result.scalars().all()
+
+            # Count total
+            count_stmt = select(func.count(Projeto.id))
+            if status:
+                count_stmt = count_stmt.where(Projeto.status == status)
+            count_result = await db.execute(count_stmt)
+            total = count_result.scalar()
+
+            # Build response with edital info
+            projetos_response = []
+            for p in projetos:
+                proj_dict = {
+                    "id": p.id,
+                    "nome": p.nome,
+                    "descricao": p.descricao,
+                    "banca": p.banca,
+                    "cargo": p.cargo,
+                    "ano": p.ano,
+                    "status": p.status,
+                    "total_provas": p.total_provas,
+                    "total_questoes": p.total_questoes,
+                    "total_questoes_validas": p.total_questoes_validas,
+                    "total_anuladas": p.total_anuladas,
+                    "config": p.config,
+                    "created_at": p.created_at,
+                    "updated_at": p.updated_at,
+                    "edital_id": p.edital.id if p.edital else None,
+                    "edital_nome": p.edital.nome if p.edital else None,
+                    "has_taxonomia": bool(
+                        p.edital and p.edital.taxonomia and p.edital.taxonomia.get("disciplinas")
+                    ),
+                }
+                projetos_response.append(ProjetoReadWithEdital(**proj_dict))
+
+            return ProjetoListResponse(projetos=projetos_response, total=total)
+
+    except Exception as e:
+        logger.error(f"Failed to list projetos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/", response_model=ProjetoRead)
+async def create_projeto(projeto: ProjetoCreate):
+    """
+    Create a new projeto
+    """
+    try:
+        async for db in get_db():
+            new_projeto = Projeto(
+                nome=projeto.nome,
+                descricao=projeto.descricao,
+                banca=projeto.banca,
+                cargo=projeto.cargo,
+                ano=projeto.ano,
+                status="configurando",
+            )
+
+            db.add(new_projeto)
+            await db.commit()
+            await db.refresh(new_projeto)
+
+            logger.info(f"Projeto created: {new_projeto.id}")
+            return ProjetoRead.model_validate(new_projeto)
+
+    except Exception as e:
+        logger.error(f"Failed to create projeto: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{projeto_id}", response_model=ProjetoReadWithEdital)
+async def get_projeto(projeto_id: uuid.UUID):
+    """
+    Get projeto by ID with edital info
+    """
+    try:
+        async for db in get_db():
+            stmt = (
+                select(Projeto)
+                .options(selectinload(Projeto.edital))
+                .where(Projeto.id == projeto_id)
+            )
+            result = await db.execute(stmt)
+            projeto = result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            return ProjetoReadWithEdital(
+                id=projeto.id,
+                nome=projeto.nome,
+                descricao=projeto.descricao,
+                banca=projeto.banca,
+                cargo=projeto.cargo,
+                ano=projeto.ano,
+                status=projeto.status,
+                total_provas=projeto.total_provas,
+                total_questoes=projeto.total_questoes,
+                total_questoes_validas=projeto.total_questoes_validas,
+                total_anuladas=projeto.total_anuladas,
+                config=projeto.config,
+                created_at=projeto.created_at,
+                updated_at=projeto.updated_at,
+                edital_id=projeto.edital.id if projeto.edital else None,
+                edital_nome=projeto.edital.nome if projeto.edital else None,
+                has_taxonomia=bool(
+                    projeto.edital
+                    and projeto.edital.taxonomia
+                    and projeto.edital.taxonomia.get("disciplinas")
+                ),
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get projeto: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/{projeto_id}", response_model=ProjetoRead)
+async def update_projeto(projeto_id: uuid.UUID, update: ProjetoUpdate):
+    """
+    Update projeto
+    """
+    try:
+        async for db in get_db():
+            stmt = select(Projeto).where(Projeto.id == projeto_id)
+            result = await db.execute(stmt)
+            projeto = result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            # Update fields
+            update_data = update.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(projeto, key, value)
+
+            await db.commit()
+            await db.refresh(projeto)
+
+            logger.info(f"Projeto updated: {projeto.id}")
+            return ProjetoRead.model_validate(projeto)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update projeto: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{projeto_id}")
+async def delete_projeto(projeto_id: uuid.UUID):
+    """
+    Delete projeto and all associated data
+    """
+    try:
+        async for db in get_db():
+            stmt = select(Projeto).where(Projeto.id == projeto_id)
+            result = await db.execute(stmt)
+            projeto = result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            await db.delete(projeto)
+            await db.commit()
+
+            logger.info(f"Projeto deleted: {projeto_id}")
+            return {"success": True, "message": "Projeto deleted"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete projeto: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{projeto_id}/vincular-edital/{edital_id}")
+async def vincular_edital(projeto_id: uuid.UUID, edital_id: uuid.UUID):
+    """
+    Link an existing edital to a projeto
+    """
+    try:
+        async for db in get_db():
+            # Get projeto
+            proj_stmt = select(Projeto).where(Projeto.id == projeto_id)
+            proj_result = await db.execute(proj_stmt)
+            projeto = proj_result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            # Get edital
+            edital_stmt = select(Edital).where(Edital.id == edital_id)
+            edital_result = await db.execute(edital_stmt)
+            edital = edital_result.scalar_one_or_none()
+
+            if not edital:
+                raise HTTPException(status_code=404, detail="Edital not found")
+
+            # Link them
+            edital.projeto_id = projeto.id
+
+            # Update projeto with edital info
+            projeto.banca = edital.banca
+            projeto.ano = edital.ano
+            if edital.taxonomia and edital.taxonomia.get("disciplinas"):
+                projeto.status = "coletando"
+            else:
+                projeto.status = "configurando"
+
+            await db.commit()
+
+            logger.info(f"Edital {edital_id} linked to Projeto {projeto_id}")
+            return {
+                "success": True,
+                "message": "Edital vinculado ao projeto",
+                "projeto_status": projeto.status,
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to link edital: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{projeto_id}/stats", response_model=ProjetoStats)
+async def get_projeto_stats(projeto_id: uuid.UUID):
+    """
+    Get detailed statistics for a projeto
+    """
+    try:
+        async for db in get_db():
+            # Get projeto with provas
+            stmt = (
+                select(Projeto)
+                .options(selectinload(Projeto.provas))
+                .where(Projeto.id == projeto_id)
+            )
+            result = await db.execute(stmt)
+            projeto = result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            # Calculate stats
+            provas_por_ano = {}
+            questoes_por_disciplina = {}
+
+            for prova in projeto.provas or []:
+                # Count by year
+                if prova.ano:
+                    provas_por_ano[prova.ano] = provas_por_ano.get(prova.ano, 0) + 1
+
+                # Get questions for this prova
+                q_stmt = select(Questao).where(Questao.prova_id == prova.id)
+                q_result = await db.execute(q_stmt)
+                questoes = q_result.scalars().all()
+
+                for q in questoes:
+                    disc = q.disciplina or "Sem disciplina"
+                    questoes_por_disciplina[disc] = questoes_por_disciplina.get(disc, 0) + 1
+
+            # Determine if ready for analysis
+            pronto_para_analise = (
+                projeto.total_questoes_validas >= 10  # At least 10 questions
+                and len(provas_por_ano) >= 1  # At least 1 year of data
+            )
+
+            return ProjetoStats(
+                total_provas=projeto.total_provas,
+                total_questoes=projeto.total_questoes,
+                total_questoes_validas=projeto.total_questoes_validas,
+                total_anuladas=projeto.total_anuladas,
+                provas_por_ano=provas_por_ano,
+                questoes_por_disciplina=questoes_por_disciplina,
+                status=projeto.status,
+                pronto_para_analise=pronto_para_analise,
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get projeto stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
