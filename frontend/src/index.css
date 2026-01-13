@@ -249,10 +249,31 @@ body {
 }
 
 .card-accent {
-  background: var(--bg-accent);
+  background: linear-gradient(135deg, var(--bg-accent) 0%, var(--accent-green-light) 100%);
   border: none;
   border-radius: var(--radius-lg);
   color: var(--text-inverse);
+}
+
+/* Interactive card with click effect */
+.card-interactive {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-default);
+  transform: translateY(-2px);
+}
+
+.card-interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-amber {
@@ -296,16 +317,32 @@ body {
 .btn-primary {
   background: var(--accent-green);
   color: var(--text-inverse);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-primary:hover:not(:disabled)::after {
+  opacity: 1;
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-green-light);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(27, 67, 50, 0.35);
 }
 
 .btn-primary:active:not(:disabled) {
   transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Secondary - Outlined */
@@ -532,6 +569,21 @@ body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(27, 67, 50, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(27, 67, 50, 0.15); }
+}
+
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
 .animate-fade-in-down { animation: fadeInDown 0.5s ease-out forwards; }
@@ -539,6 +591,9 @@ body {
 .animate-slide-in-right { animation: slideInRight 0.4s ease-out forwards; }
 .animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
 .animate-spin { animation: spin 1s linear infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
+.animate-glow { animation: glow-pulse 2s ease-in-out infinite; }
 
 /* Stagger delays */
 .delay-1 { animation-delay: 50ms; }
@@ -674,3 +729,72 @@ body {
 .disciplina-direito { --disciplina-color: #D97706; }
 .disciplina-atualidades { --disciplina-color: #DC2626; }
 .disciplina-default { --disciplina-color: #6B7280; }
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.footer {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-subtle);
+  padding: var(--space-8) var(--space-4);
+  margin-top: var(--space-16);
+}
+
+.footer-link {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  transition: color var(--transition-fast);
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--accent-green);
+}
+
+/* ============================================
+   LINK STYLES
+   ============================================ */
+
+.link {
+  color: var(--accent-green);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--accent-green);
+  transition: width var(--transition-base);
+}
+
+.link:hover::after {
+  width: 100%;
+}
+
+.link:hover {
+  color: var(--accent-green-light);
+}
+
+/* ============================================
+   CLICKABLE ELEMENTS
+   ============================================ */
+
+.clickable {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.clickable:hover {
+  opacity: 0.85;
+}
+
+.clickable:active {
+  transform: scale(0.98);
+}

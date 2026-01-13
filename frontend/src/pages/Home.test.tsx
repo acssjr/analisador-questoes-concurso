@@ -13,6 +13,9 @@ vi.mock('framer-motion', () => ({
     ),
     tr: ({ children, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => <tr {...props}>{children}</tr>,
     span: ({ children, ...props }: React.HTMLAttributes<HTMLSpanElement>) => <span {...props}>{children}</span>,
+    p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => <p {...props}>{children}</p>,
+    h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => <h1 {...props}>{children}</h1>,
+    a: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props}>{children}</a>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -107,5 +110,21 @@ describe('Home', () => {
     expect(screen.getByText('Provas importadas')).toBeInTheDocument();
     expect(screen.getByText('Questões extraídas')).toBeInTheDocument();
     expect(screen.getByText('Disciplinas')).toBeInTheDocument();
+  });
+
+  it('should render the footer', () => {
+    render(<Home />);
+
+    expect(screen.getByText(/Todos os direitos reservados/i)).toBeInTheDocument();
+    expect(screen.getByText('Documentação')).toBeInTheDocument();
+    expect(screen.getByText('Suporte')).toBeInTheDocument();
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
+  });
+
+  it('should render the call to action banner', () => {
+    render(<Home />);
+
+    expect(screen.getByText('Pronto para começar?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Importar Edital/i })).toBeInTheDocument();
   });
 });
