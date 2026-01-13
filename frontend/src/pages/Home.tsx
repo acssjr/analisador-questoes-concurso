@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router';
+import { motion, AnimatePresence } from 'framer-motion';
 import { EditalWorkflowModal } from '../components/features/EditalWorkflowModal';
-import { ProjectsList } from '../components/features/ProjectsList';
 import { EditaisList } from '../components/features/EditaisList';
 import { api } from '../services/api';
 import { useAppStore } from '../store/appStore';
@@ -12,9 +12,22 @@ import {
   IconTarget,
   IconChart,
   IconArrowRight,
+  IconPlus,
+  IconFolder,
+  IconChevronRight,
+  IconTrash,
   ProgressRing,
   IconGithub,
+  IconSpinner,
 } from '../components/ui/Icons';
+
+// Status labels with colors
+const statusLabels: Record<string, { label: string; color: string }> = {
+  configurando: { label: 'Configurando', color: 'var(--text-muted)' },
+  coletando: { label: 'Coletando', color: 'var(--accent-yellow)' },
+  analisando: { label: 'Analisando', color: 'var(--accent-blue)' },
+  concluido: { label: 'Concluído', color: 'var(--accent-green)' },
+};
 
 // Stat card component - clickable with hover
 function StatCard({
@@ -196,68 +209,67 @@ function Footer() {
 }
 
 export function Home() {
+  const navigate = useNavigate();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [hasProjects, setHasProjects] = useState(false);
+  const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [hasEditais, setHasEditais] = useState(false);
-  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [loading, setLoading] = useState(true);
   const setActiveEdital = useAppStore((state) => state.setActiveEdital);
 
-  const [projectsKey, setProjectsKey] = useState(0);
   const [editaisKey, setEditaisKey] = useState(0);
 
-  // Check if user has projects and editais
+  // Load projects and check editais
   useEffect(() => {
-    async function checkData() {
+    async function loadData() {
       try {
-        // Check projects
+        // Load projects
         const projectsResponse = await api.listProjetos();
-        setHasProjects(projectsResponse.projetos.length > 0);
+        setProjetos(projectsResponse.projetos || []);
 
         // Check editais
         const editaisResponse = await api.listEditais();
         setHasEditais(editaisResponse.length > 0);
       } catch (err) {
-        console.error('Erro ao verificar dados:', err);
+        console.error('Erro ao carregar dados:', err);
       } finally {
-        setLoadingProjects(false);
+        setLoading(false);
       }
     }
-    checkData();
-  }, [projectsKey, editaisKey]);
+    loadData();
+  }, [editaisKey]);
 
   // Refresh lists
-  function refreshProjects() {
-    setProjectsKey(k => k + 1);
+  function refreshData() {
     setEditaisKey(k => k + 1);
   }
 
-  // Handle project selection - load edital and go to dashboard
-  async function handleSelectProject(projeto: Projeto) {
-    if (!projeto.edital_id) {
-      // Project has no edital yet, open modal to add one
-      setIsUploadModalOpen(true);
-      return;
+  // Handle new project button
+  function handleNewProject() {
+    setIsUploadModalOpen(true);
+  }
+
+  // Handle project card click - navigate to project page
+  function handleProjectClick(projeto: Projeto) {
+    navigate(`/projeto/${projeto.id}`);
+  }
+
+  // Handle project delete
+  async function handleDeleteProject(e: React.MouseEvent, projeto: Projeto) {
+    e.stopPropagation();
+    if (!confirm(`Tem certeza que deseja excluir "${projeto.nome}"?`)) return;
+
+    try {
+      await api.deleteProjeto(projeto.id);
+      setProjetos(prev => prev.filter(p => p.id !== projeto.id));
+    } catch (err) {
+      console.error('Erro ao excluir projeto:', err);
+      alert('Erro ao excluir projeto');
     }
-
-    // Create edital object from projeto data to set as active
-    const edital: Edital = {
-      id: projeto.edital_id,
-      nome: projeto.edital_nome || projeto.nome,
-      arquivo_url: '',
-      data_upload: projeto.created_at,
-      total_provas: projeto.total_provas,
-      total_questoes: projeto.total_questoes,
-      banca: projeto.banca,
-      ano: projeto.ano,
-    };
-
-    setActiveEdital(edital);
   }
 
   // Handle edital selection - set as active edital
   function handleSelectEdital(edital: Edital) {
     setActiveEdital(edital);
-    // TODO: navigate to edital details or analysis page
   }
 
   const features = [
@@ -373,7 +385,7 @@ export function Home() {
         </motion.div>
 
         {/* Editais List - always show if user has editais */}
-        {!loadingProjects && hasEditais && (
+        {!loading && hasEditais && (
           <div className="mb-8">
             <EditaisList
               key={editaisKey}
@@ -383,19 +395,146 @@ export function Home() {
           </div>
         )}
 
-        {/* Projects List - only show if user has projects */}
-        {!loadingProjects && hasProjects && (
-          <div className="mb-8">
-            <ProjectsList
-              key={projectsKey}
-              onSelectProject={handleSelectProject}
-              onNewProject={() => setIsUploadModalOpen(true)}
-            />
+        {/* Projects Section with Cards */}
+        {!loading && projetos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
+                  Meus Projetos
+                </h2>
+                <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+                  Gerencie seus projetos de análise de questões
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleNewProject}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                <IconPlus size={18} />
+                Novo Projeto
+              </motion.button>
+            </div>
+
+            {/* Project Cards Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <AnimatePresence>
+                {projetos.map((projeto, index) => {
+                  const status = statusLabels[projeto.status] || statusLabels.configurando;
+
+                  return (
+                    <motion.button
+                      key={projeto.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleProjectClick(projeto)}
+                      className="text-left card p-5 group cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <motion.div
+                            className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center flex-shrink-0"
+                            whileHover={{ scale: 1.1 }}
+                          >
+                            <IconFolder size={20} className="text-[var(--accent-green)]" />
+                          </motion.div>
+                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-green)] transition-colors">
+                            {projeto.nome}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => handleDeleteProject(e, projeto)}
+                            className="p-1.5 rounded-lg hover:bg-[var(--bg-muted)] text-[var(--text-muted)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                            <IconTrash size={14} />
+                          </motion.div>
+                          <IconChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--accent-green)] transition-colors" />
+                        </div>
+                      </div>
+
+                      <p className="text-[13px] text-[var(--text-secondary)] mb-4">
+                        {projeto.banca && `${projeto.banca} `}
+                        {projeto.ano && `• ${projeto.ano} `}
+                        {projeto.cargo && `• ${projeto.cargo}`}
+                        {!projeto.banca && !projeto.ano && !projeto.cargo && 'Sem metadados'}
+                      </p>
+
+                      <div className="flex items-center gap-4 text-[12px]">
+                        <span className="text-[var(--text-secondary)]">
+                          <span className="text-[var(--text-primary)] font-medium">{projeto.total_provas}</span> provas
+                        </span>
+                        <span className="text-[var(--text-secondary)]">
+                          <span className="text-[var(--text-primary)] font-medium">{projeto.total_questoes}</span> questões
+                        </span>
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                        <span
+                          className="text-[11px] px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: `color-mix(in srgb, ${status.color} 15%, transparent)`,
+                            color: status.color,
+                          }}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <IconSpinner size={32} className="text-[var(--accent-green)]" />
           </div>
         )}
 
+        {/* Empty state - no projects */}
+        {!loading && projetos.length === 0 && !hasEditais && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-16 card mb-8"
+          >
+            <IconFolder size={48} className="text-[var(--text-muted)] mx-auto mb-4" />
+            <h3 className="text-[16px] font-medium text-[var(--text-primary)] mb-2">
+              Nenhum projeto ainda
+            </h3>
+            <p className="text-[14px] text-[var(--text-secondary)] mb-6">
+              Crie seu primeiro projeto para começar a análise
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleNewProject}
+              className="btn btn-primary"
+            >
+              Criar Projeto
+            </motion.button>
+          </motion.div>
+        )}
+
         {/* Stats Grid - Empty State (only show if no editais and no projects) */}
-        {!hasEditais && !hasProjects && (
+        {!loading && !hasEditais && projetos.length === 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <StatCard
               icon={IconBookOpen}
@@ -531,7 +670,7 @@ export function Home() {
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={() => {
           setIsUploadModalOpen(false);
-          refreshProjects();
+          refreshData();
         }}
       />
     </div>
