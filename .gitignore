@@ -66,8 +66,8 @@ htmlcov/
 .ipynb_checkpoints
 *.ipynb
 
-# Models (large files)
-models/
+# ML Models (large files) - exclude only root models/ dir, not src/models/
+/models/
 *.bin
 *.pt
 *.pth
