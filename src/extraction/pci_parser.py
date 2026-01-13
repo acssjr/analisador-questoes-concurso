@@ -17,6 +17,10 @@ def parse_pci_pdf(pdf_path: str | Path) -> dict:
     """
     Parse PCI Concursos PDF format
 
+    Supports two formats:
+    1. Legacy PCI: "15. [Português - Sintaxe]" with "Resposta: C"
+    2. IDCAP/PCI: "Questão 03" with "(Correta: C)" next to it
+
     Args:
         pdf_path: Path to PCI PDF
 
@@ -40,19 +44,60 @@ def parse_pci_pdf(pdf_path: str | Path) -> dict:
         # Infer metadata
         metadados = inferir_banca_cargo_ano(pdf_path, full_text[:1000])
 
-        # Split by question numbers
+        # Try both patterns
         questoes = []
-        pattern = r"(\d+)\.\s*\[([^\]]+)\]"  # "15. [Português - Sintaxe]"
-        matches = list(re.finditer(pattern, full_text))
+
+        # Pattern 1: Legacy PCI format "15. [Português - Sintaxe]"
+        legacy_pattern = r"(\d+)\.\s*\[([^\]]+)\]"
+        legacy_matches = list(re.finditer(legacy_pattern, full_text))
+
+        # Pattern 2: IDCAP/PCI format "Questão 03" or "Questão 03\n(Correta: C)"
+        idcap_pattern = r"Quest[aã]o\s*(\d+)\s*(?:\n|\s)*(?:\(Correta:\s*([A-E])\))?"
+        idcap_matches = list(re.finditer(idcap_pattern, full_text, re.IGNORECASE))
+
+        # Use whichever pattern found more questions
+        if len(legacy_matches) >= len(idcap_matches) and len(legacy_matches) > 0:
+            logger.info(f"Using legacy PCI format ({len(legacy_matches)} questions found)")
+            matches = legacy_matches
+            use_legacy = True
+        elif len(idcap_matches) > 0:
+            logger.info(f"Using IDCAP/PCI format ({len(idcap_matches)} questions found)")
+            matches = idcap_matches
+            use_legacy = False
+        else:
+            logger.warning("No questions found with any pattern")
+            doc.close()
+            return {"metadados": metadados, "questoes": []}
+
+        # Detect current discipline from section headers
+        discipline_pattern = r"(?:^|\n)\s*((?:Língua\s+Portuguesa|Matemática|Raciocínio\s+Lógico|Informática|Legislação|Conhecimentos\s+Específicos|Noções\s+de)[^\n]*)"
+        discipline_matches = list(re.finditer(discipline_pattern, full_text, re.IGNORECASE))
+
+        def get_discipline_for_position(pos: int) -> str | None:
+            """Find the discipline that applies to a given text position"""
+            current_disc = None
+            for dm in discipline_matches:
+                if dm.start() < pos:
+                    current_disc = dm.group(1).strip()
+                else:
+                    break
+            return current_disc
 
         for i, match in enumerate(matches):
             numero = int(match.group(1))
-            categorias = match.group(2).strip()  # "Português - Sintaxe"
 
-            # Extract disciplina e assunto
-            categorias_parts = [p.strip() for p in categorias.split("-")]
-            disciplina = categorias_parts[0] if len(categorias_parts) > 0 else None
-            assunto_pci = categorias_parts[1] if len(categorias_parts) > 1 else None
+            if use_legacy:
+                categorias = match.group(2).strip()
+                categorias_parts = [p.strip() for p in categorias.split("-")]
+                disciplina = categorias_parts[0] if len(categorias_parts) > 0 else None
+                assunto_pci = categorias_parts[1] if len(categorias_parts) > 1 else None
+                gabarito_from_header = None
+            else:
+                # IDCAP format - discipline from section header
+                disciplina = get_discipline_for_position(match.start())
+                assunto_pci = None
+                # Gabarito may be in the match group
+                gabarito_from_header = match.group(2) if match.lastindex and match.lastindex >= 2 else None
 
             # Extract question block (until next question or end)
             start_pos = match.end()
@@ -71,12 +116,12 @@ def parse_pci_pdf(pdf_path: str | Path) -> dict:
                     assunto_pci=assunto_pci,
                     block_text=question_block,
                     pdf_path=pdf_path,
-                    page_num=match.start() // 2000,  # Rough page estimation
+                    page_num=match.start() // 2000,
+                    gabarito_override=gabarito_from_header,
                 )
                 questoes.append(questao)
             except Exception as e:
                 logger.error(f"Failed to parse question {numero}: {e}")
-                # Create placeholder with error
                 questoes.append(
                     {
                         "numero": numero,
@@ -84,7 +129,7 @@ def parse_pci_pdf(pdf_path: str | Path) -> dict:
                         "assunto_pci": assunto_pci,
                         "enunciado": question_block[:200],
                         "alternativas": {},
-                        "gabarito": None,
+                        "gabarito": gabarito_from_header,
                         "anulada": False,
                         "status_extracao": "revisar_manual",
                         "alertas": [f"Erro ao parsear: {str(e)}"],
@@ -109,6 +154,7 @@ def parse_pci_question_block(
     block_text: str,
     pdf_path: Path,
     page_num: int,
+    gabarito_override: Optional[str] = None,
 ) -> dict:
     """
     Parse a single PCI question block
@@ -127,9 +173,20 @@ def parse_pci_question_block(
     # Check if anulada
     anulada = "ANULADA" in block_text.upper()
 
-    # Extract gabarito
-    gabarito_match = re.search(r"Resposta:\s*([A-E])", block_text)
-    gabarito = gabarito_match.group(1) if gabarito_match and not anulada else None
+    # Extract gabarito - use override if provided, otherwise look for patterns
+    gabarito = None
+    if gabarito_override and not anulada:
+        gabarito = gabarito_override
+    else:
+        # Try "Resposta: C" pattern
+        gabarito_match = re.search(r"Resposta:\s*([A-E])", block_text)
+        if gabarito_match and not anulada:
+            gabarito = gabarito_match.group(1)
+        else:
+            # Try "(Correta: C)" pattern
+            correta_match = re.search(r"\(Correta:\s*([A-E])\)", block_text)
+            if correta_match and not anulada:
+                gabarito = correta_match.group(1)
 
     # Extract alternativas (A) ... B) ... etc)
     alternativas = {}

@@ -127,6 +127,51 @@ function StepIndicator({
   );
 }
 
+// Cargo selector component with card-style options
+function CargoSelector({
+  cargos,
+  selectedCargo,
+  onCargoSelect,
+}: {
+  cargos: string[];
+  selectedCargo: string | null;
+  onCargoSelect: (cargo: string) => void;
+}) {
+  if (cargos.length <= 5) {
+    // Card-style for few options
+    return (
+      <div className="cargo-selector scrollbar-custom">
+        {cargos.map((cargo, idx) => (
+          <button
+            key={idx}
+            type="button"
+            onClick={() => onCargoSelect(cargo)}
+            className={`cargo-option ${selectedCargo === cargo ? 'selected' : ''}`}
+          >
+            {cargo}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  // Styled select for many options
+  return (
+    <select
+      value={selectedCargo || ''}
+      onChange={(e) => onCargoSelect(e.target.value)}
+      className="select-custom"
+    >
+      <option value="">-- Selecione um cargo --</option>
+      {cargos.map((cargo, idx) => (
+        <option key={idx} value={cargo}>
+          {cargo}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 // Edital preview component
 function EditalPreview({
   data,
@@ -143,7 +188,7 @@ function EditalPreview({
     <div className="card p-5 border-l-4 border-l-[var(--accent-green)]">
       <div className="flex items-center gap-2 text-[var(--accent-green)] mb-4">
         <IconCheck size={18} />
-        <span className="text-[14px] font-medium">Informações extraídas do edital</span>
+        <span className="text-[14px] font-medium">Informacoes extraidas do edital</span>
       </div>
 
       <div className="grid grid-cols-2 gap-4 text-[13px] mb-4">
@@ -173,7 +218,7 @@ function EditalPreview({
 
       {/* Cargo selection */}
       {data.cargos && data.cargos.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <IconUsers size={14} className="text-[var(--text-muted)]" />
             <span className="text-[13px] text-[var(--text-tertiary)]">
@@ -181,18 +226,11 @@ function EditalPreview({
             </span>
           </div>
           {hasMultipleCargos ? (
-            <select
-              value={selectedCargo || ''}
-              onChange={(e) => onCargoSelect(e.target.value)}
-              className="input w-full"
-            >
-              <option value="">-- Selecione um cargo --</option>
-              {data.cargos.map((cargo, idx) => (
-                <option key={idx} value={cargo}>
-                  {cargo}
-                </option>
-              ))}
-            </select>
+            <CargoSelector
+              cargos={data.cargos}
+              selectedCargo={selectedCargo}
+              onCargoSelect={onCargoSelect}
+            />
           ) : (
             <p className="text-[var(--text-primary)] font-medium text-[13px]">{data.cargos[0]}</p>
           )}
@@ -236,34 +274,38 @@ function RecursiveItemRenderer({
 
   if (!hasChildren) {
     return (
-      <div className="text-[12px] text-[var(--text-secondary)] py-0.5 pl-1">
-        <span className="text-[var(--text-muted)] mr-1">-</span>
-        {displayId}
-        {item.texto}
+      <div className="taxonomy-leaf">
+        <span className="taxonomy-leaf-marker" />
+        <span>
+          {displayId}
+          {item.texto}
+        </span>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="taxonomy-tree">
       <button
         onClick={() => toggleItem(itemKey)}
-        className="flex items-center gap-1 w-full text-left hover:bg-[var(--bg-subtle)] p-1 rounded text-[12px]"
+        className="taxonomy-item-button"
       >
-        {isExpanded ? (
-          <IconChevronDown size={12} className="text-[var(--text-muted)]" />
-        ) : (
-          <IconChevronRight size={12} className="text-[var(--text-muted)]" />
-        )}
-        <span className="text-[var(--text-secondary)]">
+        <span className="taxonomy-chevron">
+          {isExpanded ? (
+            <IconChevronDown size={12} />
+          ) : (
+            <IconChevronRight size={12} />
+          )}
+        </span>
+        <span className="flex-1 text-[13px]">
           {displayId}
           {item.texto}
         </span>
-        <span className="text-[10px] text-[var(--text-muted)]">({item.filhos.length})</span>
+        <span className="taxonomy-count">{item.filhos.length}</span>
       </button>
 
       {isExpanded && (
-        <div className="ml-3 pl-2 border-l border-[var(--border-subtle)] space-y-0.5">
+        <div className="taxonomy-children">
           {item.filhos.map((filho, idx) => (
             <RecursiveItemRenderer
               key={idx}
@@ -322,7 +364,7 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
     <div className="card p-5 border-l-4 border-l-[var(--accent-green)]">
       <div className="flex items-center gap-2 text-[var(--accent-green)] mb-4">
         <IconCheck size={18} />
-        <span className="text-[14px] font-medium">Conteúdo Programático extraído</span>
+        <span className="text-[14px] font-medium">Conteudo Programatico extraido</span>
       </div>
 
       <div className="flex gap-6 mb-4">
@@ -341,7 +383,7 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
       </div>
 
       {disciplinas.length > 0 && (
-        <div className="max-h-64 overflow-y-auto space-y-1 scrollbar-custom">
+        <div className="max-h-64 overflow-y-auto scrollbar-custom taxonomy-tree">
           {disciplinas.map((disc: DisciplinaConteudo, dIdx: number) => {
             const discKey = `d-${dIdx}`;
             const isDiscExpanded = expandedItems.has(discKey);
@@ -350,24 +392,26 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
             const itemCount = hasItens ? disc.itens.length : (disc.assuntos?.length || 0);
 
             return (
-              <div key={dIdx} className="text-[13px]">
+              <div key={dIdx}>
                 <button
                   onClick={() => toggleItem(discKey)}
-                  className="flex items-center gap-2 w-full text-left hover:bg-[var(--bg-subtle)] p-2 rounded-lg"
+                  className="taxonomy-item-button"
                 >
-                  {isDiscExpanded ? (
-                    <IconChevronDown size={14} className="text-[var(--text-muted)]" />
-                  ) : (
-                    <IconChevronRight size={14} className="text-[var(--text-muted)]" />
-                  )}
-                  <span className="text-[var(--text-primary)] font-medium">{disc.nome}</span>
-                  <span className="text-[11px] text-[var(--text-muted)]">
-                    ({itemCount} {itemCount === 1 ? 'item' : 'itens'})
+                  <span className="taxonomy-chevron">
+                    {isDiscExpanded ? (
+                      <IconChevronDown size={12} />
+                    ) : (
+                      <IconChevronRight size={12} />
+                    )}
+                  </span>
+                  <span className="flex-1 text-[var(--text-primary)] font-medium">{disc.nome}</span>
+                  <span className="taxonomy-count">
+                    {itemCount} {itemCount === 1 ? 'item' : 'itens'}
                   </span>
                 </button>
 
                 {isDiscExpanded && hasItens && (
-                  <div className="ml-4 pl-2 border-l border-[var(--border-subtle)] space-y-0.5">
+                  <div className="taxonomy-children">
                     {disc.itens.map((item, iIdx) => (
                       <RecursiveItemRenderer
                         key={iIdx}
@@ -382,10 +426,11 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
                 )}
 
                 {isDiscExpanded && !hasItens && disc.assuntos && (
-                  <div className="ml-4 pl-2 border-l border-[var(--border-subtle)] space-y-0.5">
+                  <div className="taxonomy-children">
                     {disc.assuntos.map((assunto, aIdx) => (
-                      <div key={aIdx} className="text-[var(--text-secondary)] text-[12px] py-0.5">
-                        - {assunto.nome}
+                      <div key={aIdx} className="taxonomy-leaf">
+                        <span className="taxonomy-leaf-marker" />
+                        <span>{assunto.nome}</span>
                       </div>
                     ))}
                   </div>
@@ -962,9 +1007,14 @@ export function EditalWorkflowModal({
 
         {/* Progress */}
         {progress && (
-          <div className="p-4 bg-[var(--accent-green)] bg-opacity-5 border border-[var(--accent-green)] border-opacity-20 rounded-xl flex items-center gap-3">
-            <IconLoader size={18} className="text-[var(--accent-green)] animate-spin" />
-            <p className="text-[13px] text-[var(--accent-green)]">{progress}</p>
+          <div className="p-4 bg-[var(--accent-green)] bg-opacity-5 border border-[var(--accent-green)] border-opacity-20 rounded-xl space-y-3">
+            <div className="flex items-center gap-3">
+              <IconLoader size={18} className="text-[var(--accent-green)] animate-spin" />
+              <p className="text-[13px] text-[var(--accent-green)] font-medium">{progress}</p>
+            </div>
+            <div className="progress-bar-container">
+              <div className="progress-bar-indeterminate" />
+            </div>
           </div>
         )}
 
