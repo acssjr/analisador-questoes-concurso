@@ -1,212 +1,148 @@
-# Analisador de Questões de Concurso
+# Analisador de Questoes de Concurso
 
-Sistema de análise forense de questões de concurso usando IA para detectar padrões, classificar por taxonomia hierárquica e gerar relatórios ultra-detalhados.
+Sistema para analise de **incidencia de assuntos** em provas de concursos publicos. Utiliza IA para extrair conteudo programatico de editais, processar questoes de provas anteriores e gerar analises de frequencia por topico.
 
-## Features
+## Funcionalidades
 
-### Backend
-- ✅ Extração inteligente de PDFs (PCI Concursos + formato genérico)
-- ✅ Classificação hierárquica multi-nível (Disciplina → Assunto → Tópico → Subtópico → Conceito)
-- ✅ Análise multimodal (texto + imagens com geometria, charges, gráficos)
-- ✅ Detecção de padrões e similaridade semântica
-- ✅ Clustering de questões similares
-- ✅ Tratamento especial de questões anuladas
-- ✅ Relatórios ultra-detalhados em Markdown/PDF
-- ✅ API REST completa com FastAPI
-- ✅ CLI para processamento batch
-
-### Frontend (Data Lab Interface)
-- ✅ Interface inovadora "Laboratório de Dados Científico"
-- ✅ Modo Insights: Visão automática com cards, distribuições e alertas
-- ✅ Modo Laboratório: 4 tabs de análise avançada
-  - Tab Distribuição: Treemap hierárquico interativo (Recharts)
-  - Tab Temporal: Timeline de evolução ao longo dos anos
-  - Tab Similaridade: Clusters de questões similares
-  - Tab Questões: Tabela master com busca e filtros
-- ✅ Upload de PDF com drag-and-drop e progress tracking
-- ✅ Sistema de notificações toast + dropdown
-- ✅ Painel de análise com classificação hierárquica completa
-- ✅ Filtros globais (status, anos, bancas)
-- ✅ Dark mode científico com animações suaves
+- **Extracao de Editais**: Processa PDFs de editais e extrai taxonomia hierarquica do conteudo programatico
+- **Processamento de Provas**: Extrai questoes de PDFs de provas anteriores (formato PCI Concursos e generico)
+- **Classificacao Inteligente**: Classifica cada questao de acordo com a taxonomia do edital usando LLM
+- **Analise de Incidencia**: Calcula frequencia de assuntos nas provas para direcionar estudos
+- **Interface Visual**: Dashboard com visualizacao hierarquica e estatisticas
 
 ## Tech Stack
 
 ### Backend
-- **Python 3.11+**, FastAPI
-- **Database:** PostgreSQL 16 + pgvector (ou SQLite)
-- **LLMs:** Groq (Llama 3.3 70B), Hugging Face, Claude (multimodal)
-- **ML:** sentence-transformers, scikit-learn
-- **PDF:** PyMuPDF, pdfplumber, Tesseract OCR
+
+| Tecnologia | Uso |
+|------------|-----|
+| Python 3.11+ | Linguagem principal |
+| FastAPI | API REST |
+| Groq (Llama 4 Scout) | LLM para classificacao |
+| PyMuPDF | Extracao de PDFs |
+| SQLite/PostgreSQL | Persistencia |
 
 ### Frontend
-- **React 19** + TypeScript 5.7
-- **Vite** para build/dev
-- **TailwindCSS v4** para styling
-- **Zustand** para state management
-- **Recharts** para gráficos interativos
+
+| Tecnologia | Uso |
+|------------|-----|
+| React 19 | Framework UI |
+| TypeScript 5.7 | Tipagem |
+| Vite | Build tool |
+| TailwindCSS v4 | Estilizacao |
+| Zustand | Gerenciamento de estado |
 
 ## Quick Start
 
-### 1. Install dependencies
+### 1. Configurar Backend
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Criar ambiente virtual
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
 
-# Install with uv (recommended)
+# Instalar dependencias
 pip install uv
 uv pip install -e .
 
-# Or with pip
-pip install -e .
-```
-
-### 2. Configure environment
-
-```bash
+# Configurar variaveis de ambiente
 cp .env.example .env
-# Edit .env with your API keys
+# Editar .env com sua GROQ_API_KEY
+
+# Iniciar API
+uvicorn src.api.main:app --reload --port 8000
 ```
 
-### 3. Setup database
+API disponivel em: http://localhost:8000/docs
 
-```bash
-# PostgreSQL (recommended)
-python scripts/setup_db.py
-
-# Or use SQLite (no setup needed)
-```
-
-### 4. Run CLI
-
-```bash
-# Extract questions from PDF
-analisador extract data/raw/provas/prova.pdf
-
-# Classify questions
-analisador classify --disciplina "Português"
-
-# Generate report
-analisador report --disciplina "Português" --output data/outputs/relatorios_md/portugues.md
-```
-
-### 5. Run API
-
-```bash
-uvicorn src.api.main:app --reload
-# API docs: http://localhost:8000/docs
-```
-
-### 6. Run Frontend (Interface Web)
+### 2. Configurar Frontend
 
 ```bash
 cd frontend
 
-# Install dependencies
+# Instalar dependencias
 npm install
 
-# Start dev server
+# Iniciar servidor de desenvolvimento
 npm run dev
-
-# Access: http://localhost:5173
 ```
 
-**Features do Frontend:**
-- Modo Insights com visão automática
-- Modo Laboratório com gráficos interativos
-- Upload de PDF via drag-and-drop
-- Notificações em tempo real
-- Painel de análise detalhada por questão
+Interface disponivel em: http://localhost:5173
 
-Ver documentação completa em `frontend/README.md`
-
-## Project Structure
+## Estrutura do Projeto
 
 ```
 analisador-questoes-concurso/
-├── src/                # Backend Python
-│   ├── core/          # Config, database, logging
-│   ├── models/        # SQLAlchemy models
-│   ├── schemas/       # Pydantic schemas
-│   ├── extraction/    # PDF parsing
-│   ├── llm/           # LLM integrations
-│   ├── classification/# Classification pipeline
-│   ├── analysis/      # Pattern detection, clustering
-│   ├── report/        # Report generation
-│   ├── api/           # FastAPI routes
-│   └── cli/           # CLI commands
-├── frontend/          # Frontend React
+├── src/                    # Backend Python
+│   ├── api/               # Rotas FastAPI
+│   ├── extraction/        # Parsers de PDF (edital, provas)
+│   ├── llm/               # Integracao com LLMs (Groq)
+│   ├── classification/    # Pipeline de classificacao
+│   ├── schemas/           # Modelos Pydantic
+│   └── core/              # Config, logging, exceptions
+├── frontend/              # Frontend React
 │   ├── src/
-│   │   ├── components/  # UI components
-│   │   │   ├── ui/      # Design system (Button, Badge, Card, Modal)
-│   │   │   ├── charts/  # Gráficos (Treemap, Timeline)
-│   │   │   ├── features/# Upload, Notifications, AnalysisPanel
-│   │   │   └── layout/  # Topbar, Sidebar, MainLayout
-│   │   ├── pages/       # Insights, Laboratory
-│   │   ├── store/       # Zustand state management
-│   │   ├── services/    # API client
-│   │   ├── types/       # TypeScript types
-│   │   └── utils/       # Helpers (colors, calculations)
-│   └── docs/plans/      # Design documentation
-├── data/              # Dados processados
-├── scripts/           # Setup scripts
-└── docs/              # Documentação
+│   │   ├── components/   # Componentes UI
+│   │   ├── pages/        # Paginas (Home, EditalAnalysis)
+│   │   ├── store/        # Estado Zustand
+│   │   └── services/     # Cliente API
+│   └── package.json
+├── data/                  # Dados processados
+│   ├── raw/              # PDFs originais
+│   └── processed/        # JSONs extraidos
+└── tests/                # Testes automatizados
 ```
 
-## Documentation
+## Como Usar
 
-### Backend
-- [Getting Started](GETTING_STARTED.md)
-- [API Documentation](http://localhost:8000/docs) (quando API rodando)
+O workflow basico consiste em 3 etapas:
 
-### Frontend
-- [Frontend README](frontend/README.md)
-- [Design Documentation](frontend/docs/plans/2026-01-08-frontend-data-lab-design.md)
-- [Deploy Guide](frontend/DEPLOY.md)
+### 1. Upload do Edital
 
-## Demo
+- Acesse a interface web
+- Clique em "Novo Projeto"
+- Faca upload do PDF do edital
+- O sistema extrai automaticamente o conteudo programatico
 
-### Screenshots
+### 2. Upload das Provas
 
-**Modo Insights:**
-- Overview cards com estatísticas
-- Distribuição visual por assunto
-- Alertas de questões anuladas
+- Com o projeto criado, faca upload dos PDFs das provas anteriores
+- Formatos suportados: PCI Concursos (com gabarito inline), provas genericas
+- O sistema extrai as questoes e seus gabaritos
 
-**Modo Laboratório:**
-- Tab Distribuição com Treemap hierárquico
-- Tab Temporal com linha do tempo
-- Tab Questões com tabela interativa
+### 3. Visualizar Analise
 
-**Upload de PDF:**
-- Drag-and-drop com preview
-- Progress tracking em tempo real
-- Notificações de sucesso/erro
+- Apos processamento, visualize a incidencia por assunto
+- A arvore hierarquica mostra quantas questoes cairam em cada topico
+- Use os dados para priorizar seus estudos
 
-## Roadmap
+## Variaveis de Ambiente
 
-- [x] Backend completo com FastAPI
-- [x] CLI para processamento batch
-- [x] Frontend Data Lab Interface
-- [x] Upload de PDF
-- [x] Gráficos interativos
-- [x] Sistema de notificações
-- [ ] Autenticação de usuários (opcional)
-- [ ] Exportação de relatórios PDF/Excel
-- [ ] PWA para acesso offline
-- [ ] Testes automatizados (backend + frontend)
+```env
+# Obrigatorio
+GROQ_API_KEY=gsk_...
 
-## Status
+# Opcional (fallback)
+ANTHROPIC_API_KEY=sk-ant-...
 
-✅ **Production Ready**
+# Banco de dados
+DATABASE_URL=sqlite:///./data/analisador.db
+```
 
-- Build de produção funcionando
-- TypeScript sem erros
-- API REST completa
-- Frontend totalmente funcional
-- Documentação completa
+## Status do Projeto
 
-## License
+O projeto esta em desenvolvimento ativo. Funcionalidades implementadas:
+
+- [x] Extracao de editais com taxonomia hierarquica
+- [x] Parser de provas formato PCI Concursos
+- [x] Integracao com Groq/Llama 4 Scout
+- [x] Interface web com upload de arquivos
+- [x] Visualizacao de taxonomia extraida
+- [ ] Classificacao automatica de questoes (em progresso)
+- [ ] Dashboard de incidencia completo
+- [ ] Exportacao de relatorios
+
+## Licenca
 
 MIT
