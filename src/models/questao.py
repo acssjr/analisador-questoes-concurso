@@ -45,6 +45,30 @@ class Questao(Base):
     )  # 'ok', 'revisar_manual'
     alertas: Mapped[Optional[list]] = mapped_column(JSON, default=list)
 
+    # Confidence scoring (0-100)
+    confianca_score: Mapped[Optional[int]] = mapped_column(Integer)
+    confianca_detalhes: Mapped[Optional[dict]] = mapped_column(JSON)
+    """
+    Detalhes do score:
+    {
+        "enunciado_tamanho": 25,  # +25 se 50-2000 chars
+        "alternativas_validas": 25,  # +25 se 4-5 alternativas A-E
+        "gabarito_claro": 20,  # +20 se gabarito identificado
+        "disciplina_match": 15,  # +15 se disciplina do edital
+        "formato_consistente": 15  # +15 se formato similar às outras
+    }
+    """
+
+    # Analysis fields (populated in Phase 4 - Deep Analysis)
+    dificuldade: Mapped[Optional[str]] = mapped_column(
+        String(20)
+    )  # 'easy', 'medium', 'hard', 'very_hard'
+    bloom_level: Mapped[Optional[str]] = mapped_column(
+        String(20)
+    )  # 'remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'
+    tem_pegadinha: Mapped[bool] = mapped_column(Boolean, default=False)
+    pegadinha_descricao: Mapped[Optional[str]] = mapped_column(Text)
+
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     # Relationships
