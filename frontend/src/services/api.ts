@@ -1,4 +1,4 @@
-import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse } from '../types';
+import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse, ProjetoStats } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -206,16 +206,7 @@ export const api = {
     });
   },
 
-  async getProjetoStats(projetoId: string): Promise<{
-    total_provas: number;
-    total_questoes: number;
-    total_questoes_validas: number;
-    total_anuladas: number;
-    provas_por_ano: Record<number, number>;
-    questoes_por_disciplina: Record<string, number>;
-    status: string;
-    pronto_para_analise: boolean;
-  }> {
+  async getProjetoStats(projetoId: string): Promise<ProjetoStats> {
     return fetchApi(`/projetos/${projetoId}/stats`);
   },
 };

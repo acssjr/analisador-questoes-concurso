@@ -140,11 +140,13 @@ export interface Edital {
   data_upload: string;
   conteudo_programatico_url?: string;
   conteudo_programatico?: ConteudoProgramatico;
+  taxonomia?: ConteudoProgramatico;  // Alias for conteudo_programatico used by some components
   total_provas: number;
   total_questoes: number;
   banca?: string;
   orgao?: string;
   ano?: number;
+  cargo?: string;   // Single cargo for display
   cargos?: string[];
 }
 
@@ -204,4 +206,15 @@ export interface ProjetoCreate {
 export interface ProjetoListResponse {
   projetos: Projeto[];
   total: number;
+}
+
+export interface ProjetoStats {
+  total_provas: number;
+  total_questoes: number;
+  total_questoes_validas: number;
+  total_anuladas: number;
+  provas_por_ano: Record<number, number>;
+  questoes_por_disciplina: Record<string, number>;
+  status: string;
+  pronto_para_analise: boolean;
 }
