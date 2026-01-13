@@ -82,7 +82,7 @@ function FeatureCard({
       className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-colors group"
     >
       <motion.div
-        className="w-10 h-10 rounded-xl bg-[var(--accent-green)] bg-opacity-10 flex items-center justify-center flex-shrink-0"
+        className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center flex-shrink-0"
         whileHover={{ scale: 1.1 }}
         transition={{ type: "spring", stiffness: 400 }}
       >
@@ -92,7 +92,7 @@ function FeatureCard({
         <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1 group-hover:text-[var(--accent-green)] transition-colors">
           {title}
         </h3>
-        <p className="text-[13px] text-[var(--text-tertiary)] leading-relaxed">
+        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
           {description}
         </p>
       </div>
@@ -409,14 +409,14 @@ export function Home() {
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-12 h-12 rounded-xl bg-[var(--accent-green)] bg-opacity-10 flex items-center justify-center mx-auto mb-4"
+            className="w-12 h-12 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center mx-auto mb-4"
           >
             <IconUpload size={24} className="text-[var(--accent-green)]" />
           </motion.div>
           <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
             Pronto para começar?
           </h3>
-          <p className="text-[14px] text-[var(--text-tertiary)] mb-4 max-w-md mx-auto">
+          <p className="text-[14px] text-[var(--text-secondary)] mb-4 max-w-md mx-auto">
             Importe seu primeiro edital e descubra quais assuntos têm maior incidência nas provas anteriores.
           </p>
           <motion.button

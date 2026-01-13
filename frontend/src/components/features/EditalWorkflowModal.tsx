@@ -109,8 +109,8 @@ function StepIndicator({
           ${isComplete
             ? 'bg-[var(--accent-green)] text-white'
             : isActive
-            ? 'bg-[var(--accent-green)] bg-opacity-15 text-[var(--accent-green)] ring-2 ring-[var(--accent-green)]'
-            : 'bg-[var(--bg-muted)] text-[var(--text-muted)]'
+            ? 'bg-[rgba(27,67,50,0.15)] text-[var(--accent-green)] ring-2 ring-[var(--accent-green)]'
+            : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
           }
         `}
       >
@@ -118,7 +118,7 @@ function StepIndicator({
       </div>
       <span
         className={`text-[13px] ${
-          isActive ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
+          isActive ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'
         }`}
       >
         {label}

@@ -42,7 +42,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -65,9 +65,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
               border border-[var(--border-subtle)]
               ${sizeClasses[size]}
             `}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)]">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)] flex-shrink-0">
               <h2
                 className="text-[18px] font-semibold text-[var(--text-primary)]"
                 style={{ fontFamily: 'var(--font-display)' }}
@@ -83,7 +84,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-custom">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 scrollbar-custom">
               {children}
             </div>
           </motion.div>
