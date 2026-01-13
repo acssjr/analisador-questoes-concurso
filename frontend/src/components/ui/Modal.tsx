@@ -1,12 +1,13 @@
 import { useEffect, type ReactNode } from 'react';
-import { cn } from '../../utils/cn';
+import { motion, AnimatePresence } from 'framer-motion';
+import { IconX } from './Icons';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
@@ -31,40 +32,63 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const sizeClasses = {
     sm: 'max-w-md',
     md: 'max-w-2xl',
     lg: 'max-w-4xl',
+    xl: 'max-w-5xl',
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-fadeIn">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black bg-opacity-60"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className={cn('surface relative w-full mx-4 max-h-[90vh] flex flex-col animate-slideInRight', sizeClasses[size])}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-dark-border">
-          <h2 className="text-xl font-bold text-text-primary">{title}</h2>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onClose}
-            className="p-2 hover:bg-white hover:bg-opacity-5 rounded transition-colors"
-          >
-            <span className="text-lg">✕</span>
-          </button>
-        </div>
+          />
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {children}
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className={`
+              relative w-full mx-4 max-h-[90vh] flex flex-col
+              bg-[var(--bg-elevated)] rounded-2xl shadow-xl
+              border border-[var(--border-subtle)]
+              ${sizeClasses[size]}
+            `}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)]">
+              <h2
+                className="text-[18px] font-semibold text-[var(--text-primary)]"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {title}
+              </h2>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+              >
+                <IconX size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-custom">
+              {children}
+            </div>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }

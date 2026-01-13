@@ -1,31 +1,55 @@
+import { useEffect } from 'react';
+import Lenis from 'lenis';
 import { MainLayout } from './components/layout/MainLayout';
-import { Insights } from './pages/Insights';
-import { Laboratory } from './pages/Laboratory';
-import { EditalAnalysis } from './pages/EditalAnalysis';
+import { Home } from './pages/Home';
+import { Dashboard } from './pages/Dashboard';
+import { Explorar } from './pages/Explorar';
 import { NotificationCenter } from './components/features/NotificationCenter';
 import { useAppStore } from './store/appStore';
 
 function App() {
-  const modoCanvas = useAppStore(state => state.modoCanvas);
-  const activeEdital = useAppStore(state => state.activeEdital);
+  const modoCanvas = useAppStore((state) => state.modoCanvas);
+  const activeEdital = useAppStore((state) => state.activeEdital);
 
-  // Se há um edital ativo, mostra a página de análise do edital
+  // Initialize Lenis smooth scroll
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+    });
+
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+      lenis.destroy();
+    };
+  }, []);
+
+  // If there's an active edital, show Dashboard or Explorar
   if (activeEdital) {
     return (
       <>
         <MainLayout>
-          {modoCanvas === 'insights' ? <EditalAnalysis /> : <Laboratory />}
+          {modoCanvas === 'laboratorio' ? <Explorar /> : <Dashboard />}
         </MainLayout>
         <NotificationCenter />
       </>
     );
   }
 
-  // Sem edital ativo, mostra tela inicial pedindo upload
+  // No active edital - show Home page
   return (
     <>
-      <MainLayout>
-        <Insights />
+      <MainLayout showSidebar={false}>
+        <Home />
       </MainLayout>
       <NotificationCenter />
     </>

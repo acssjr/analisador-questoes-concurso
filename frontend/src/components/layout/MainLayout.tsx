@@ -6,27 +6,28 @@ import { useAppStore } from '../../store/appStore';
 
 interface MainLayoutProps {
   children: ReactNode;
+  showSidebar?: boolean;
 }
 
-export function MainLayout({ children }: MainLayoutProps) {
-  const painelDireitoAberto = useAppStore(state => state.painelDireitoAberto);
+export function MainLayout({ children, showSidebar = true }: MainLayoutProps) {
+  const painelDireitoAberto = useAppStore((state) => state.painelDireitoAberto);
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Barra Superior */}
+    <div className="h-full flex flex-col bg-[var(--bg-primary)]">
+      {/* Top Bar */}
       <Topbar />
 
-      {/* Layout de 3 colunas */}
+      {/* Main Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Esquerda */}
-        <Sidebar />
+        {/* Left Sidebar */}
+        {showSidebar && <Sidebar />}
 
-        {/* Canvas Central */}
-        <main className="flex-1 overflow-auto bg-dark-bg p-6">
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto p-6 scrollbar-custom">
           {children}
         </main>
 
-        {/* Painel Direito (Análise de Questão) */}
+        {/* Right Panel (Question Analysis) */}
         {painelDireitoAberto && <AnalysisPanel />}
       </div>
     </div>

@@ -1,9 +1,32 @@
 import { useState, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Modal } from '../ui/Modal';
-import { Button, Badge } from '../ui';
 import { api } from '../../services/api';
 import { useAppStore } from '../../store/appStore';
-import type { Edital, Questao, IncidenciaNode, EditalUploadResponse, ConteudoProgramaticoUploadResponse, DisciplinaConteudo, ItemConteudo } from '../../types';
+import {
+  IconCheck,
+  IconX,
+  IconUpload,
+  IconFileText,
+  IconBookOpen,
+  IconFolder,
+  IconChevronRight,
+  IconChevronDown,
+  IconBuilding,
+  IconCalendar,
+  IconUsers,
+  IconAlertTriangle,
+  IconLoader,
+} from '../ui/Icons';
+import type {
+  Edital,
+  Questao,
+  IncidenciaNode,
+  EditalUploadResponse,
+  ConteudoProgramaticoUploadResponse,
+  DisciplinaConteudo,
+  ItemConteudo,
+} from '../../types';
 
 interface EditalWorkflowModalProps {
   isOpen: boolean;
@@ -13,7 +36,7 @@ interface EditalWorkflowModalProps {
 
 type WorkflowStep = 1 | 2 | 3;
 
-// Função auxiliar para construir árvore de incidência a partir das questões
+// Build incidence tree from questions
 function buildIncidenciaTree(questoes: Questao[]): IncidenciaNode[] {
   const total = questoes.length;
   if (total === 0) return [];
@@ -36,7 +59,7 @@ function buildIncidenciaTree(questoes: Questao[]): IncidenciaNode[] {
       count: questoesDisciplina.length,
       percentual: (questoesDisciplina.length / total) * 100,
       children: [],
-      questoes: questoesDisciplina
+      questoes: questoesDisciplina,
     };
 
     const porAssunto = new Map<string, Questao[]>();
@@ -53,7 +76,7 @@ function buildIncidenciaTree(questoes: Questao[]): IncidenciaNode[] {
         nome: assunto,
         count: questoesAssunto.length,
         percentual: (questoesAssunto.length / total) * 100,
-        questoes: questoesAssunto
+        questoes: questoesAssunto,
       });
     }
 
@@ -65,51 +88,103 @@ function buildIncidenciaTree(questoes: Questao[]): IncidenciaNode[] {
   return tree;
 }
 
-// Componente para mostrar preview do edital extraído
-function EditalPreview({ data, selectedCargo, onCargoSelect }: {
+// Step indicator component
+function StepIndicator({
+  step,
+  currentStep,
+  label,
+}: {
+  step: number;
+  currentStep: number;
+  label: string;
+}) {
+  const isActive = currentStep === step;
+  const isComplete = currentStep > step;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={`
+          w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold transition-all
+          ${isComplete
+            ? 'bg-[var(--accent-green)] text-white'
+            : isActive
+            ? 'bg-[var(--accent-green)] bg-opacity-15 text-[var(--accent-green)] ring-2 ring-[var(--accent-green)]'
+            : 'bg-[var(--bg-muted)] text-[var(--text-muted)]'
+          }
+        `}
+      >
+        {isComplete ? <IconCheck size={14} /> : step}
+      </div>
+      <span
+        className={`text-[13px] ${
+          isActive ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// Edital preview component
+function EditalPreview({
+  data,
+  selectedCargo,
+  onCargoSelect,
+}: {
   data: EditalUploadResponse;
   selectedCargo: string | null;
   onCargoSelect: (cargo: string) => void;
 }) {
-  const hasMutipleCargos = data.cargos && data.cargos.length > 1;
+  const hasMultipleCargos = data.cargos && data.cargos.length > 1;
 
   return (
-    <div className="surface p-4 space-y-3 border border-semantic-success rounded-lg">
-      <div className="flex items-center gap-2 text-semantic-success">
-        <span className="text-xl">✓</span>
-        <span className="font-medium">Informações extraídas do edital</span>
+    <div className="card p-5 border-l-4 border-l-[var(--accent-green)]">
+      <div className="flex items-center gap-2 text-[var(--accent-green)] mb-4">
+        <IconCheck size={18} />
+        <span className="text-[14px] font-medium">Informações extraídas do edital</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-sm">
+      <div className="grid grid-cols-2 gap-4 text-[13px] mb-4">
         <div>
-          <span className="text-text-secondary">Nome:</span>
-          <p className="text-text-primary font-medium">{data.nome}</p>
+          <span className="text-[var(--text-tertiary)]">Nome:</span>
+          <p className="text-[var(--text-primary)] font-medium">{data.nome}</p>
         </div>
         {data.banca && (
-          <div>
-            <span className="text-text-secondary">Banca:</span>
-            <p className="text-text-primary font-medium">{data.banca}</p>
+          <div className="flex items-center gap-2">
+            <IconBuilding size={14} className="text-[var(--text-muted)]" />
+            <div>
+              <span className="text-[var(--text-tertiary)]">Banca:</span>
+              <p className="text-[var(--text-primary)] font-medium">{data.banca}</p>
+            </div>
           </div>
         )}
         {data.ano && (
-          <div>
-            <span className="text-text-secondary">Ano:</span>
-            <p className="text-text-primary font-medium">{data.ano}</p>
+          <div className="flex items-center gap-2">
+            <IconCalendar size={14} className="text-[var(--text-muted)]" />
+            <div>
+              <span className="text-[var(--text-tertiary)]">Ano:</span>
+              <p className="text-[var(--text-primary)] font-medium">{data.ano}</p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Seleção de Cargo */}
+      {/* Cargo selection */}
       {data.cargos && data.cargos.length > 0 && (
         <div className="space-y-2">
-          <span className="text-text-secondary text-sm">
-            {hasMutipleCargos ? 'Selecione seu cargo:' : 'Cargo:'}
-          </span>
-          {hasMutipleCargos ? (
+          <div className="flex items-center gap-2">
+            <IconUsers size={14} className="text-[var(--text-muted)]" />
+            <span className="text-[13px] text-[var(--text-tertiary)]">
+              {hasMultipleCargos ? 'Selecione seu cargo:' : 'Cargo:'}
+            </span>
+          </div>
+          {hasMultipleCargos ? (
             <select
               value={selectedCargo || ''}
               onChange={(e) => onCargoSelect(e.target.value)}
-              className="w-full p-2 rounded bg-dark-surface border border-dark-border text-text-primary text-sm focus:border-disciplinas-portugues focus:outline-none"
+              className="input w-full"
             >
               <option value="">-- Selecione um cargo --</option>
               {data.cargos.map((cargo, idx) => (
@@ -119,19 +194,19 @@ function EditalPreview({ data, selectedCargo, onCargoSelect }: {
               ))}
             </select>
           ) : (
-            <p className="text-text-primary font-medium">{data.cargos[0]}</p>
+            <p className="text-[var(--text-primary)] font-medium text-[13px]">{data.cargos[0]}</p>
           )}
         </div>
       )}
 
       {data.disciplinas && data.disciplinas.length > 0 && (
-        <div>
-          <span className="text-text-secondary text-sm">Disciplinas identificadas:</span>
+        <div className="mt-4">
+          <span className="text-[13px] text-[var(--text-tertiary)]">Disciplinas identificadas:</span>
           <div className="flex flex-wrap gap-2 mt-2">
             {data.disciplinas.map((disc, idx) => (
-              <Badge key={idx} variant="info" className="text-xs">
+              <span key={idx} className="badge badge-muted text-[11px]">
                 {disc}
-              </Badge>
+              </span>
             ))}
           </div>
         </div>
@@ -140,13 +215,13 @@ function EditalPreview({ data, selectedCargo, onCargoSelect }: {
   );
 }
 
-// Componente recursivo para renderizar um item e seus filhos
+// Recursive item renderer for taxonomy
 function RecursiveItemRenderer({
   item,
   itemKey,
   depth,
   expandedItems,
-  toggleItem
+  toggleItem,
 }: {
   item: ItemConteudo;
   itemKey: string;
@@ -157,44 +232,38 @@ function RecursiveItemRenderer({
   const hasChildren = item.filhos && item.filhos.length > 0;
   const isExpanded = expandedItems.has(itemKey);
 
-  // Opacidade diminui com a profundidade
-  const opacityClass = depth === 0 ? 'text-text-secondary' :
-                       depth === 1 ? 'text-text-secondary/80' :
-                       'text-text-secondary/60';
-
-  // Formato do ID para exibição
   const displayId = item.id ? `${item.id}. ` : '';
 
   if (!hasChildren) {
-    // Item folha - sem expansão
     return (
-      <div className={`${opacityClass} text-xs p-0.5 pl-1`}>
-        <span className="text-text-secondary/50 mr-1">–</span>
-        {displayId}{item.texto}
+      <div className="text-[12px] text-[var(--text-secondary)] py-0.5 pl-1">
+        <span className="text-[var(--text-muted)] mr-1">-</span>
+        {displayId}
+        {item.texto}
       </div>
     );
   }
 
-  // Item com filhos - expansível
   return (
     <div>
       <button
         onClick={() => toggleItem(itemKey)}
-        className="flex items-center gap-1 w-full text-left hover:bg-dark-border/20 p-0.5 rounded text-xs"
+        className="flex items-center gap-1 w-full text-left hover:bg-[var(--bg-subtle)] p-1 rounded text-[12px]"
       >
-        <span className="text-text-secondary/60 w-3">
-          {isExpanded ? '▼' : '▶'}
+        {isExpanded ? (
+          <IconChevronDown size={12} className="text-[var(--text-muted)]" />
+        ) : (
+          <IconChevronRight size={12} className="text-[var(--text-muted)]" />
+        )}
+        <span className="text-[var(--text-secondary)]">
+          {displayId}
+          {item.texto}
         </span>
-        <span className={opacityClass}>
-          {displayId}{item.texto}
-        </span>
-        <span className="text-text-secondary/40 text-[10px]">
-          ({item.filhos.length})
-        </span>
+        <span className="text-[10px] text-[var(--text-muted)]">({item.filhos.length})</span>
       </button>
 
       {isExpanded && (
-        <div className="ml-3 pl-2 border-l border-dark-border/30 space-y-0.5">
+        <div className="ml-3 pl-2 border-l border-[var(--border-subtle)] space-y-0.5">
           {item.filhos.map((filho, idx) => (
             <RecursiveItemRenderer
               key={idx}
@@ -211,7 +280,7 @@ function RecursiveItemRenderer({
   );
 }
 
-// Conta total de itens (recursivo)
+// Count total items recursively
 function countTotalItems(itens: ItemConteudo[]): number {
   let total = 0;
   for (const item of itens) {
@@ -223,12 +292,12 @@ function countTotalItems(itens: ItemConteudo[]): number {
   return total;
 }
 
-// Componente para mostrar preview da taxonomia extraída - VERSÃO RECURSIVA
+// Taxonomy preview component
 function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const toggleItem = (key: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -241,63 +310,64 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
 
   const disciplinas = data.taxonomia?.disciplinas || [];
 
-  // Calcula totais baseado na nova estrutura
   const totalDisciplinas = disciplinas.length;
   const totalItens = disciplinas.reduce((acc, disc) => {
-    // Nova estrutura usa 'itens', legada usa 'assuntos'
     if (disc.itens) {
       return acc + countTotalItems(disc.itens);
     }
-    // Fallback para estrutura legada
     return acc + (disc.assuntos?.length || 0);
   }, 0);
 
   return (
-    <div className="surface p-4 space-y-3 border border-semantic-success rounded-lg">
-      <div className="flex items-center gap-2 text-semantic-success">
-        <span className="text-xl">✓</span>
-        <span className="font-medium">Conteúdo Programático extraído</span>
+    <div className="card p-5 border-l-4 border-l-[var(--accent-green)]">
+      <div className="flex items-center gap-2 text-[var(--accent-green)] mb-4">
+        <IconCheck size={18} />
+        <span className="text-[14px] font-medium">Conteúdo Programático extraído</span>
       </div>
 
-      <div className="flex gap-4 text-sm">
+      <div className="flex gap-6 mb-4">
         <div className="text-center">
-          <p className="text-2xl font-bold text-disciplinas-portugues">{totalDisciplinas}</p>
-          <p className="text-text-secondary">Disciplinas</p>
+          <p className="text-[24px] font-semibold text-[var(--accent-green)] text-mono">
+            {totalDisciplinas}
+          </p>
+          <p className="text-[12px] text-[var(--text-tertiary)]">Disciplinas</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-disciplinas-matematica">{totalItens}</p>
-          <p className="text-text-secondary">Itens</p>
+          <p className="text-[24px] font-semibold text-[var(--accent-amber)] text-mono">
+            {totalItens}
+          </p>
+          <p className="text-[12px] text-[var(--text-tertiary)]">Itens</p>
         </div>
       </div>
 
       {disciplinas.length > 0 && (
-        <div className="max-h-72 overflow-y-auto space-y-1">
+        <div className="max-h-64 overflow-y-auto space-y-1 scrollbar-custom">
           {disciplinas.map((disc: DisciplinaConteudo, dIdx: number) => {
             const discKey = `d-${dIdx}`;
             const isDiscExpanded = expandedItems.has(discKey);
 
-            // Usa nova estrutura (itens) ou fallback para legada (assuntos)
             const hasItens = disc.itens && disc.itens.length > 0;
             const itemCount = hasItens ? disc.itens.length : (disc.assuntos?.length || 0);
 
             return (
-              <div key={dIdx} className="text-sm">
-                {/* Nível Disciplina */}
+              <div key={dIdx} className="text-[13px]">
                 <button
                   onClick={() => toggleItem(discKey)}
-                  className="flex items-center gap-2 w-full text-left hover:bg-dark-border/20 p-1 rounded"
+                  className="flex items-center gap-2 w-full text-left hover:bg-[var(--bg-subtle)] p-2 rounded-lg"
                 >
-                  <span className="text-text-secondary">
-                    {isDiscExpanded ? '▼' : '▶'}
-                  </span>
-                  <span className="text-text-primary font-medium">{disc.nome}</span>
-                  <span className="text-text-secondary text-xs">
+                  {isDiscExpanded ? (
+                    <IconChevronDown size={14} className="text-[var(--text-muted)]" />
+                  ) : (
+                    <IconChevronRight size={14} className="text-[var(--text-muted)]" />
+                  )}
+                  <span className="text-[var(--text-primary)] font-medium">{disc.nome}</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">
                     ({itemCount} {itemCount === 1 ? 'item' : 'itens'})
                   </span>
                 </button>
 
                 {isDiscExpanded && hasItens && (
-                  <div className="ml-4 pl-2 border-l border-dark-border space-y-0.5">
+                  <div className="ml-4 pl-2 border-l border-[var(--border-subtle)] space-y-0.5">
                     {disc.itens.map((item, iIdx) => (
                       <RecursiveItemRenderer
                         key={iIdx}
@@ -311,12 +381,11 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
                   </div>
                 )}
 
-                {/* Fallback para estrutura legada */}
                 {isDiscExpanded && !hasItens && disc.assuntos && (
-                  <div className="ml-4 pl-2 border-l border-dark-border space-y-0.5">
+                  <div className="ml-4 pl-2 border-l border-[var(--border-subtle)] space-y-0.5">
                     {disc.assuntos.map((assunto, aIdx) => (
-                      <div key={aIdx} className="text-text-secondary text-xs p-0.5">
-                        – {assunto.nome}
+                      <div key={aIdx} className="text-[var(--text-secondary)] text-[12px] py-0.5">
+                        - {assunto.nome}
                       </div>
                     ))}
                   </div>
@@ -330,37 +399,53 @@ function TaxonomyPreview({ data }: { data: ConteudoProgramaticoUploadResponse })
   );
 }
 
-// Componente para mostrar resultado da extração de provas
-function ExtractionResultsPreview({ results }: { results: Array<{
-  success: boolean;
-  filename: string;
-  format?: string;
-  total_questoes?: number;
-  error?: string;
-}> }) {
+// Extraction results preview
+function ExtractionResultsPreview({
+  results,
+}: {
+  results: Array<{
+    success: boolean;
+    filename: string;
+    format?: string;
+    total_questoes?: number;
+    error?: string;
+  }>;
+}) {
   return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium text-text-primary">Resultados da extração:</p>
-      <div className="max-h-48 overflow-y-auto space-y-2">
+    <div className="space-y-3">
+      <p className="text-[13px] font-medium text-[var(--text-primary)]">Resultados da extração:</p>
+      <div className="max-h-48 overflow-y-auto space-y-2 scrollbar-custom">
         {results.map((result, idx) => (
           <div
             key={idx}
-            className={`surface p-3 flex items-center justify-between border rounded ${
-              result.success ? 'border-semantic-success' : 'border-semantic-error'
+            className={`card p-4 flex items-center justify-between border-l-4 ${
+              result.success ? 'border-l-[var(--accent-green)]' : 'border-l-[var(--accent-red)]'
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className={`text-xl ${result.success ? 'text-semantic-success' : 'text-semantic-error'}`}>
-                {result.success ? '✓' : '✗'}
-              </span>
-              <div>
-                <p className="text-sm font-medium text-text-primary">{result.filename}</p>
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  result.success
+                    ? 'bg-[var(--accent-green)] bg-opacity-10'
+                    : 'bg-[var(--accent-red)] bg-opacity-10'
+                }`}
+              >
                 {result.success ? (
-                  <p className="text-xs text-text-secondary">
+                  <IconCheck size={16} className="text-[var(--accent-green)]" />
+                ) : (
+                  <IconX size={16} className="text-[var(--accent-red)]" />
+                )}
+              </div>
+              <div>
+                <p className="text-[13px] font-medium text-[var(--text-primary)]">
+                  {result.filename}
+                </p>
+                {result.success ? (
+                  <p className="text-[11px] text-[var(--text-tertiary)]">
                     Formato: {result.format} • {result.total_questoes || 0} questões extraídas
                   </p>
                 ) : (
-                  <p className="text-xs text-semantic-error">
+                  <p className="text-[11px] text-[var(--accent-red)]">
                     {result.error || 'Erro desconhecido'}
                   </p>
                 )}
@@ -373,9 +458,87 @@ function ExtractionResultsPreview({ results }: { results: Array<{
   );
 }
 
-export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: EditalWorkflowModalProps) {
+// Drop zone component
+function DropZone({
+  onDrop,
+  onFileSelect,
+  isDragging,
+  setIsDragging,
+  icon: Icon,
+  title,
+  subtitle,
+  inputId,
+  multiple = false,
+  disabled = false,
+}: {
+  onDrop: (e: React.DragEvent) => void;
+  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isDragging: boolean;
+  setIsDragging: (value: boolean) => void;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  subtitle: string;
+  inputId: string;
+  multiple?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        setIsDragging(false);
+      }}
+      onDrop={onDrop}
+      className={`
+        border-2 border-dashed rounded-xl p-8 text-center transition-all
+        ${isDragging
+          ? 'border-[var(--accent-green)] bg-[var(--accent-green)] bg-opacity-5'
+          : 'border-[var(--border-default)] hover:border-[var(--accent-green)] hover:bg-[var(--bg-subtle)]'
+        }
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+      `}
+    >
+      <div className="space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mx-auto">
+          <Icon size={28} className="text-[var(--accent-green)]" />
+        </div>
+        <div>
+          <p className="text-[14px] font-medium text-[var(--text-primary)] mb-1">{title}</p>
+          <p className="text-[12px] text-[var(--text-tertiary)]">{subtitle}</p>
+        </div>
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={onFileSelect}
+          className="hidden"
+          id={inputId}
+          disabled={disabled}
+          multiple={multiple}
+        />
+        <label htmlFor={inputId}>
+          <span
+            className={`btn btn-secondary text-[13px] ${disabled ? 'pointer-events-none' : 'cursor-pointer'}`}
+          >
+            <IconUpload size={14} />
+            Selecionar Arquivo{multiple ? 's' : ''}
+          </span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+export function EditalWorkflowModal({
+  isOpen,
+  onClose,
+  onUploadSuccess,
+}: EditalWorkflowModalProps) {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
-  const [_editalFile, setEditalFile] = useState<File | null>(null);
+  const [, setEditalFile] = useState<File | null>(null);
   const [conteudoProgramaticoFile, setConteudoProgramaticoFile] = useState<File | null>(null);
   const [provasFiles, setProvasFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -383,26 +546,28 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
   const [progress, setProgress] = useState<string>('');
   const [error, setError] = useState<string>('');
 
-  // Estados para dados extraídos
+  // Extracted data states
   const [extractedEdital, setExtractedEdital] = useState<EditalUploadResponse | null>(null);
-  const [extractedTaxonomy, setExtractedTaxonomy] = useState<ConteudoProgramaticoUploadResponse | null>(null);
-  const [extractionResults, setExtractionResults] = useState<Array<{
-    success: boolean;
-    filename: string;
-    format?: string;
-    total_questoes?: number;
-    questoes?: any[];
-    metadados?: any;
-    error?: string;
-  }> | null>(null);
+  const [extractedTaxonomy, setExtractedTaxonomy] =
+    useState<ConteudoProgramaticoUploadResponse | null>(null);
+  const [extractionResults, setExtractionResults] = useState<
+    Array<{
+      success: boolean;
+      filename: string;
+      format?: string;
+      total_questoes?: number;
+      questoes?: Record<string, unknown>[];
+      metadados?: Record<string, unknown>;
+      error?: string;
+    }> | null
+  >(null);
 
-  // Estado para cargo selecionado
   const [selectedCargo, setSelectedCargo] = useState<string | null>(null);
 
   // Store actions
-  const setActiveEdital = useAppStore(state => state.setActiveEdital);
-  const setQuestoes = useAppStore(state => state.setQuestoes);
-  const setIncidencia = useAppStore(state => state.setIncidencia);
+  const setActiveEdital = useAppStore((state) => state.setActiveEdital);
+  const setQuestoes = useAppStore((state) => state.setQuestoes);
+  const setIncidencia = useAppStore((state) => state.setIncidencia);
 
   // Auto-select cargo if only one
   useEffect(() => {
@@ -411,17 +576,7 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
     }
   }, [extractedEdital]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  // Upload do edital (Step 1) - chamado automaticamente
+  // Upload edital
   const uploadEdital = useCallback(async (file: File) => {
     setIsUploading(true);
     setProgress('Extraindo informações do edital...');
@@ -431,126 +586,130 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
       const result = await api.uploadEdital(file);
       setExtractedEdital(result);
       setProgress('');
-    } catch (err) {
+    } catch {
       setError('Erro ao fazer upload do edital');
     } finally {
       setIsUploading(false);
     }
   }, []);
 
-  // Upload do conteúdo programático (Step 2) - chamado automaticamente
-  const uploadConteudo = useCallback(async (file: File) => {
-    if (!extractedEdital) return;
+  // Upload conteúdo programático
+  const uploadConteudo = useCallback(
+    async (file: File) => {
+      if (!extractedEdital) return;
 
-    setIsUploading(true);
-    setProgress('Extraindo conteúdo programático...');
-    setError('');
+      setIsUploading(true);
+      setProgress('Extraindo conteúdo programático...');
+      setError('');
 
-    try {
-      const result = await api.uploadConteudoProgramatico(
-        extractedEdital.edital_id,
-        file,
-        selectedCargo || undefined
-      );
-      setExtractedTaxonomy(result);
-      setProgress('');
-    } catch (err) {
-      setError('Erro ao fazer upload do conteúdo programático');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [extractedEdital, selectedCargo]);
+      try {
+        const result = await api.uploadConteudoProgramatico(
+          extractedEdital.edital_id,
+          file,
+          selectedCargo || undefined
+        );
+        setExtractedTaxonomy(result);
+        setProgress('');
+      } catch {
+        setError('Erro ao fazer upload do conteúdo programático');
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [extractedEdital, selectedCargo]
+  );
 
-  // Upload das provas (Step 3) - chamado automaticamente
-  const uploadProvas = useCallback(async (files: File[]) => {
-    if (!extractedEdital || files.length === 0) return;
+  // Upload provas
+  const uploadProvas = useCallback(
+    async (files: File[]) => {
+      if (!extractedEdital || files.length === 0) return;
 
-    setIsUploading(true);
-    setProgress(`Extraindo questões de ${files.length} prova(s)...`);
-    setError('');
+      setIsUploading(true);
+      setProgress(`Extraindo questões de ${files.length} prova(s)...`);
+      setError('');
 
-    try {
-      const result = await api.uploadProvasVinculadas(extractedEdital.edital_id, files);
-      setExtractionResults(result.results);
-      setProgress('');
-    } catch (err: any) {
-      setError(err?.message || 'Erro ao fazer upload das provas');
-    } finally {
-      setIsUploading(false);
-    }
-  }, [extractedEdital]);
+      try {
+        const result = await api.uploadProvasVinculadas(extractedEdital.edital_id, files);
+        setExtractionResults(result.results);
+        setProgress('');
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Erro ao fazer upload das provas';
+        setError(message);
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [extractedEdital]
+  );
 
-  const handleDrop = useCallback((e: React.DragEvent, step: WorkflowStep) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    const pdfFiles = droppedFiles.filter(f => f.type === 'application/pdf');
+  const handleDrop = useCallback(
+    (e: React.DragEvent, step: WorkflowStep) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      const pdfFiles = droppedFiles.filter((f) => f.type === 'application/pdf');
 
-    if (pdfFiles.length === 0) {
-      setError('Por favor, selecione apenas arquivos PDF');
-      return;
-    }
+      if (pdfFiles.length === 0) {
+        setError('Por favor, selecione apenas arquivos PDF');
+        return;
+      }
 
-    setError('');
+      setError('');
 
-    if (step === 1 && pdfFiles.length > 0) {
-      setEditalFile(pdfFiles[0]);
-      setExtractedEdital(null);
-      setSelectedCargo(null);
-      // Auto-extract
-      uploadEdital(pdfFiles[0]);
-    } else if (step === 2 && pdfFiles.length > 0) {
-      setConteudoProgramaticoFile(pdfFiles[0]);
-      setExtractedTaxonomy(null);
-      // Auto-extract
-      uploadConteudo(pdfFiles[0]);
-    } else if (step === 3) {
-      const newFiles = [...provasFiles, ...pdfFiles];
-      setProvasFiles(newFiles);
-      setExtractionResults(null);
-      // Auto-extract
-      uploadProvas(newFiles);
-    }
-  }, [provasFiles, uploadEdital, uploadConteudo, uploadProvas]);
+      if (step === 1 && pdfFiles.length > 0) {
+        setEditalFile(pdfFiles[0]);
+        setExtractedEdital(null);
+        setSelectedCargo(null);
+        uploadEdital(pdfFiles[0]);
+      } else if (step === 2 && pdfFiles.length > 0) {
+        setConteudoProgramaticoFile(pdfFiles[0]);
+        setExtractedTaxonomy(null);
+        uploadConteudo(pdfFiles[0]);
+      } else if (step === 3) {
+        const newFiles = [...provasFiles, ...pdfFiles];
+        setProvasFiles(newFiles);
+        setExtractionResults(null);
+        uploadProvas(newFiles);
+      }
+    },
+    [provasFiles, uploadEdital, uploadConteudo, uploadProvas]
+  );
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>, step: WorkflowStep) => {
-    const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-    const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf');
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>, step: WorkflowStep) => {
+      const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
+      const pdfFiles = selectedFiles.filter((f) => f.type === 'application/pdf');
 
-    if (pdfFiles.length === 0 && selectedFiles.length > 0) {
-      setError('Por favor, selecione apenas arquivos PDF');
-      return;
-    }
+      if (pdfFiles.length === 0 && selectedFiles.length > 0) {
+        setError('Por favor, selecione apenas arquivos PDF');
+        return;
+      }
 
-    setError('');
+      setError('');
 
-    if (step === 1 && pdfFiles.length > 0) {
-      setEditalFile(pdfFiles[0]);
-      setExtractedEdital(null);
-      setSelectedCargo(null);
-      // Auto-extract
-      uploadEdital(pdfFiles[0]);
-    } else if (step === 2 && pdfFiles.length > 0) {
-      setConteudoProgramaticoFile(pdfFiles[0]);
-      setExtractedTaxonomy(null);
-      // Auto-extract
-      uploadConteudo(pdfFiles[0]);
-    } else if (step === 3) {
-      const newFiles = [...provasFiles, ...pdfFiles];
-      setProvasFiles(newFiles);
-      setExtractionResults(null);
-      // Auto-extract
-      uploadProvas(newFiles);
-    }
+      if (step === 1 && pdfFiles.length > 0) {
+        setEditalFile(pdfFiles[0]);
+        setExtractedEdital(null);
+        setSelectedCargo(null);
+        uploadEdital(pdfFiles[0]);
+      } else if (step === 2 && pdfFiles.length > 0) {
+        setConteudoProgramaticoFile(pdfFiles[0]);
+        setExtractedTaxonomy(null);
+        uploadConteudo(pdfFiles[0]);
+      } else if (step === 3) {
+        const newFiles = [...provasFiles, ...pdfFiles];
+        setProvasFiles(newFiles);
+        setExtractionResults(null);
+        uploadProvas(newFiles);
+      }
 
-    // Reset input
-    e.target.value = '';
-  }, [provasFiles, uploadEdital, uploadConteudo, uploadProvas]);
+      e.target.value = '';
+    },
+    [provasFiles, uploadEdital, uploadConteudo, uploadProvas]
+  );
 
-  // Avançar para próximo passo
   const handleNext = () => {
     if (currentStep === 1 && extractedEdital) {
-      // Verificar se cargo foi selecionado quando há múltiplos
       if (extractedEdital.cargos?.length > 1 && !selectedCargo) {
         setError('Por favor, selecione um cargo antes de continuar');
         return;
@@ -561,27 +720,28 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
     }
   };
 
-  // Finalizar workflow
   const handleFinish = () => {
     if (!extractedEdital || !extractionResults) return;
 
     const questoesExtraidas: Questao[] = (extractionResults || [])
       .filter((r) => r.success && r.questoes)
-      .flatMap((r) => r.questoes!.map((q: any, idx: number) => ({
-        id: q.id || `${r.filename}-${idx}`,
-        numero: q.numero || idx + 1,
-        ano: q.ano || r.metadados?.ano || new Date().getFullYear(),
-        banca: q.banca || r.metadados?.banca || extractedEdital.banca || 'Desconhecida',
-        cargo: q.cargo || r.metadados?.cargo || selectedCargo || '',
-        disciplina: q.disciplina || 'Não classificada',
-        assunto_pci: q.assunto_pci || q.assunto || '',
-        enunciado: q.enunciado || '',
-        alternativas: q.alternativas || {},
-        gabarito: q.gabarito || '',
-        anulada: q.anulada || false,
-        motivo_anulacao: q.motivo_anulacao,
-        classificacao: q.classificacao,
-      })));
+      .flatMap((r) =>
+        r.questoes!.map((q, idx: number) => ({
+          id: String(q.id || `${r.filename}-${idx}`),
+          numero: Number(q.numero) || idx + 1,
+          ano: Number(q.ano) || Number(r.metadados?.ano) || new Date().getFullYear(),
+          banca: String(q.banca || r.metadados?.banca || extractedEdital.banca || 'Desconhecida'),
+          cargo: String(q.cargo || r.metadados?.cargo || selectedCargo || ''),
+          disciplina: String(q.disciplina || 'Não classificada'),
+          assunto_pci: String(q.assunto_pci || q.assunto || ''),
+          enunciado: String(q.enunciado || ''),
+          alternativas: (q.alternativas || { A: '', B: '', C: '', D: '', E: '' }) as Questao['alternativas'],
+          gabarito: String(q.gabarito || ''),
+          anulada: Boolean(q.anulada),
+          motivo_anulacao: q.motivo_anulacao as string | undefined,
+          classificacao: q.classificacao as Questao['classificacao'],
+        }))
+      );
 
     const totalQuestoes = extractionResults.reduce((acc, r) => acc + (r.total_questoes || 0), 0);
 
@@ -590,7 +750,7 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
       nome: extractedEdital.nome,
       arquivo_url: '',
       data_upload: new Date().toISOString(),
-      total_provas: extractionResults.filter(r => r.success).length,
+      total_provas: extractionResults.filter((r) => r.success).length,
       total_questoes: totalQuestoes,
       banca: extractedEdital.banca,
       ano: extractedEdital.ano,
@@ -639,93 +799,51 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
       return true;
     }
     if (currentStep === 2) return true;
-    if (currentStep === 3) return extractionResults !== null && extractionResults.some(r => r.success);
+    if (currentStep === 3)
+      return extractionResults !== null && extractionResults.some((r) => r.success);
     return false;
   };
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Importar Edital e Provas" size="lg">
       <div className="space-y-6">
-        {/* Progress indicator */}
-        <div className="flex items-center justify-between">
-          {[1, 2, 3].map((step) => (
-            <div key={step} className="flex items-center flex-1">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${
-                  currentStep === step
-                    ? 'border-disciplinas-portugues bg-disciplinas-portugues bg-opacity-20 text-disciplinas-portugues'
-                    : currentStep > step
-                    ? 'border-semantic-success bg-semantic-success bg-opacity-20 text-semantic-success'
-                    : 'border-dark-border text-text-secondary'
-                }`}
-              >
-                {currentStep > step ? '✓' : step}
-              </div>
-              {step < 3 && (
-                <div
-                  className={`flex-1 h-0.5 mx-2 transition-all ${
-                    currentStep > step ? 'bg-semantic-success' : 'bg-dark-border'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="text-center">
-          <Badge variant="info" className="text-xs">
-            Passo {currentStep} de 3
-          </Badge>
+        {/* Step indicators */}
+        <div className="flex items-center justify-between px-4">
+          <StepIndicator step={1} currentStep={currentStep} label="Edital" />
+          <div className="flex-1 h-px bg-[var(--border-subtle)] mx-4" />
+          <StepIndicator step={2} currentStep={currentStep} label="Conteúdo" />
+          <div className="flex-1 h-px bg-[var(--border-subtle)] mx-4" />
+          <StepIndicator step={3} currentStep={currentStep} label="Provas" />
         </div>
 
         {/* Step 1: Upload Edital */}
         {currentStep === 1 && (
-          <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4"
+          >
             <div>
-              <h3 className="text-lg font-medium text-text-primary mb-2">Upload do Edital</h3>
-              <p className="text-sm text-text-secondary">
+              <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">
+                Upload do Edital
+              </h3>
+              <p className="text-[13px] text-[var(--text-tertiary)]">
                 Faça upload do PDF do edital. A extração inicia automaticamente.
               </p>
             </div>
 
             {!extractedEdital && !isUploading && (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
+              <DropZone
                 onDrop={(e) => handleDrop(e, 1)}
-                className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-all
-                  ${isDragging
-                    ? 'border-disciplinas-portugues bg-disciplinas-portugues bg-opacity-5'
-                    : 'border-dark-border hover:border-disciplinas-portugues hover:bg-disciplinas-portugues hover:bg-opacity-5'
-                  }
-                `}
-              >
-                <div className="space-y-4">
-                  <div className="text-5xl">📋</div>
-                  <div>
-                    <p className="text-text-primary font-medium mb-2">
-                      Arraste o PDF do edital aqui ou clique para selecionar
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      A extração inicia automaticamente após selecionar o arquivo
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleFileSelect(e, 1)}
-                    className="hidden"
-                    id="edital-input"
-                    disabled={isUploading}
-                  />
-                  <label htmlFor="edital-input">
-                    <span className="inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 bg-dark-surface border border-dark-border hover:bg-opacity-80 text-text-primary px-4 py-2 text-sm cursor-pointer">
-                      Selecionar Edital
-                    </span>
-                  </label>
-                </div>
-              </div>
+                onFileSelect={(e) => handleFileSelect(e, 1)}
+                isDragging={isDragging}
+                setIsDragging={setIsDragging}
+                icon={IconFileText}
+                title="Arraste o PDF do edital aqui"
+                subtitle="A extração inicia automaticamente após selecionar o arquivo"
+                inputId="edital-input"
+                disabled={isUploading}
+              />
             )}
 
             {extractedEdital && (
@@ -735,185 +853,154 @@ export function EditalWorkflowModal({ isOpen, onClose, onUploadSuccess }: Edital
                 onCargoSelect={setSelectedCargo}
               />
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Step 2: Upload Conteúdo Programático */}
         {currentStep === 2 && (
-          <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4"
+          >
             <div>
-              <h3 className="text-lg font-medium text-text-primary mb-2">
-                Conteúdo Programático <span className="text-text-secondary text-sm">(Opcional)</span>
+              <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">
+                Conteúdo Programático{' '}
+                <span className="text-[var(--text-muted)] font-normal">(Opcional)</span>
               </h3>
-              <p className="text-sm text-text-secondary">
+              <p className="text-[13px] text-[var(--text-tertiary)]">
                 Faça upload do PDF com o conteúdo programático.
-                {selectedCargo && <span className="text-disciplinas-portugues"> Cargo selecionado: {selectedCargo}</span>}
+                {selectedCargo && (
+                  <span className="text-[var(--accent-green)]"> Cargo: {selectedCargo}</span>
+                )}
               </p>
             </div>
 
             {!extractedTaxonomy && !isUploading && (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
+              <DropZone
                 onDrop={(e) => handleDrop(e, 2)}
-                className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-all
-                  ${isDragging
-                    ? 'border-disciplinas-portugues bg-disciplinas-portugues bg-opacity-5'
-                    : 'border-dark-border hover:border-disciplinas-portugues hover:bg-disciplinas-portugues hover:bg-opacity-5'
-                  }
-                `}
-              >
-                <div className="space-y-4">
-                  <div className="text-5xl">📚</div>
-                  <div>
-                    <p className="text-text-primary font-medium mb-2">
-                      Arraste o conteúdo programático aqui ou clique para selecionar
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      A extração inicia automaticamente (opcional)
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleFileSelect(e, 2)}
-                    className="hidden"
-                    id="conteudo-input"
-                    disabled={isUploading}
-                  />
-                  <label htmlFor="conteudo-input">
-                    <span className="inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 bg-dark-surface border border-dark-border hover:bg-opacity-80 text-text-primary px-4 py-2 text-sm cursor-pointer">
-                      Selecionar Arquivo
-                    </span>
-                  </label>
-                </div>
-              </div>
+                onFileSelect={(e) => handleFileSelect(e, 2)}
+                isDragging={isDragging}
+                setIsDragging={setIsDragging}
+                icon={IconBookOpen}
+                title="Arraste o conteúdo programático aqui"
+                subtitle="A extração inicia automaticamente (opcional)"
+                inputId="conteudo-input"
+                disabled={isUploading}
+              />
             )}
 
             {extractedTaxonomy && <TaxonomyPreview data={extractedTaxonomy} />}
-          </div>
+          </motion.div>
         )}
 
         {/* Step 3: Upload Provas */}
         {currentStep === 3 && (
-          <div className="space-y-4">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4"
+          >
             <div>
-              <h3 className="text-lg font-medium text-text-primary mb-2">Upload das Provas</h3>
-              <p className="text-sm text-text-secondary">
+              <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">
+                Upload das Provas
+              </h3>
+              <p className="text-[13px] text-[var(--text-tertiary)]">
                 Faça upload dos PDFs das provas. A extração inicia automaticamente.
               </p>
             </div>
 
             {!extractionResults && !isUploading && (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
+              <DropZone
                 onDrop={(e) => handleDrop(e, 3)}
-                className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-all
-                  ${isDragging
-                    ? 'border-disciplinas-portugues bg-disciplinas-portugues bg-opacity-5'
-                    : 'border-dark-border hover:border-disciplinas-portugues hover:bg-disciplinas-portugues hover:bg-opacity-5'
-                  }
-                `}
-              >
-                <div className="space-y-4">
-                  <div className="text-5xl">📄</div>
-                  <div>
-                    <p className="text-text-primary font-medium mb-2">
-                      Arraste os PDFs das provas aqui ou clique para selecionar
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      Formatos suportados: PDFs do PCI Concursos
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => handleFileSelect(e, 3)}
-                    className="hidden"
-                    id="provas-input"
-                    disabled={isUploading}
-                    multiple
-                  />
-                  <label htmlFor="provas-input">
-                    <span className="inline-flex items-center justify-center rounded-lg font-medium transition-all duration-150 bg-dark-surface border border-dark-border hover:bg-opacity-80 text-text-primary px-4 py-2 text-sm cursor-pointer">
-                      Selecionar Provas
-                    </span>
-                  </label>
-                </div>
-              </div>
+                onFileSelect={(e) => handleFileSelect(e, 3)}
+                isDragging={isDragging}
+                setIsDragging={setIsDragging}
+                icon={IconFolder}
+                title="Arraste os PDFs das provas aqui"
+                subtitle="Formatos suportados: PDFs do PCI Concursos"
+                inputId="provas-input"
+                multiple
+                disabled={isUploading}
+              />
             )}
 
             {extractionResults && <ExtractionResultsPreview results={extractionResults} />}
 
             {extractionResults && (
               <div className="flex justify-center">
-                <Button
-                  variant="ghost"
+                <button
                   onClick={() => {
                     setExtractionResults(null);
                     setProvasFiles([]);
                   }}
+                  className="btn btn-ghost text-[13px]"
                 >
                   Selecionar outros arquivos
-                </Button>
+                </button>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Progress */}
         {progress && (
-          <div className="p-4 bg-semantic-info bg-opacity-10 border border-semantic-info rounded flex items-center gap-3">
-            <div className="animate-spin w-5 h-5 border-2 border-semantic-info border-t-transparent rounded-full"></div>
-            <p className="text-sm text-semantic-info">{progress}</p>
+          <div className="p-4 bg-[var(--accent-green)] bg-opacity-5 border border-[var(--accent-green)] border-opacity-20 rounded-xl flex items-center gap-3">
+            <IconLoader size={18} className="text-[var(--accent-green)] animate-spin" />
+            <p className="text-[13px] text-[var(--accent-green)]">{progress}</p>
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="p-4 bg-semantic-error bg-opacity-10 border border-semantic-error rounded">
-            <p className="text-sm text-semantic-error">{error}</p>
+          <div className="p-4 bg-[var(--accent-red)] bg-opacity-5 border border-[var(--accent-red)] border-opacity-20 rounded-xl flex items-center gap-3">
+            <IconAlertTriangle size={18} className="text-[var(--accent-red)]" />
+            <p className="text-[13px] text-[var(--accent-red)]">{error}</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex justify-between gap-3">
+        <div className="flex justify-between gap-3 pt-4 border-t border-[var(--border-subtle)]">
           <div>
             {currentStep > 1 && (
-              <Button variant="ghost" onClick={handleBack} disabled={isUploading}>
+              <button onClick={handleBack} disabled={isUploading} className="btn btn-ghost">
                 Voltar
-              </Button>
+              </button>
             )}
           </div>
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={handleClose} disabled={isUploading}>
+            <button onClick={handleClose} disabled={isUploading} className="btn btn-secondary">
               Cancelar
-            </Button>
+            </button>
 
-            <Button
-              variant="primary"
+            <button
               onClick={currentStep === 3 ? handleFinish : handleNext}
               disabled={!canProceed() || isUploading}
+              className="btn btn-primary"
             >
               {currentStep === 3
                 ? 'Finalizar'
                 : currentStep === 2 && !conteudoProgramaticoFile
                 ? 'Pular'
                 : 'Próximo'}
-            </Button>
+            </button>
           </div>
         </div>
 
         {/* Instructions */}
-        <div className="text-xs text-text-secondary space-y-2 pt-4 border-t border-dark-border">
-          <p className="font-medium">Fluxo de trabalho:</p>
+        <div className="text-[12px] text-[var(--text-muted)] space-y-2 pt-4 border-t border-[var(--border-subtle)]">
+          <p className="font-medium text-[var(--text-tertiary)]">Fluxo de trabalho:</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><strong>Passo 1:</strong> Upload do edital → Selecione seu cargo (se houver vários) → Próximo</li>
-            <li><strong>Passo 2:</strong> Upload do conteúdo programático (opcional) → Próximo</li>
-            <li><strong>Passo 3:</strong> Upload das provas → Finalizar</li>
+            <li>
+              <strong>Passo 1:</strong> Upload do edital → Selecione seu cargo (se houver vários) →
+              Próximo
+            </li>
+            <li>
+              <strong>Passo 2:</strong> Upload do conteúdo programático (opcional) → Próximo
+            </li>
+            <li>
+              <strong>Passo 3:</strong> Upload das provas → Finalizar
+            </li>
           </ul>
         </div>
       </div>
