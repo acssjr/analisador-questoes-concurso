@@ -6,10 +6,16 @@ from typing import AsyncGenerator, Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 
-from src.core.database import Base
+# Optional database imports - only required for DB tests
+try:
+    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+    from sqlalchemy.orm import sessionmaker
+    from src.core.database import Base
+    HAS_SQLALCHEMY = True
+except ImportError:
+    HAS_SQLALCHEMY = False
+    AsyncSession = None
 
 
 # Test database URL (in-memory SQLite)
@@ -25,8 +31,11 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 
 @pytest.fixture
-async def test_db() -> AsyncGenerator[AsyncSession, None]:
+async def test_db() -> AsyncGenerator:
     """Create test database session"""
+    if not HAS_SQLALCHEMY:
+        pytest.skip("SQLAlchemy not installed")
+
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 
     async with engine.begin() as conn:
