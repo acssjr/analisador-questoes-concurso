@@ -80,11 +80,14 @@ exports/
 # Continuous Claude cache (local only)
 .claude/cache/
 
-# Thoughts/ledgers (session-specific)
-thoughts/
+# Thoughts - only ignore scratch/temporary, keep ledgers and shared
+thoughts/scratch/
 
 # Subprojects
 claude-continuity-kit/
 
 # Windows artifacts
 nul
+
+# Claude temp directories
+tmpclaude-*
