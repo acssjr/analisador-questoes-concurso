@@ -720,7 +720,7 @@ export function EditalWorkflowModal({
     }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!extractedEdital || !extractionResults) return;
 
     const questoesExtraidas: Questao[] = (extractionResults || [])
@@ -744,13 +744,30 @@ export function EditalWorkflowModal({
       );
 
     const totalQuestoes = extractionResults.reduce((acc, r) => acc + (r.total_questoes || 0), 0);
+    const totalProvas = extractionResults.filter((r) => r.success).length;
+
+    // Create a project in the backend
+    try {
+      const projeto = await api.createProjeto({
+        nome: extractedEdital.nome,
+        banca: extractedEdital.banca,
+        cargo: selectedCargo || undefined,
+        ano: extractedEdital.ano,
+      });
+
+      // Link the edital to the project
+      await api.vincularEdital(projeto.id, extractedEdital.edital_id);
+    } catch (err) {
+      console.error('Erro ao criar projeto:', err);
+      // Continue anyway - the UI will still work
+    }
 
     const editalAtivo: Edital = {
       id: extractedEdital.edital_id,
       nome: extractedEdital.nome,
       arquivo_url: '',
       data_upload: new Date().toISOString(),
-      total_provas: extractionResults.filter((r) => r.success).length,
+      total_provas: totalProvas,
       total_questoes: totalQuestoes,
       banca: extractedEdital.banca,
       ano: extractedEdital.ano,

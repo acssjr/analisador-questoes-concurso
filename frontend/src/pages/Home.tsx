@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EditalWorkflowModal } from '../components/features/EditalWorkflowModal';
+import { ProjectsList } from '../components/features/ProjectsList';
+import { api } from '../services/api';
+import { useAppStore } from '../store/appStore';
+import type { Projeto, Edital } from '../types';
 import {
   IconUpload,
   IconBookOpen,
@@ -192,6 +196,54 @@ function Footer() {
 
 export function Home() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [hasProjects, setHasProjects] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const setActiveEdital = useAppStore((state) => state.setActiveEdital);
+
+  const [projectsKey, setProjectsKey] = useState(0);
+
+  // Check if user has projects
+  useEffect(() => {
+    async function checkProjects() {
+      try {
+        const response = await api.listProjetos();
+        setHasProjects(response.projetos.length > 0);
+      } catch (err) {
+        console.error('Erro ao verificar projetos:', err);
+      } finally {
+        setLoadingProjects(false);
+      }
+    }
+    checkProjects();
+  }, [projectsKey]);
+
+  // Refresh projects list
+  function refreshProjects() {
+    setProjectsKey(k => k + 1);
+  }
+
+  // Handle project selection - load edital and go to dashboard
+  async function handleSelectProject(projeto: Projeto) {
+    if (!projeto.edital_id) {
+      // Project has no edital yet, open modal to add one
+      setIsUploadModalOpen(true);
+      return;
+    }
+
+    // Create edital object from projeto data to set as active
+    const edital: Edital = {
+      id: projeto.edital_id,
+      nome: projeto.edital_nome || projeto.nome,
+      arquivo_url: '',
+      data_upload: projeto.created_at,
+      total_provas: projeto.total_provas,
+      total_questoes: projeto.total_questoes,
+      banca: projeto.banca,
+      ano: projeto.ano,
+    };
+
+    setActiveEdital(edital);
+  }
 
   const features = [
     {
@@ -305,30 +357,43 @@ export function Home() {
           </div>
         </motion.div>
 
-        {/* Stats Grid - Empty State */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard
-            icon={IconBookOpen}
-            value="0"
-            label="Provas importadas"
-            delay={0.1}
-            onClick={() => setIsUploadModalOpen(true)}
-          />
-          <StatCard
-            icon={IconTarget}
-            value="0"
-            label="Questões extraídas"
-            delay={0.2}
-            onClick={() => setIsUploadModalOpen(true)}
-          />
-          <StatCard
-            icon={IconChart}
-            value="0"
-            label="Disciplinas"
-            delay={0.3}
-            onClick={() => setIsUploadModalOpen(true)}
-          />
-        </div>
+        {/* Projects List - only show if user has projects */}
+        {!loadingProjects && hasProjects && (
+          <div className="mb-8">
+            <ProjectsList
+              key={projectsKey}
+              onSelectProject={handleSelectProject}
+              onNewProject={() => setIsUploadModalOpen(true)}
+            />
+          </div>
+        )}
+
+        {/* Stats Grid - Empty State (only show if no projects) */}
+        {!hasProjects && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <StatCard
+              icon={IconBookOpen}
+              value="0"
+              label="Provas importadas"
+              delay={0.1}
+              onClick={() => setIsUploadModalOpen(true)}
+            />
+            <StatCard
+              icon={IconTarget}
+              value="0"
+              label="Questões extraídas"
+              delay={0.2}
+              onClick={() => setIsUploadModalOpen(true)}
+            />
+            <StatCard
+              icon={IconChart}
+              value="0"
+              label="Disciplinas"
+              delay={0.3}
+              onClick={() => setIsUploadModalOpen(true)}
+            />
+          </div>
+        )}
 
         {/* How it works + Features */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
@@ -438,7 +503,10 @@ export function Home() {
       <EditalWorkflowModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onUploadSuccess={() => setIsUploadModalOpen(false)}
+        onUploadSuccess={() => {
+          setIsUploadModalOpen(false);
+          refreshProjects();
+        }}
       />
     </div>
   );

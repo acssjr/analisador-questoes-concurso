@@ -171,3 +171,37 @@ export interface EditalComAnalise extends Edital {
   questoes: Questao[];
   incidencia: IncidenciaNode[];
 }
+
+// Projeto types
+export interface Projeto {
+  id: string;
+  nome: string;
+  descricao?: string;
+  banca?: string;
+  cargo?: string;
+  ano?: number;
+  status: 'configurando' | 'coletando' | 'analisando' | 'concluido';
+  total_provas: number;
+  total_questoes: number;
+  total_questoes_validas: number;
+  total_anuladas: number;
+  config?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  edital_id?: string;
+  edital_nome?: string;
+  has_taxonomia?: boolean;
+}
+
+export interface ProjetoCreate {
+  nome: string;
+  descricao?: string;
+  banca?: string;
+  cargo?: string;
+  ano?: number;
+}
+
+export interface ProjetoListResponse {
+  projetos: Projeto[];
+  total: number;
+}

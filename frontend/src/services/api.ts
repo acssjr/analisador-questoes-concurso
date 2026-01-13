@@ -1,4 +1,4 @@
-import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse } from '../types';
+import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -168,5 +168,46 @@ export const api = {
     }
 
     return response.json();
+  },
+
+  // Projetos
+  async listProjetos(status?: string): Promise<ProjetoListResponse> {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    return fetchApi(`/projetos?${params}`);
+  },
+
+  async createProjeto(data: ProjetoCreate): Promise<Projeto> {
+    return fetchApi('/projetos', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getProjeto(id: string): Promise<Projeto> {
+    return fetchApi(`/projetos/${id}`);
+  },
+
+  async deleteProjeto(id: string): Promise<void> {
+    return fetchApi(`/projetos/${id}`, { method: 'DELETE' });
+  },
+
+  async vincularEdital(projetoId: string, editalId: string): Promise<{ success: boolean }> {
+    return fetchApi(`/projetos/${projetoId}/vincular-edital/${editalId}`, {
+      method: 'POST',
+    });
+  },
+
+  async getProjetoStats(projetoId: string): Promise<{
+    total_provas: number;
+    total_questoes: number;
+    total_questoes_validas: number;
+    total_anuladas: number;
+    provas_por_ano: Record<number, number>;
+    questoes_por_disciplina: Record<string, number>;
+    status: string;
+    pronto_para_analise: boolean;
+  }> {
+    return fetchApi(`/projetos/${projetoId}/stats`);
   },
 };
