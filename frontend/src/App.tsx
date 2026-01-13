@@ -1,17 +1,12 @@
+// This file is kept for reference but main.tsx now uses AppRouter directly
 import { useEffect } from 'react';
 import Lenis from 'lenis';
 import { MainLayout } from './components/layout/MainLayout';
 import { Home } from './pages/Home';
-import { Dashboard } from './pages/Dashboard';
-import { Explorar } from './pages/Explorar';
 import { NotificationCenter } from './components/features/NotificationCenter';
-import { useAppStore } from './store/appStore';
 
+// Legacy App component - replaced by React Router
 function App() {
-  const modoCanvas = useAppStore((state) => state.modoCanvas);
-  const activeEdital = useAppStore((state) => state.activeEdital);
-
-  // Initialize Lenis smooth scroll
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.2,
@@ -33,19 +28,6 @@ function App() {
     };
   }, []);
 
-  // If there's an active edital, show Dashboard or Explorar
-  if (activeEdital) {
-    return (
-      <>
-        <MainLayout>
-          {modoCanvas === 'laboratorio' ? <Explorar /> : <Dashboard />}
-        </MainLayout>
-        <NotificationCenter />
-      </>
-    );
-  }
-
-  // No active edital - show Home page
   return (
     <>
       <MainLayout showSidebar={false}>
