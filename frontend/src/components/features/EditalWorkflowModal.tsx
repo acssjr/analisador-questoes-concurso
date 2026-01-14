@@ -601,7 +601,7 @@ export function EditalWorkflowModal({
       filename: string;
       format?: string;
       total_questoes?: number;
-      questoes?: Record<string, unknown>[];
+      questoes?: Questao[];
       metadados?: Record<string, unknown>;
       error?: string;
     }> | null
@@ -778,7 +778,8 @@ export function EditalWorkflowModal({
           banca: String(q.banca || r.metadados?.banca || extractedEdital.banca || 'Desconhecida'),
           cargo: String(q.cargo || r.metadados?.cargo || selectedCargo || ''),
           disciplina: String(q.disciplina || 'Não classificada'),
-          assunto_pci: String(q.assunto_pci || q.assunto || ''),
+          // Backend may return 'assunto' field that maps to 'assunto_pci' in frontend
+          assunto_pci: String(q.assunto_pci || (q as unknown as Record<string, unknown>).assunto || ''),
           enunciado: String(q.enunciado || ''),
           alternativas: (q.alternativas || { A: '', B: '', C: '', D: '', E: '' }) as Questao['alternativas'],
           gabarito: String(q.gabarito || ''),

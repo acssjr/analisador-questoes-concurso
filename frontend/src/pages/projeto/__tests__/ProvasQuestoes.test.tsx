@@ -17,6 +17,7 @@ vi.mock('../../../services/api', () => ({
     getProvaQueueStatus: vi.fn(),
     retryProvaProcessing: vi.fn(),
     cancelProvaProcessing: vi.fn(),
+    getProjetoQuestoes: vi.fn(),
   },
 }));
 
@@ -60,6 +61,13 @@ describe('ProvasQuestoes', () => {
 
     // Default: empty queue
     (api.getProvaQueueStatus as ReturnType<typeof vi.fn>).mockResolvedValue({ items: [] });
+
+    // Default: empty questoes
+    (api.getProjetoQuestoes as ReturnType<typeof vi.fn>).mockResolvedValue({
+      questoes: [],
+      total: 0,
+      disciplinas: [],
+    });
   });
 
   afterEach(() => {
@@ -84,8 +92,8 @@ describe('ProvasQuestoes', () => {
       // Check queue summary (empty state)
       expect(screen.getByTestId('queue-summary-empty')).toBeInTheDocument();
 
-      // Check queue visualization (empty state)
-      expect(screen.getByTestId('queue-empty')).toBeInTheDocument();
+      // Queue visualization is not rendered when empty (conditional render)
+      expect(screen.queryByTestId('queue-visualization')).not.toBeInTheDocument();
     });
 
     it('should render projeto id in data attribute', async () => {

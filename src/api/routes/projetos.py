@@ -334,3 +334,114 @@ async def get_projeto_stats(projeto_id: uuid.UUID):
     except Exception as e:
         logger.error(f"Failed to get projeto stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{projeto_id}/questoes")
+async def get_projeto_questoes(
+    projeto_id: uuid.UUID,
+    disciplina: Optional[str] = Query(None, description="Filter by disciplina"),
+    topico: Optional[str] = Query(None, description="Filter by topic (assunto_pci)"),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    """
+    Get questoes from a projeto with optional filtering by disciplina/topico.
+    Returns questoes with their prova info.
+    """
+    try:
+        async for db in get_db():
+            # Verify projeto exists and get its provas
+            proj_stmt = (
+                select(Projeto)
+                .options(selectinload(Projeto.provas))
+                .where(Projeto.id == projeto_id)
+            )
+            proj_result = await db.execute(proj_stmt)
+            projeto = proj_result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            # Get prova IDs for this projeto
+            prova_ids = [p.id for p in (projeto.provas or [])]
+
+            if not prova_ids:
+                return {
+                    "questoes": [],
+                    "total": 0,
+                    "disciplinas": [],
+                }
+
+            # Build questao query
+            q_stmt = (
+                select(Questao)
+                .where(Questao.prova_id.in_(prova_ids))
+            )
+
+            # Apply filters
+            if disciplina:
+                q_stmt = q_stmt.where(Questao.disciplina == disciplina)
+            if topico:
+                q_stmt = q_stmt.where(Questao.assunto_pci == topico)
+
+            # Count total before pagination
+            count_stmt = (
+                select(func.count(Questao.id))
+                .where(Questao.prova_id.in_(prova_ids))
+            )
+            if disciplina:
+                count_stmt = count_stmt.where(Questao.disciplina == disciplina)
+            if topico:
+                count_stmt = count_stmt.where(Questao.assunto_pci == topico)
+
+            count_result = await db.execute(count_stmt)
+            total = count_result.scalar()
+
+            # Get distinct disciplinas
+            disc_stmt = (
+                select(Questao.disciplina)
+                .where(Questao.prova_id.in_(prova_ids))
+                .where(Questao.disciplina.isnot(None))
+                .distinct()
+            )
+            disc_result = await db.execute(disc_stmt)
+            disciplinas = [d[0] for d in disc_result.all()]
+
+            # Apply pagination and ordering
+            q_stmt = q_stmt.order_by(Questao.numero).limit(limit).offset(offset)
+
+            result = await db.execute(q_stmt)
+            questoes = result.scalars().all()
+
+            # Build response with prova info
+            questoes_response = []
+            for q in questoes:
+                # Get prova info
+                prova = next((p for p in projeto.provas if p.id == q.prova_id), None)
+                questoes_response.append({
+                    "id": str(q.id),
+                    "numero": q.numero,
+                    "disciplina": q.disciplina,
+                    "assunto_pci": q.assunto_pci,
+                    "enunciado": q.enunciado,
+                    "alternativas": q.alternativas,
+                    "gabarito": q.gabarito,
+                    "anulada": q.anulada,
+                    "motivo_anulacao": q.motivo_anulacao,
+                    "confianca_score": q.confianca_score,
+                    "status_extracao": q.status_extracao,
+                    "prova_nome": prova.nome if prova else None,
+                    "prova_ano": prova.ano if prova else None,
+                })
+
+            return {
+                "questoes": questoes_response,
+                "total": total,
+                "disciplinas": sorted(disciplinas),
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get projeto questoes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

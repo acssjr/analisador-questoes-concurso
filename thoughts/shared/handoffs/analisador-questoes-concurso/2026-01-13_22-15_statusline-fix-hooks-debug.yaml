@@ -1,0 +1,64 @@
+---
+session: analisador-questoes
+date: 2026-01-13
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Fix statusline and debug all hooks - prepare for Phase 3
+now: Implement Phase 3 Upload UI with drag & drop (user chose Option A)
+
+test: node ~/.claude/statusline.mjs < test-input.json && echo '{}' | node ~/.claude/hooks/dist/skill-activation-prompt.mjs
+
+done_this_session:
+  - task: Fix dev-servers.sh hook path (bash → Git Bash full path)
+    files: [.claude/settings.json, .claude/hooks/dev-servers.sh]
+  - task: Convert statusline from bash to Node.js (Git Bash fork errors)
+    files: [~/.claude/statusline.mjs, ~/.claude/settings.json]
+  - task: Fix statusline JSON parsing (use correct Claude Code fields)
+    files: [~/.claude/statusline.mjs]
+  - task: Implement handoff-focused statusline with thresholds
+    files: [~/.claude/statusline.mjs]
+  - task: Add token count display to statusline
+    files: [~/.claude/statusline.mjs]
+  - task: Debug all project and global hooks
+    files: []
+
+blockers: []
+
+questions: []
+
+decisions:
+  - node_over_bash: Git Bash on Windows has cygwin fork errors; Node.js works reliably
+  - max_context_155k: Claude auto-compacts at 80% of 200k, so max usable is ~155k
+  - current_usage_not_total: Use context_window.current_usage (actual context) not total_input_tokens (cumulative)
+  - handoff_thresholds: 50%→plan, 70%→consider, 85%→HANDOFF NOW
+
+findings:
+  - claude_code_json_schema: Fields are context_window.current_usage.{input_tokens,cache_creation_input_tokens,cache_read_input_tokens}
+  - context_calculation: Sum of input + cache_creation + cache_read tokens = actual context used
+  - git_bash_fork_error: Win32 error 5 (Access Denied) when Git Bash forks processes; solved by using Node.js
+
+worked:
+  - Using Node.js for statusline instead of bash
+  - Debug logging to ~/.claude/statusline-debug.log
+  - Testing hooks manually with echo '{}' | node hook.mjs
+
+failed:
+  - Bash statusline on Windows (cygwin fork errors)
+  - Using total_input_tokens for context (it's cumulative, not current)
+
+next:
+  - Phase 3: Upload UI with drag & drop (user chose this priority)
+  - Phase 3: Queue visualization component
+  - Phase 3: Taxonomy tree display
+  - Phase 4: Deep analysis pipeline
+
+files:
+  created:
+    - ~/.claude/statusline.mjs
+    - ~/.claude/statusline-debug.log
+  modified:
+    - .claude/settings.json (dev-servers hook path)
+    - ~/.claude/settings.json (statusline command)
+    - ~/.claude/statusline.sh (deprecated, replaced by .mjs)

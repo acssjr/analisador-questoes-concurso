@@ -1,0 +1,70 @@
+---
+session: analisador-questoes-concurso
+date: 2026-01-12
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Fix prova upload (Step 3) - create LLM-based extractor for generic exam PDFs
+now: Test the new LLM extractor by uploading a prova in the frontend
+
+test: |
+  Upload a prova PDF via frontend workflow Step 3 and verify questions are extracted
+
+context: |
+  User reported that Steps 1 and 2 (edital upload, conteudo programatico) work fine,
+  but Step 3 (prova upload) fails - extracts 0 questions. Root cause: the system only
+  had a regex-based PCI parser that doesn't work with generic prova formats.
+
+done_this_session:
+  - task: Pulled remote git updates (13 files changed)
+    files: []
+  - task: Started frontend and backend servers
+    files: []
+  - task: Investigated why prova upload extracts 0 questions
+    files: [src/extraction/pdf_detector.py, src/extraction/pci_parser.py, src/api/routes/upload.py]
+  - task: Created LLM-based prova extractor for generic PDFs
+    files: [src/extraction/prova_extractor.py]
+  - task: Updated upload route to use LLM extraction as fallback
+    files: [src/api/routes/upload.py]
+
+blockers:
+  - Need to test if LLM extraction actually works with the UNEB prova PDF
+
+questions:
+  - Should LLM extraction be the default instead of PCI parser fallback?
+  - What's the optimal batch_size for LLM processing (currently 5 pages)?
+
+decisions:
+  - llm_fallback: Use LLM when PCI parser returns 0 questions, preserves fast regex path for compatible PDFs
+  - skip_pages: Auto-detect questions start page (usually page 3), skip cover and rascunho pages
+  - batch_size_5: Reduced from 10 to 5 pages per LLM call for better accuracy
+
+findings:
+  - prova_format: IDCAP provas use "Questão 01" format with "(Correta: B)" gabarito
+  - pci_mismatch: PCI parser expected "15. [Português - Sintaxe]" format which doesn't exist in these provas
+  - pdf_detector_wrong: Detected prova as GABARITO because it found "(Correta: X)" patterns
+  - prova_structure: Page 1=cover, Page 2=rascunho, Page 3+=questions, Last pages=redação
+
+worked:
+  - Analyzing actual PDF to understand format patterns
+  - Using LLM for flexible extraction instead of rigid regex
+
+failed:
+  - PCI regex parser doesn't work for IDCAP prova format
+
+next:
+  - Reload backend and test prova upload in frontend
+  - If extraction works, verify question count matches (should be ~60 questions)
+  - Consider improving pdf_detector.py to better distinguish provas from gabaritos
+  - May need to tune LLM prompt for better accuracy
+
+files:
+  created:
+    - src/extraction/prova_extractor.py
+  modified:
+    - src/api/routes/upload.py
+
+servers:
+  frontend: http://localhost:5173 (background task b162d98)
+  backend: http://127.0.0.1:8000 (background task b1eafa5, reloading after code changes)

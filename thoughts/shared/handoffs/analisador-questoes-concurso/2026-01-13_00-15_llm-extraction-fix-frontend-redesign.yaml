@@ -1,0 +1,116 @@
+---
+session: analisador-questoes-concurso
+date: 2026-01-13
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Fix LLM extraction (60 questions + subject classification) and plan premium frontend redesign
+now: Implement the frontend redesign with Apple-style dark mode, glassmorphism, and GSAP animations
+
+test: |
+  cd "C:\Users\Antônio\Documents\analisador-questoes-concurso" && ".venv\Scripts\python.exe" -c "
+  from src.extraction.prova_extractor import extract_questoes_with_llm
+  result = extract_questoes_with_llm('data/raw/provas/PROVA UNEB 2024 TÉCNICO UNIVERSITÁRIO.pdf')
+  assert len(result['questoes']) == 60, f'Expected 60, got {len(result[\"questoes\"])}'
+  assert all(q.get('assunto') for q in result['questoes']), 'Missing assunto field'
+  print('OK: 60 questions with subjects extracted')
+  "
+
+done_this_session:
+  - task: Fixed LLM extraction - was extracting only 39/60 questions due to text truncation
+    files: [src/extraction/prova_extractor.py]
+  - task: Added subject (assunto) classification to LLM prompt with detailed definitions
+    files: [src/extraction/prova_extractor.py]
+  - task: Fixed PDF format detector - was misclassifying PROVA as GABARITO
+    files: [src/extraction/pdf_detector.py]
+  - task: Analyzed token costs and capacity (46,728 tokens/prova, ~0.64 provas/min)
+    files: []
+  - task: Designed frontend redesign spec (Apple-style, dark mode, glassmorphism)
+    files: []
+
+blockers: []
+
+questions:
+  - Should we implement Redis+Celery queue system for processing multiple provas?
+  - Frontend redesign: start from scratch or evolve existing components?
+
+decisions:
+  - batch_size_3: Reduced from 5 to 3 pages per LLM call to avoid text truncation (was cutting off questions 16-29)
+  - text_limit_45k: Increased prompt text limit from 25,000 to 45,000 chars
+  - subject_definitions: Added explicit definitions for each discipline's subjects to improve LLM classification accuracy
+
+findings:
+  - token_cost: 1 prova (60 questions) = ~46,728 tokens across 5-7 API calls
+  - capacity: Groq free tier allows ~0.64 provas/min due to TPM limits
+  - scale_20_provas: Would take ~32 min sequentially, ~6 min with 5 workers
+  - frontend_mapping: Frontend already maps `q.assunto` to `assunto_pci` (line 577 EditalWorkflowModal.tsx)
+
+worked:
+  - Zero-shot with definitions for subject classification
+  - Smaller batch size (3 pages) for complete extraction
+  - pymupdf for fast text extraction
+
+failed:
+  - batch_size_5 caused truncation, missing 21 questions
+  - Original prompt without assunto field definitions
+
+next:
+  - Implement frontend redesign with design system defined below
+  - Test extraction with new subject definitions in browser
+  - Consider implementing progress indicator for long extractions
+
+files:
+  created: []
+  modified:
+    - src/extraction/prova_extractor.py (batch_size 5->3, added assunto field + definitions)
+    - src/extraction/pdf_detector.py (fixed has_question_content regex, analyze 5 pages not 3)
+
+# Frontend Redesign Spec (Apple-style Premium)
+
+frontend_redesign:
+  audience: Estudantes de concurso
+  flow: Upload-first (user brings own PDFs)
+  structure:
+    - Home/Upload (onboarding, file upload)
+    - Dashboard (overview, top subjects, trends)
+    - Explorar (browse questions, filter by subject)
+
+  design_system:
+    colors:
+      background: "#050505"
+      surface: "#0a0a0a"
+      glass: "rgba(255,255,255,0.03) + blur(20px)"
+      border: "rgba(255,255,255,0.08)"
+      text_primary: "#ffffff"
+      text_secondary: "#a1a1aa"
+      accent_gradient: "linear-gradient(135deg, #6366f1, #8b5cf6, #d946ef)"
+
+    typography:
+      font: Inter
+      hero: "72-96px, weight 700, tracking -0.03em"
+      headline: "48px, weight 600"
+      title: "24-32px, weight 600"
+      body: "16px, weight 400"
+
+    glassmorphism:
+      background: "rgba(255,255,255,0.03)"
+      backdrop_filter: "blur(20px)"
+      border: "1px solid rgba(255,255,255,0.08)"
+      border_radius: "24px"
+
+  animations:
+    library: GSAP + ScrollTrigger + Lenis
+    features:
+      - Scroll-triggered parallax
+      - Cards that float/rotate on scroll
+      - Staggered text animations
+      - Smooth scroll with Lenis
+      - Hero entrance animation
+
+  tech_stack:
+    - React + Vite (existing)
+    - Tailwind CSS (existing)
+    - GSAP + ScrollTrigger (add)
+    - Framer Motion (add)
+    - Lenis smooth scroll (add)

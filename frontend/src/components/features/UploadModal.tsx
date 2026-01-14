@@ -86,13 +86,13 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
             } else {
               setProgress(`Processando ${i + 1}/${files.length}: ${file.name} (${status.progress || 0}%)`);
             }
-          } catch (err) {
+          } catch {
             setError(`Erro ao verificar status de ${file.name}`);
             setIsUploading(false);
             return;
           }
         }
-      } catch (err) {
+      } catch {
         setError(`Erro ao fazer upload de ${file.name}`);
         setIsUploading(false);
         return;

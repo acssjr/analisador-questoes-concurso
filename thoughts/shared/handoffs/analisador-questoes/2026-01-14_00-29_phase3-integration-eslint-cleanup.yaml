@@ -1,0 +1,78 @@
+---
+session: analisador-questoes
+date: 2026-01-14
+status: partial
+outcome: PARTIAL_PLUS
+---
+
+goal: Phase 3 ProvasQuestoes integration complete, ESLint cleanup started
+now: Complete ESLint cleanup (23 errors in 8 files)
+test: cd frontend && npm run build && npx eslint src/ --max-warnings 0
+
+done_this_session:
+  - task: Integrated TaxonomyTree and QuestionPanel into ProvasQuestoes page
+    files: [frontend/src/pages/projeto/ProvasQuestoes.tsx]
+  - task: Created TaxonomyTree component for disciplina navigation
+    files: [frontend/src/components/features/TaxonomyTree.tsx]
+  - task: Created QuestionPanel component with expandable question cards
+    files: [frontend/src/components/features/QuestionPanel.tsx]
+  - task: Added getProjetoQuestoes API method
+    files: [frontend/src/services/api.ts]
+  - task: Fixed ProvasQuestoes tests (added getProjetoQuestoes mock)
+    files: [frontend/src/pages/projeto/__tests__/ProvasQuestoes.test.tsx]
+  - task: Fixed Home tests (added MemoryRouter wrapper)
+    files: [frontend/src/pages/Home.test.tsx]
+  - task: Started ESLint cleanup - fixed 2 of 8 files
+    files: [frontend/src/components/charts/TreemapChart.tsx, frontend/src/components/features/EditaisList.tsx]
+
+blockers: []
+
+questions:
+  - Pre-existing test failures (2) in Home.test.tsx and Modal.test.tsx unrelated to this work
+
+decisions:
+  - eslint_cleanup_approach: Fix all 23 errors to maintain code quality standards
+  - test_utils_no_router: Kept MemoryRouter out of global test-utils to avoid conflicts with mocked react-router in some tests
+
+findings:
+  - eslint_errors_preexisting: 23 ESLint errors existed before this session, mostly `any` types and unused vars
+  - hook_false_positives: TypeScript preflight hook sometimes reports errors even when tsc/eslint pass
+
+worked:
+  - Write tool for large file updates (after Edit tool had issues)
+  - Conditional rendering for QueueVisualization when empty
+  - Two-column grid layout for taxonomy/questions
+
+failed:
+  - Edit tool kept reporting "file unexpectedly modified" for ProvasQuestoes.tsx
+  - Adding MemoryRouter to global test-utils broke tests that mock react-router
+
+next:
+  - Complete ESLint cleanup (remaining 21 errors in 6 files)
+  - Fix UploadModal.tsx unused err vars
+  - Fix Modal.test.tsx any types
+  - Fix Dashboard.test.tsx any types (9 errors)
+  - Fix api.ts any types (use Edital type)
+  - Fix mocks.ts unused import
+  - Fix calculations.ts unused variable
+  - Run full test suite and verify 0 lint errors
+
+files:
+  created:
+    - frontend/src/components/features/TaxonomyTree.tsx
+    - frontend/src/components/features/QuestionPanel.tsx
+  modified:
+    - frontend/src/pages/projeto/ProvasQuestoes.tsx
+    - frontend/src/services/api.ts
+    - frontend/src/pages/projeto/__tests__/ProvasQuestoes.test.tsx
+    - frontend/src/pages/Home.test.tsx
+    - frontend/src/components/charts/TreemapChart.tsx
+    - frontend/src/components/features/EditaisList.tsx
+
+eslint_remaining:
+  - UploadModal.tsx:89,95: unused err vars (use catch without binding)
+  - Modal.test.tsx:8,23: any types in framer-motion mock
+  - Dashboard.test.tsx: 9 any types in test mocks
+  - api.ts:103,107,160,161: any types (listEditais, getEdital, uploadProvasVinculadas)
+  - mocks.ts:5: unused Questao import
+  - calculations.ts:28: unused _nivel variable

@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-13
+**Last Updated**: 2026-01-14
 
 ---
 
@@ -156,25 +156,34 @@ src/
   - [x] Phase 10c: Frontend Tests (commit f330884)
     - Added vitest infrastructure and component tests
 
-- Now: [->] Phase 12: Implementação do Design Completo
-  - Design documentado em `docs/plans/2026-01-13-analisador-questoes-design.md`
-  - Arquitetura de análise em `docs/ANALISE_PROFUNDA_ARQUITETURA.md`
-  - Prioridade 1: Camada de Robustez (Backend)
-  - Prioridade 2: Frontend Base com React Router
-  - Prioridade 3: Aba Provas & Questões
-  - Prioridade 4: Pipeline de Análise Profunda
+- Done (Phase 3 - Upload UI):
+  - [x] Phase 3a: UploadDropzone component (commit c324193)
+  - [x] Phase 3b: QueueVisualization component (commit 40eb26c)
+  - [x] Phase 3c: Full Upload UI with queue (commit c9e4148)
+  - [x] Phase 3d: TaxonomyTree component for disciplina navigation
+  - [x] Phase 3e: QuestionPanel component with expandable cards
+  - [x] Phase 3f: ProvasQuestoes page integration (two-column layout)
+  - [x] Phase 3g: API getProjetoQuestoes endpoint + frontend method
+  - [x] Phase 3h: Test fixes (ProvasQuestoes mock, Home MemoryRouter)
+
+- Now: [->] ESLint Cleanup (23 errors in 8 files)
+  - [x] TreemapChart.tsx - fixed any types with CustomContentProps interface
+  - [x] EditaisList.tsx - fixed any types with TaxonomiaItem/Taxonomia interfaces
+  - [ ] UploadModal.tsx:89,95 - unused err vars (use catch without binding)
+  - [ ] Modal.test.tsx:8,23 - any types in framer-motion mock
+  - [ ] Dashboard.test.tsx - 9 any types in test mocks
+  - [ ] api.ts:103,107,160,161 - any types (use Edital type)
+  - [ ] mocks.ts:5 - unused Questao import
+  - [ ] calculations.ts:28 - unused _nivel variable
 
 - Next:
+  - [ ] Complete ESLint cleanup (21 remaining errors)
   - [ ] Phase 12a: Validação pré-processamento de PDF
   - [ ] Phase 12b: Sistema de fila com estados
   - [ ] Phase 12c: Score de confiança por questão
   - [ ] Phase 12d: Retry com backoff + fallback
-  - [ ] Phase 12e: Checkpoints por etapa
 
 - Later:
-  - [ ] Phase 13: Frontend - React Router + Layout base
-  - [ ] Phase 14: Frontend - Wizard de criação de projeto
-  - [ ] Phase 15: Frontend - Aba Provas & Questões (upload + árvore + painel)
   - [ ] Phase 16: Backend - Vetorização com embeddings
   - [ ] Phase 17: Backend - Map-Reduce com chunks
   - [ ] Phase 18: Backend - Multi-Pass + CoVe
@@ -366,3 +375,49 @@ uvicorn src.api.main:app --reload
   - `thoughts/shared/handoffs/analisador-questoes/2026-01-13_16-27-35_brainstorm-design-completo.md`
 
 - **Próximo passo**: Implementação começando pela camada de robustez
+
+### 2026-01-14 (Session 4) - Phase 3 Integration + ESLint Cleanup
+
+- **Resumed from handoff** - Phase 3 Upload UI was done, needed integration
+
+- **TaxonomyTree Component** (`frontend/src/components/features/TaxonomyTree.tsx`)
+  - Tree navigation for disciplinas with expand/collapse
+  - Selection state with visual feedback
+  - Uses IconFolder/IconDocument for hierarchy
+
+- **QuestionPanel Component** (`frontend/src/components/features/QuestionPanel.tsx`)
+  - Expandable question cards showing full details
+  - Alternatives with correct answer highlighting
+  - Confidence score, anulada status, prova info
+
+- **ProvasQuestoes Integration** (`frontend/src/pages/projeto/ProvasQuestoes.tsx`)
+  - Two-column layout: 1/3 tree, 2/3 questions
+  - Taxonomy fetched on load and after processing
+  - Questions loaded on disciplina selection
+
+- **API Endpoint** (`src/api/routes/projetos.py`, `frontend/src/services/api.ts`)
+  - Added `GET /projetos/{id}/questoes` with filtering
+  - Added `api.getProjetoQuestoes()` frontend method
+
+- **Test Fixes**
+  - ProvasQuestoes tests: added `getProjetoQuestoes` mock
+  - Home tests: added MemoryRouter wrapper (not global to avoid conflicts)
+  - Tests: 202/204 passing (2 pre-existing failures)
+
+- **ESLint Cleanup Started** (23 errors found, 2 fixed)
+  - TreemapChart.tsx: added CustomContentProps interface
+  - EditaisList.tsx: added TaxonomiaItem/Taxonomia interfaces
+  - Remaining: UploadModal, Modal.test, Dashboard.test, api.ts, mocks.ts, calculations.ts
+
+- **Lesson Learned**: Subagent-driven development should include code quality review step
+  - Pre-existing lint errors not caught during implementation
+  - User correctly pointed out gaps in the process
+
+- **Handoff criado**: `thoughts/shared/handoffs/analisador-questoes/2026-01-14_00-29_phase3-integration-eslint-cleanup.yaml`
+
+## Session Auto-Summary (2026-01-14T02:56:14.272Z)
+- Build/test: 56 passed, 0 failed
+## Session Auto-Summary (2026-01-14T03:18:22.585Z)
+- Build/test: 57 passed, 0 failed
+## Session Auto-Summary (2026-01-14T03:31:13.030Z)
+- Build/test: 67 passed, 0 failed

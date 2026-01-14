@@ -4,6 +4,8 @@ import { useOutletContext } from 'react-router';
 import { UploadDropzone } from '../../components/features/UploadDropzone';
 import { QueueVisualization, type QueueItem } from '../../components/features/QueueVisualization';
 import { QueueSummary } from '../../components/features/QueueSummary';
+import { TaxonomyTree, type TaxonomyNode } from '../../components/features/TaxonomyTree';
+import { QuestionPanel, type QuestaoItem } from '../../components/features/QuestionPanel';
 import { useNotifications } from '../../hooks/useNotifications';
 import { api } from '../../services/api';
 
@@ -22,6 +24,13 @@ export default function ProvasQuestoes() {
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
+
+  // Taxonomy and questions state
+  const [taxonomyNodes, setTaxonomyNodes] = useState<TaxonomyNode[]>([]);
+  const [selectedDisciplina, setSelectedDisciplina] = useState<string | null>(null);
+  const [questoes, setQuestoes] = useState<QuestaoItem[]>([]);
+  const [totalQuestoes, setTotalQuestoes] = useState(0);
+  const [isLoadingQuestoes, setIsLoadingQuestoes] = useState(false);
 
   // Ref to track polling interval
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -44,29 +53,72 @@ export default function ProvasQuestoes() {
       return response.items;
     } catch (error) {
       console.error('Error fetching queue status:', error);
-      // Don't show notification for polling errors to avoid spam
-      // Return empty array on error - component displays existing queueItems from state
       return [];
     }
   }, [projeto.id]);
 
+  // Fetch taxonomy (disciplinas with counts)
+  const fetchTaxonomy = useCallback(async () => {
+    try {
+      const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
+      const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
+        id: `disciplina-${index}`,
+        nome: disciplina || 'Sem disciplina',
+        count: 0, // Will be updated when we have per-disciplina counts
+      }));
+      setTaxonomyNodes(nodes);
+      setTotalQuestoes(response.total);
+    } catch (error) {
+      console.error('Error fetching taxonomy:', error);
+    }
+  }, [projeto.id]);
+
+  // Fetch questions for selected disciplina
+  const fetchQuestoes = useCallback(async (disciplina: string) => {
+    setIsLoadingQuestoes(true);
+    try {
+      const response = await api.getProjetoQuestoes(projeto.id, {
+        disciplina: disciplina === 'Sem disciplina' ? '' : disciplina,
+        limit: 100,
+      });
+      setQuestoes(response.questoes);
+      setTotalQuestoes(response.total);
+    } catch (error) {
+      console.error('Error fetching questoes:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erro ao carregar questoes',
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+      });
+    } finally {
+      setIsLoadingQuestoes(false);
+    }
+  }, [projeto.id, addNotification]);
+
+  // Handle taxonomy node selection
+  const handleNodeSelect = useCallback((_nodeId: string, nodeName: string) => {
+    setSelectedDisciplina(nodeName);
+    fetchQuestoes(nodeName);
+  }, [fetchQuestoes]);
+
   // Start polling
   const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) return; // Already polling
+    if (pollingIntervalRef.current) return;
 
     setIsPolling(true);
     pollingIntervalRef.current = setInterval(async () => {
       const items = await fetchQueueStatus();
       if (!hasActiveItems(items)) {
-        // Stop polling when no active items
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
           pollingIntervalRef.current = null;
         }
         setIsPolling(false);
+        // Refresh taxonomy when processing completes
+        fetchTaxonomy();
       }
     }, QUEUE_POLL_INTERVAL);
-  }, [fetchQueueStatus, hasActiveItems]);
+  }, [fetchQueueStatus, hasActiveItems, fetchTaxonomy]);
 
   // Stop polling
   const stopPolling = useCallback(() => {
@@ -84,11 +136,12 @@ export default function ProvasQuestoes() {
       if (hasActiveItems(items)) {
         startPolling();
       }
+      // Also fetch taxonomy
+      fetchTaxonomy();
     };
 
     initializeQueue();
 
-    // Cleanup on unmount
     return () => {
       stopPolling();
     };
@@ -110,10 +163,8 @@ export default function ProvasQuestoes() {
           message: `${response.successful_files} de ${response.total_files} arquivo(s) enviado(s) com sucesso`,
         });
 
-        // Refresh queue status immediately
         const items = await fetchQueueStatus();
 
-        // Start polling if there are active items
         if (hasActiveItems(items)) {
           startPolling();
         }
@@ -125,7 +176,6 @@ export default function ProvasQuestoes() {
         });
       }
 
-      // Show individual file errors
       response.results.filter(r => !r.success).forEach(result => {
         addNotification({
           type: 'error',
@@ -154,7 +204,6 @@ export default function ProvasQuestoes() {
         message: 'A prova sera reprocessada em breve',
       });
 
-      // Refresh queue and start polling
       await fetchQueueStatus();
       startPolling();
     } catch (error) {
@@ -176,7 +225,6 @@ export default function ProvasQuestoes() {
         message: 'O processamento foi cancelado',
       });
 
-      // Refresh queue status
       await fetchQueueStatus();
     } catch (error) {
       addNotification({
@@ -233,14 +281,49 @@ export default function ProvasQuestoes() {
       />
 
       {/* Queue Visualization */}
-      <div>
-        <h3 className="text-md font-medium text-white mb-4">Fila de Processamento</h3>
-        <QueueVisualization
-          items={queueItems}
-          onRetry={handleRetry}
-          onCancel={handleCancel}
-        />
-      </div>
+      {queueItems.length > 0 && (
+        <div>
+          <h3 className="text-md font-medium text-white mb-4">Fila de Processamento</h3>
+          <QueueVisualization
+            items={queueItems}
+            onRetry={handleRetry}
+            onCancel={handleCancel}
+          />
+        </div>
+      )}
+
+      {/* Taxonomy Tree and Questions Panel */}
+      {totalQuestoes > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Taxonomy Tree - Left Column */}
+          <div className="lg:col-span-1">
+            <h3 className="text-md font-medium text-white mb-4">
+              Disciplinas ({totalQuestoes} questoes)
+            </h3>
+            <TaxonomyTree
+              nodes={taxonomyNodes}
+              selectedNode={taxonomyNodes.find(n => n.nome === selectedDisciplina)?.id || null}
+              onNodeSelect={handleNodeSelect}
+            />
+          </div>
+
+          {/* Questions Panel - Right Column */}
+          <div className="lg:col-span-2">
+            <h3 className="text-md font-medium text-white mb-4">
+              Questoes
+              {selectedDisciplina && (
+                <span className="text-gray-500 font-normal ml-2">- {selectedDisciplina}</span>
+              )}
+            </h3>
+            <QuestionPanel
+              questoes={questoes}
+              selectedDisciplina={selectedDisciplina}
+              isLoading={isLoadingQuestoes}
+              total={totalQuestoes}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

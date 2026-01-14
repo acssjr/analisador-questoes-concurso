@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: analisador-questoes-postgres
+    environment:
+      POSTGRES_USER: analisador
+      POSTGRES_PASSWORD: analisador_dev
+      POSTGRES_DB: analisador_questoes
+      # Recommended settings for development
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analisador -d analisador_questoes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local

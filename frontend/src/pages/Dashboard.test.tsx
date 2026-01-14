@@ -6,13 +6,13 @@ import { useAppStore } from '../store/appStore';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, onClick, ...props }: any) => (
+    div: ({ children, className, style, onClick, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
       <div className={className} style={style} onClick={onClick} {...props}>{children}</div>
     ),
-    button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-    span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+    button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
+    span: ({ children, ...props }: React.HTMLAttributes<HTMLSpanElement>) => <span {...props}>{children}</span>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 // Mock the store
@@ -20,7 +20,7 @@ vi.mock('../store/appStore', () => ({
   useAppStore: vi.fn(),
 }));
 
-const mockUseAppStore = useAppStore as unknown as ReturnType<typeof vi.fn>;
+const mockUseAppStore = vi.mocked(useAppStore);
 
 describe('Dashboard', () => {
   const mockEdital = {
@@ -99,7 +99,7 @@ describe('Dashboard', () => {
 
   describe('when no edital is selected', () => {
     it('should show empty state message', () => {
-      mockUseAppStore.mockImplementation((selector: any) => {
+      mockUseAppStore.mockImplementation(<T,>(selector: (state: unknown) => T): T => {
         const state = {
           activeEdital: null,
           questoes: [],
@@ -121,7 +121,7 @@ describe('Dashboard', () => {
 
   describe('when edital is selected', () => {
     beforeEach(() => {
-      mockUseAppStore.mockImplementation((selector: any) => {
+      mockUseAppStore.mockImplementation(<T,>(selector: (state: unknown) => T): T => {
         const state = {
           activeEdital: mockEdital,
           questoes: mockQuestoes,
@@ -164,7 +164,7 @@ describe('Dashboard', () => {
 
   describe('incidencia tree', () => {
     beforeEach(() => {
-      mockUseAppStore.mockImplementation((selector: any) => {
+      mockUseAppStore.mockImplementation(<T,>(selector: (state: unknown) => T): T => {
         const state = {
           activeEdital: mockEdital,
           questoes: mockQuestoes,
@@ -195,7 +195,7 @@ describe('Dashboard', () => {
 
   describe('navigation', () => {
     it('should have back button', () => {
-      mockUseAppStore.mockImplementation((selector: any) => {
+      mockUseAppStore.mockImplementation(<T,>(selector: (state: unknown) => T): T => {
         const state = {
           activeEdital: mockEdital,
           questoes: mockQuestoes,
@@ -218,7 +218,7 @@ describe('Dashboard', () => {
     it('should clear edital on back click', () => {
       const mockSetActiveEdital = vi.fn();
 
-      mockUseAppStore.mockImplementation((selector: any) => {
+      mockUseAppStore.mockImplementation(<T,>(selector: (state: unknown) => T): T => {
         const state = {
           activeEdital: mockEdital,
           questoes: mockQuestoes,

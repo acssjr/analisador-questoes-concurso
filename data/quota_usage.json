@@ -1,0 +1,32 @@
+{
+  "groq": {
+    "requests_today": 1,
+    "tokens_today": 3137,
+    "requests_this_minute": 1,
+    "tokens_this_minute": 3137,
+    "last_request_time": "2026-01-14T00:43:40.698767",
+    "minute_window_start": "2026-01-14T00:43:39.535419",
+    "day_start": "2026-01-14",
+    "history": [
+      {
+        "timestamp": "2026-01-14T00:43:40.698767",
+        "tokens_used": 3137,
+        "prompt_tokens": 2954,
+        "completion_tokens": 183,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      }
+    ]
+  },
+  "anthropic": {
+    "requests_today": 0,
+    "tokens_today": 0,
+    "requests_this_minute": 0,
+    "tokens_this_minute": 0,
+    "last_request_time": null,
+    "minute_window_start": null,
+    "day_start": null,
+    "history": []
+  }
+}

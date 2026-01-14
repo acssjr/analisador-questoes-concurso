@@ -28,6 +28,8 @@ export function agruparPorHierarquia(
   _nivel: 'assunto' | 'topico' | 'subtopico' = 'assunto'
 ): DistribuicaoItem[] {
   // Placeholder - em produção seria baseado na classificação completa
+  // TODO: usar o parâmetro _nivel quando a classificação hierárquica estiver implementada
+  void _nivel; // Mark as intentionally unused
   return calcularDistribuicao(questoes, 'assunto_pci');
 }
 

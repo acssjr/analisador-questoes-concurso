@@ -5,7 +5,6 @@ interface TreemapData {
   name: string;
   size: number;
   children?: TreemapData[];
-  [key: string]: any;
 }
 
 interface TreemapChartProps {
@@ -13,8 +12,22 @@ interface TreemapChartProps {
   disciplina: string;
 }
 
-function CustomContent({ root, depth, x, y, width, height, name, size }: any) {
+// Recharts passes dynamic props to content components that don't match a static interface
+// Using explicit props with defaults handles the runtime behavior correctly
+interface CustomContentProps {
+  root?: { name: string };
+  depth?: number;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  size?: number;
+}
+
+function CustomContent({ root, depth = 0, x = 0, y = 0, width = 0, height = 0, name = '', size = 0 }: CustomContentProps) {
   const isLargeEnough = width > 60 && height > 40;
+  const rootName = root?.name ?? '';
 
   return (
     <g>
@@ -24,7 +37,7 @@ function CustomContent({ root, depth, x, y, width, height, name, size }: any) {
         width={width}
         height={height}
         style={{
-          fill: depth < 2 ? getDisciplinaColor(root.name) : `${getDisciplinaColor(root.name)}CC`,
+          fill: depth < 2 ? getDisciplinaColor(rootName) : `${getDisciplinaColor(rootName)}CC`,
           stroke: '#0a0e14',
           strokeWidth: 2,
           opacity: depth === 0 ? 0.9 : 0.7,
@@ -59,10 +72,12 @@ function CustomContent({ root, depth, x, y, width, height, name, size }: any) {
 }
 
 export function TreemapChart({ data, disciplina }: TreemapChartProps) {
+  // Cast to satisfy Recharts internal types while maintaining our type safety
+  const treemapData = data as unknown as Record<string, unknown>[];
   return (
     <ResponsiveContainer width="100%" height={500}>
       <Treemap
-        data={data}
+        data={treemapData}
         dataKey="size"
         stroke="#0a0e14"
         fill={getDisciplinaColor(disciplina)}

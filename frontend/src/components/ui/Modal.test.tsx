@@ -5,7 +5,7 @@ import { Modal } from './Modal';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, onClick, className, ...props }: any) => {
+    div: ({ children, onClick, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
       // Identify backdrop by className containing bg-black
       const isBackdrop = className?.includes('bg-black');
       return (
@@ -20,7 +20,7 @@ vi.mock('framer-motion', () => ({
       );
     },
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 describe('Modal', () => {

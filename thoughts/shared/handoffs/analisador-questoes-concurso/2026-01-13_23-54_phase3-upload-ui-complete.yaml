@@ -1,0 +1,74 @@
+---
+session: analisador-questoes-concurso
+date: 2026-01-13
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Implement Phase 3 Upload UI with drag & drop, queue visualization, and summary
+now: Implement TaxonomyTree component for displaying taxonomy with question counts
+
+test: cd frontend && npm test -- --run UploadDropzone QueueVisualization QueueSummary ProvasQuestoes
+
+done_this_session:
+  - task: UploadDropzone component with drag & drop for PDFs
+    files: [frontend/src/components/features/UploadDropzone.tsx, frontend/src/components/features/__tests__/UploadDropzone.test.tsx]
+  - task: QueueVisualization component with status, progress bars, icons
+    files: [frontend/src/components/features/QueueVisualization.tsx, frontend/src/components/features/__tests__/QueueVisualization.test.tsx]
+  - task: QueueSummary component with stats and action buttons
+    files: [frontend/src/components/features/QueueSummary.tsx, frontend/src/components/features/__tests__/QueueSummary.test.tsx]
+  - task: Integrated all components in ProvasQuestoes page
+    files: [frontend/src/pages/projeto/ProvasQuestoes.tsx, frontend/src/pages/projeto/__tests__/ProvasQuestoes.test.tsx]
+  - task: Added queue API methods to api.ts
+    files: [frontend/src/services/api.ts]
+  - task: Added IconPause to centralized Icons.tsx
+    files: [frontend/src/components/ui/Icons.tsx]
+  - task: Fixed stale closure bug in ProvasQuestoes polling
+    files: [frontend/src/pages/projeto/ProvasQuestoes.tsx]
+  - task: Added useMemo optimization to QueueSummary
+    files: [frontend/src/components/features/QueueSummary.tsx]
+
+blockers: []
+
+questions: []
+
+decisions:
+  - subagent_driven_development: Used for all 4 tasks with spec + quality reviews
+  - native_html5_dnd: No external drag-drop libraries, native HTML5 API
+  - polling_3_seconds: Queue status polls every 3s while processing
+  - memoization_stats: Added useMemo for stats calculation per code review
+  - centralized_icons: Moved IconPause to Icons.tsx instead of inline
+
+findings:
+  - stale_closure_fix: Removed queueItems from fetchQueueStatus dependencies to avoid stale data
+  - rules_of_hooks: useMemo must be before early returns per React rules
+  - pre_existing_lint_errors: UploadModal.tsx and api.ts have pre-existing lint errors (not from this session)
+
+worked:
+  - Subagent-driven development with spec + code quality reviews
+  - Fresh subagent per task prevents context pollution
+  - Two-stage review catches issues early
+  - 103 tests provide confidence for refactoring
+
+failed:
+  - Initial useMemo placement after early return violated rules of hooks
+
+next:
+  - TaxonomyTree component - hierarchical tree with expand/collapse
+  - Question counts per topic - display incidence numbers
+  - QuestionPanel - side panel showing questions for selected topic
+  - Integration - wire tree and panel in ProvasQuestoes page
+
+files:
+  created:
+    - frontend/src/components/features/UploadDropzone.tsx
+    - frontend/src/components/features/__tests__/UploadDropzone.test.tsx
+    - frontend/src/components/features/QueueVisualization.tsx
+    - frontend/src/components/features/__tests__/QueueVisualization.test.tsx
+    - frontend/src/components/features/QueueSummary.tsx
+    - frontend/src/components/features/__tests__/QueueSummary.test.tsx
+    - frontend/src/pages/projeto/__tests__/ProvasQuestoes.test.tsx
+  modified:
+    - frontend/src/pages/projeto/ProvasQuestoes.tsx
+    - frontend/src/services/api.ts
+    - frontend/src/components/ui/Icons.tsx

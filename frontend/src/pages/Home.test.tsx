@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '../test/test-utils';
+import { MemoryRouter } from 'react-router';
 import { Home } from './Home';
+
+// Custom render with Router for Home component
+const renderHome = () => {
+  return render(
+    <MemoryRouter>
+      <Home />
+    </MemoryRouter>
+  );
+};
 
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', () => ({
@@ -36,27 +46,27 @@ describe('Home', () => {
   });
 
   it('should render the hero section with title', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText('Descubra o que mais cai no seu concurso')).toBeInTheDocument();
   });
 
   it('should render the subtitle text', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText(/Importe provas anteriores/i)).toBeInTheDocument();
     expect(screen.getByText(/padrões de incidência/i)).toBeInTheDocument();
   });
 
   it('should render the CTA button', () => {
-    render(<Home />);
+    renderHome();
 
     const ctaButton = screen.getByRole('button', { name: /Começar Agora/i });
     expect(ctaButton).toBeInTheDocument();
   });
 
   it('should open upload modal when CTA is clicked', () => {
-    render(<Home />);
+    renderHome();
 
     const ctaButton = screen.getByRole('button', { name: /Começar Agora/i });
     fireEvent.click(ctaButton);
@@ -65,7 +75,7 @@ describe('Home', () => {
   });
 
   it('should close upload modal when close is triggered', () => {
-    render(<Home />);
+    renderHome();
 
     // Open modal
     const ctaButton = screen.getByRole('button', { name: /Começar Agora/i });
@@ -81,13 +91,13 @@ describe('Home', () => {
   });
 
   it('should render the welcome badge', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText('Bem-vindo ao Analisador')).toBeInTheDocument();
   });
 
   it('should render the three feature cards', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText('Extração Inteligente')).toBeInTheDocument();
     expect(screen.getByText('Análise de Incidência')).toBeInTheDocument();
@@ -95,7 +105,7 @@ describe('Home', () => {
   });
 
   it('should render the step indicators', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText('Crie um edital')).toBeInTheDocument();
     expect(screen.getByText('Importe as provas')).toBeInTheDocument();
@@ -103,7 +113,7 @@ describe('Home', () => {
   });
 
   it('should render the stats section', () => {
-    render(<Home />);
+    renderHome();
 
     // Initial state shows 0 for all stats
     expect(screen.getAllByText('0')).toHaveLength(3);
@@ -113,7 +123,7 @@ describe('Home', () => {
   });
 
   it('should render the footer', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText(/Todos os direitos reservados/i)).toBeInTheDocument();
     expect(screen.getByText('Documentação')).toBeInTheDocument();
@@ -122,7 +132,7 @@ describe('Home', () => {
   });
 
   it('should render the call to action banner', () => {
-    render(<Home />);
+    renderHome();
 
     expect(screen.getByText('Pronto para começar?')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Importar Edital/i })).toBeInTheDocument();

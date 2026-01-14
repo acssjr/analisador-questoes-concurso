@@ -1,4 +1,4 @@
-import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse, ProjetoStats } from '../types';
+import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse, ProjetoStats, Edital } from '../types';
 import type { QueueItem } from '../components/features/QueueVisualization';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -100,11 +100,11 @@ export const api = {
   },
 
   // Edital endpoints
-  async listEditais(): Promise<any[]> {
+  async listEditais(): Promise<Edital[]> {
     return fetchApi('/editais/');
   },
 
-  async getEdital(id: string): Promise<any> {
+  async getEdital(id: string): Promise<Edital> {
     return fetchApi(`/editais/${id}`);
   },
 
@@ -157,8 +157,8 @@ export const api = {
       filename: string;
       format?: string;
       total_questoes?: number;
-      questoes?: any[];
-      metadados?: any;
+      questoes?: Questao[];
+      metadados?: Record<string, unknown>;
       error?: string;
     }>;
   }> {
@@ -255,5 +255,35 @@ export const api = {
     return fetchApi(`/provas/${provaId}/cancel`, {
       method: 'POST',
     });
+  },
+
+  async getProjetoQuestoes(
+    projetoId: string,
+    options?: { disciplina?: string; topico?: string; limit?: number; offset?: number }
+  ): Promise<{
+    questoes: Array<{
+      id: string;
+      numero: number;
+      disciplina: string | null;
+      assunto_pci: string | null;
+      enunciado: string;
+      alternativas: Record<string, string>;
+      gabarito: string | null;
+      anulada: boolean;
+      motivo_anulacao: string | null;
+      confianca_score: number | null;
+      status_extracao: string | null;
+      prova_nome: string | null;
+      prova_ano: number | null;
+    }>;
+    total: number;
+    disciplinas: string[];
+  }> {
+    const params = new URLSearchParams();
+    if (options?.disciplina) params.append('disciplina', options.disciplina);
+    if (options?.topico) params.append('topico', options.topico);
+    if (options?.limit) params.append('limit', options.limit.toString());
+    if (options?.offset) params.append('offset', options.offset.toString());
+    return fetchApi(`/projetos/${projetoId}/questoes?${params}`);
   },
 };

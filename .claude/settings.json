@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/dev-servers.sh"
+            "command": "\"C:\\Program Files\\Git\\usr\\bin\\bash.exe\" $CLAUDE_PROJECT_DIR/.claude/hooks/dev-servers.sh"
           }
         ]
       }

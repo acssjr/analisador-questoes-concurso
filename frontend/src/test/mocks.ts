@@ -2,7 +2,6 @@
  * Mock data for tests
  */
 import type {
-  Questao,
   QuestaoCompleta,
   Edital,
   IncidenciaNode,

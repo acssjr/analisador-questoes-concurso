@@ -1,0 +1,68 @@
+---
+session: analisador-questoes
+date: 2026-01-13
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Complete Phase 1+2 implementation plan and fix statusline monitoring
+now: Start Phase 3 (Upload UI, queue visualization) or other features
+
+test: cd frontend && npm run build && cd .. && pytest tests/ -v
+
+done_this_session:
+  - task: Task 1.7 - Queue Status API Endpoint (with spec + code review)
+    files: [src/api/routes/provas.py, tests/api/test_provas_queue.py]
+  - task: Task 2.1-2.7 - Complete Phase 2 Frontend React Router
+    files: [frontend/src/router/*, frontend/src/pages/projeto/*, frontend/src/pages/Home.tsx]
+  - task: Push 8 commits to origin/main
+    files: []
+  - task: Fix statusline not appearing (WSL bash vs Git Bash)
+    files: [~/.claude/settings.json]
+  - task: Add context + git monitoring to statusline
+    files: [~/.claude/statusline.sh, ~/.claude/hooks/src/skill-activation-prompt.ts]
+
+blockers: []
+
+questions: []
+
+decisions:
+  - git_bash_full_path: WSL bash wrapper was intercepting `bash` command, used full path to Git Bash (C:\Program Files\Git\usr\bin\bash.exe)
+  - statusline_temp_files: Context % and git uncommitted written to temp files for hook integration
+
+findings:
+  - statusline_wsl_issue: On Windows with WSL docker-desktop, `bash` resolves to WSL wrapper which fails. Must use Git Bash full path.
+  - hook_context_integration: skill-activation-prompt.ts already had tiered context warnings (70/80/90%), just needed statusline to write the data
+
+worked:
+  - Subagent-driven development with two-stage review (spec + quality)
+  - Writing context/git data to temp files for hook integration
+  - Systematic debugging to find WSL bash root cause
+
+failed: []
+
+next:
+  - Phase 3: Upload UI with drag & drop
+  - Phase 3: Queue visualization component
+  - Phase 3: Taxonomy tree display
+  - Phase 4: Deep analysis pipeline (embeddings, Map-Reduce)
+
+files:
+  created:
+    - tests/api/__init__.py
+    - tests/api/test_provas_queue.py
+  modified:
+    - src/api/routes/provas.py
+    - frontend/src/router/index.tsx
+    - frontend/src/router/routes.tsx
+    - frontend/src/pages/projeto/ProjetoLayout.tsx
+    - frontend/src/pages/projeto/VisaoGeral.tsx
+    - frontend/src/pages/projeto/ProvasQuestoes.tsx
+    - frontend/src/pages/projeto/AnaliseProfunda.tsx
+    - frontend/src/pages/Home.tsx
+    - frontend/src/main.tsx
+    - frontend/src/services/api.ts
+    - frontend/src/types/index.ts
+    - ~/.claude/settings.json
+    - ~/.claude/statusline.sh
+    - ~/.claude/hooks/src/skill-activation-prompt.ts

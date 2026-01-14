@@ -53,13 +53,23 @@ export function EditaisList({ onSelectEdital, onNewEdital }: EditaisListProps) {
   }
 
   // Count items in taxonomy
-  function countTaxonomyItems(taxonomia: any): { disciplinas: number; itens: number } {
+  interface TaxonomiaItem {
+    itens?: TaxonomiaItem[];
+    filhos?: TaxonomiaItem[];
+  }
+  interface Taxonomia {
+    disciplinas?: Array<{
+      itens?: TaxonomiaItem[];
+      assuntos?: unknown[];
+    }>;
+  }
+  function countTaxonomyItems(taxonomia: Taxonomia | undefined): { disciplinas: number; itens: number } {
     if (!taxonomia?.disciplinas) return { disciplinas: 0, itens: 0 };
 
     const disciplinas = taxonomia.disciplinas.length;
     let itens = 0;
 
-    function countItems(items: any[]): number {
+    function countItems(items: TaxonomiaItem[]): number {
       if (!items) return 0;
       let count = items.length;
       for (const item of items) {
