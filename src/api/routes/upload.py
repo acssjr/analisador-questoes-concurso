@@ -190,6 +190,7 @@ async def upload_pdf(
     files: List[UploadFile] = File(...),
     edital_id: Optional[uuid.UUID] = Query(None),
     projeto_id: Optional[uuid.UUID] = Query(None),
+    filter_by_edital: bool = Query(True, description="Filter questions by edital disciplines"),
 ):
     """
     Upload and extract questions from multiple PDFs.
@@ -200,6 +201,7 @@ async def upload_pdf(
         files: PDF files
         edital_id: Optional UUID of edital to link questions to
         projeto_id: Optional UUID of projeto to link provas to
+        filter_by_edital: Whether to filter questions by edital disciplines (default: True)
 
     Returns:
         dict with extraction results for all files
@@ -291,8 +293,8 @@ async def upload_pdf(
                             extraction_result = parse_pci_pdf(file_path)
                             questoes_extraidas = extraction_result["questoes"]
 
-                        # Filtrar questões por disciplinas do edital (se vinculado)
-                        if edital_taxonomia:
+                        # Filtrar questões por disciplinas do edital (se vinculado e flag ativa)
+                        if edital_taxonomia and filter_by_edital:
                             filter_result = filter_questoes_by_edital(questoes_extraidas, edital_taxonomia)
                             questoes_finais = filter_result["questoes_filtradas"]
                             filter_stats = filter_result["stats"]
@@ -306,6 +308,8 @@ async def upload_pdf(
                         else:
                             questoes_finais = questoes_extraidas
                             filter_stats = None
+                            if edital_taxonomia and not filter_by_edital:
+                                logger.info("Filter by edital disabled - keeping all questions")
 
                         # Create Prova and Questao records if projeto available
                         prova_id = None

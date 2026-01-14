@@ -208,20 +208,148 @@ def parse_llm_response(response_text: str) -> Optional[dict]:
     return None
 
 
+def _is_incomplete_question(q: dict) -> bool:
+    """Check if a question has incomplete data (missing/empty alternatives)."""
+    alternativas = q.get("alternativas", {})
+
+    # No alternatives at all
+    if not alternativas:
+        return True
+
+    # Count non-empty alternatives
+    non_empty = sum(1 for v in alternativas.values() if v and str(v).strip())
+
+    # Should have at least 4 alternatives with content
+    if non_empty < 4:
+        return True
+
+    # Enunciado too short (likely truncated)
+    enunciado = q.get("enunciado", "")
+    if len(enunciado) < 20:
+        return True
+
+    return False
+
+
+def _repair_incomplete_questions(
+    all_questions: list[dict],
+    incomplete: list[dict],
+    pdf_path: Path,
+    llm: "LLMOrchestrator",
+) -> list[dict]:
+    """
+    Attempt to repair incomplete questions by re-extracting with focused prompts.
+
+    Strategy:
+    1. For each incomplete question, extract text from all pages
+    2. Ask LLM to find and complete that specific question
+    3. Merge the repaired data back
+    """
+    import fitz
+
+    # Extract all text with page markers for reference
+    doc = fitz.open(pdf_path)
+    all_text = ""
+    for i, page in enumerate(doc):
+        page_text = page.get_text()
+        page_text = re.sub(r'pcimarkpci\s+\S+', '', page_text)
+        page_text = re.sub(r'www\.pciconcursos\.com\.br', '', page_text)
+        all_text += f"\n--- PAGINA {i+1} ---\n{page_text}"
+    doc.close()
+
+    repaired_map = {}
+
+    for q in incomplete:
+        numero = q.get("numero")
+        enunciado_partial = q.get("enunciado", "")[:100]
+
+        logger.info(f"Repairing question {numero}: {enunciado_partial}...")
+
+        repair_prompt = f"""Encontre e extraia a questao {numero} do texto abaixo.
+
+Esta questao pode estar INCOMPLETA ou com alternativas faltando.
+Procure pelo numero da questao e extraia:
+- Enunciado COMPLETO
+- TODAS as alternativas (A, B, C, D, E se houver)
+- Gabarito (resposta correta)
+
+TEXTO DO PDF:
+{all_text}
+
+Retorne APENAS um JSON com a questao completa:
+{{
+  "numero": {numero},
+  "disciplina": "...",
+  "enunciado": "texto completo do enunciado",
+  "alternativas": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
+  "gabarito": "X"
+}}"""
+
+        try:
+            result = llm.generate(
+                prompt=repair_prompt,
+                system_prompt="Voce e um especialista em extrair questoes de provas. Retorne APENAS JSON valido.",
+                temperature=0.1,
+                max_tokens=2000,
+            )
+
+            response = result.get("content", "") or result.get("text", "")
+            repaired_data = parse_llm_response(response)
+
+            if repaired_data and "numero" in repaired_data:
+                # Single question repair
+                repaired_q = repaired_data
+            elif repaired_data and "questoes" in repaired_data:
+                # Wrapped in questoes array
+                questoes = repaired_data.get("questoes", [])
+                repaired_q = next((q for q in questoes if q.get("numero") == numero), None)
+            else:
+                repaired_q = None
+
+            if repaired_q and not _is_incomplete_question(repaired_q):
+                repaired_q["fonte"] = "LLM_repair"
+                repaired_q["status_extracao"] = "repaired"
+                repaired_map[numero] = repaired_q
+                logger.info(f"Successfully repaired question {numero}")
+            else:
+                logger.warning(f"Could not repair question {numero}")
+
+        except Exception as e:
+            logger.error(f"Repair failed for question {numero}: {e}")
+
+    # Merge repaired questions back
+    result = []
+    for q in all_questions:
+        num = q.get("numero")
+        if num in repaired_map:
+            result.append(repaired_map[num])
+        else:
+            result.append(q)
+
+    repaired_count = len(repaired_map)
+    if repaired_count > 0:
+        logger.info(f"Repaired {repaired_count}/{len(incomplete)} incomplete questions")
+
+    return result
+
+
 def extract_questions_chunked(
     pdf_path: str | Path,
     llm: Optional[LLMOrchestrator] = None,
     pages_per_chunk: int = 4,
+    overlap_pages: int = 1,
 ) -> dict:
     """
-    Extract questions from large PDFs by processing in chunks.
+    Extract questions from large PDFs by processing in chunks with overlap.
 
-    Useful for very large PDFs that might exceed token limits.
+    Uses overlapping pages between chunks to handle questions that span
+    page boundaries (e.g., enunciado on page 4, alternatives on page 5).
 
     Args:
         pdf_path: Path to PDF file
         llm: LLM orchestrator instance
         pages_per_chunk: Pages to process per LLM call
+        overlap_pages: Number of pages to overlap between chunks (prevents split questions)
 
     Returns:
         dict with metadados and questoes
@@ -248,10 +376,16 @@ def extract_questions_chunked(
         all_disciplinas = set()
         llm_info = {}
 
-        # Process in chunks
-        for start_page in range(0, total_pages, pages_per_chunk):
+        # Calculate effective stride (pages to advance between chunks)
+        stride = pages_per_chunk - overlap_pages
+        if stride < 1:
+            stride = 1
+
+        # Process in overlapping chunks
+        start_page = 0
+        while start_page < total_pages:
             end_page = min(start_page + pages_per_chunk, total_pages)
-            logger.info(f"Processing pages {start_page+1}-{end_page}/{total_pages}")
+            logger.info(f"Processing pages {start_page+1}-{end_page}/{total_pages} (overlap={overlap_pages})")
 
             # Extract chunk
             doc = fitz.open(pdf_path)
@@ -298,16 +432,51 @@ Extraia todas as questoes encontradas no formato JSON."""
                 all_questoes.extend(chunk_questoes)
                 all_disciplinas.update(chunk_data.get("disciplinas_encontradas", []))
 
-        # Deduplicate by question number
-        seen_numbers = set()
-        unique_questoes = []
+            # Advance by stride (not full chunk size) to create overlap
+            start_page += stride
+
+        # Deduplicate by question number, preferring more complete versions
+        questoes_by_number: dict[int, dict] = {}
         for q in all_questoes:
             num = q.get("numero")
-            if num not in seen_numbers:
-                seen_numbers.add(num)
-                unique_questoes.append(q)
+            if num is None:
+                continue
 
-        logger.info(f"Total extracted: {len(unique_questoes)} unique questions")
+            # Score question completeness (more alternatives, longer enunciado = better)
+            alternativas = q.get("alternativas", {})
+            enunciado = q.get("enunciado", "")
+            completeness = len(alternativas) * 10 + len(enunciado)
+
+            existing = questoes_by_number.get(num)
+            if existing is None:
+                questoes_by_number[num] = q
+                q["_completeness"] = completeness
+            else:
+                # Keep the more complete version
+                if completeness > existing.get("_completeness", 0):
+                    questoes_by_number[num] = q
+                    q["_completeness"] = completeness
+
+        # Clean up temp field and sort by number
+        unique_questoes = []
+        for num in sorted(questoes_by_number.keys()):
+            q = questoes_by_number[num]
+            q.pop("_completeness", None)
+            unique_questoes.append(q)
+
+        logger.info(f"Total extracted: {len(unique_questoes)} unique questions (from {len(all_questoes)} with overlap)")
+
+        # Detect and retry incomplete questions (empty alternatives)
+        incomplete_questions = [
+            q for q in unique_questoes
+            if _is_incomplete_question(q)
+        ]
+
+        if incomplete_questions:
+            logger.warning(f"Found {len(incomplete_questions)} incomplete questions, attempting repair...")
+            unique_questoes = _repair_incomplete_questions(
+                unique_questoes, incomplete_questions, pdf_path, llm
+            )
 
         return {
             "metadados": metadados,
