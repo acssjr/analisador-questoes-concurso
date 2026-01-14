@@ -3,8 +3,6 @@ Clustering service using HDBSCAN for automatic cluster detection
 Part of Phase 1 (Vetorizacao) of the deep analysis pipeline
 """
 from dataclasses import dataclass
-from typing import Optional
-
 import numpy as np
 from loguru import logger
 
@@ -50,14 +48,12 @@ class ClusteringService:
     def cluster_embeddings(
         self,
         embeddings: list[list[float]],
-        questao_ids: Optional[list[str]] = None,
     ) -> ClusterResult:
         """
         Cluster embeddings using HDBSCAN
 
         Args:
             embeddings: List of embedding vectors
-            questao_ids: Optional list of question IDs for reference
 
         Returns:
             ClusterResult with cluster assignments and metadata
