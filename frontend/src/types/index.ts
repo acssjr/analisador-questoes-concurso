@@ -218,3 +218,119 @@ export interface ProjetoStats {
   status: string;
   pronto_para_analise: boolean;
 }
+
+// =============================================================================
+// Analise Profunda Types
+// =============================================================================
+
+export type AnaliseStatusType = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type PatternConfidence = 'high' | 'medium' | 'low';
+
+export interface PatternFinding {
+  pattern_type: string;
+  description: string;
+  evidence_ids: string[];
+  confidence: PatternConfidence;
+  votes: number;
+}
+
+export interface VerificationResult {
+  claim: string;
+  verification_question: string;
+  evidence_ids: string[];
+  evidence_summary: string;
+  is_verified: boolean;
+  confidence: PatternConfidence;
+  notes?: string;
+}
+
+export interface ClusterResult {
+  n_clusters: number;
+  cluster_sizes: Record<string, number>;
+  silhouette_score?: number;
+}
+
+export interface AnalysisReport {
+  disciplina: string;
+  total_questoes: number;
+  temporal_patterns: PatternFinding[];
+  similarity_patterns: PatternFinding[];
+  difficulty_analysis: Record<string, unknown>;
+  trap_analysis: Record<string, unknown>;
+  study_recommendations: string[];
+  raw_text?: string;
+}
+
+export interface VerifiedReport {
+  original_claims: number;
+  verified_claims: number;
+  rejected_claims: number;
+  verification_results: VerificationResult[];
+  cleaned_report?: string;
+}
+
+export interface AnaliseIniciarRequest {
+  disciplina?: string;
+  skip_phases?: number[];
+}
+
+export interface AnaliseIniciarResponse {
+  job_id: string;
+  projeto_id: string;
+  disciplina: string;
+  status: string;
+  message: string;
+}
+
+export interface AnaliseStatus {
+  job_id: string;
+  projeto_id: string;
+  disciplina: string;
+  status: AnaliseStatusType;
+  current_phase?: number;
+  phase_progress?: number;
+  phases_completed: string[];
+  total_questoes: number;
+  started_at?: string;
+  completed_at?: string;
+  duration_seconds?: number;
+  error_message?: string;
+}
+
+export interface AnaliseResultadoDisciplina {
+  job_id: string;
+  disciplina: string;
+  status: AnaliseStatusType;
+  total_questoes: number;
+  banca?: string;
+  anos: number[];
+  cluster_result?: ClusterResult;
+  similar_pairs_count: number;
+  chunk_digests_count: number;
+  analysis_report?: AnalysisReport;
+  verified_report?: VerifiedReport;
+  phases_completed: string[];
+  errors: string[];
+  started_at?: string;
+  completed_at?: string;
+  duration_seconds?: number;
+}
+
+export interface AnaliseResultado {
+  projeto_id: string;
+  disciplinas: string[];
+  total_jobs: number;
+  completed_jobs: number;
+  results: Record<string, AnaliseResultadoDisciplina>;
+}
+
+export interface AnaliseResumo {
+  projeto_id: string;
+  status: 'pending' | 'running' | 'partial' | 'completed' | 'failed';
+  disciplinas_analisadas: number;
+  disciplinas_total: number;
+  questoes_analisadas: number;
+  padroes_encontrados: number;
+  recomendacoes: number;
+  last_updated?: string;
+}

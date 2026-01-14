@@ -1,4 +1,22 @@
-import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse, ProjetoStats, Edital } from '../types';
+import type {
+  Dataset,
+  Questao,
+  QuestaoCompleta,
+  DashboardStats,
+  QuestaoSimilar,
+  EditalUploadResponse,
+  ConteudoProgramaticoUploadResponse,
+  Projeto,
+  ProjetoCreate,
+  ProjetoListResponse,
+  ProjetoStats,
+  Edital,
+  AnaliseIniciarRequest,
+  AnaliseIniciarResponse,
+  AnaliseStatus,
+  AnaliseResultado,
+  AnaliseResumo,
+} from '../types';
 import type { QueueItem } from '../components/features/QueueVisualization';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -285,5 +303,61 @@ export const api = {
     if (options?.limit) params.append('limit', options.limit.toString());
     if (options?.offset) params.append('offset', options.offset.toString());
     return fetchApi(`/projetos/${projetoId}/questoes?${params}`);
+  },
+
+  // ==========================================================================
+  // Analise Profunda (Deep Analysis)
+  // ==========================================================================
+
+  /**
+   * Start a deep analysis job for a project
+   */
+  async startAnalise(
+    projetoId: string,
+    options?: AnaliseIniciarRequest
+  ): Promise<AnaliseIniciarResponse> {
+    return fetchApi(`/analise/${projetoId}/iniciar`, {
+      method: 'POST',
+      body: JSON.stringify(options || {}),
+    });
+  },
+
+  /**
+   * Get the status of the most recent analysis job for a project
+   */
+  async getAnaliseStatus(
+    projetoId: string,
+    disciplina?: string
+  ): Promise<AnaliseStatus> {
+    const params = new URLSearchParams();
+    if (disciplina) params.append('disciplina', disciplina);
+    const query = params.toString() ? `?${params}` : '';
+    return fetchApi(`/analise/${projetoId}/status${query}`);
+  },
+
+  /**
+   * Get complete analysis results for a project
+   */
+  async getAnaliseResultado(projetoId: string): Promise<AnaliseResultado> {
+    return fetchApi(`/analise/${projetoId}/resultado`);
+  },
+
+  /**
+   * Get a summary of analysis status for a project (for dashboard)
+   */
+  async getAnaliseResumo(projetoId: string): Promise<AnaliseResumo> {
+    return fetchApi(`/analise/${projetoId}/resumo`);
+  },
+
+  /**
+   * Cancel a running analysis job
+   */
+  async cancelAnaliseJob(
+    projetoId: string,
+    jobId: string
+  ): Promise<{ success: boolean; message: string }> {
+    return fetchApi(`/analise/${projetoId}/jobs/${jobId}`, {
+      method: 'DELETE',
+    });
   },
 };
