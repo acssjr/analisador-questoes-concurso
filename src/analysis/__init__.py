@@ -2,6 +2,7 @@
 Analysis module for question analysis and clustering
 """
 from src.analysis.clustering import ClusteringService, ClusterResult
+from src.analysis.cove_service import CoVeService, VerificationResult, VerifiedReport
 from src.analysis.embeddings import EmbeddingGenerator
 from src.analysis.map_service import ChunkDigest, MapService, QuestionAnalysis
 from src.analysis.reduce_service import AnalysisReport, PatternFinding, ReduceService
@@ -16,6 +17,10 @@ __all__ = [
     # Clustering
     "ClusteringService",
     "ClusterResult",
+    # CoVe Service (Phase 4 deep analysis - Chain-of-Verification)
+    "CoVeService",
+    "VerificationResult",
+    "VerifiedReport",
     # Embeddings
     "EmbeddingGenerator",
     # Map Service (Phase 2 deep analysis)
