@@ -14,43 +14,40 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
-
     # Database
     "sqlalchemy>=2.0.25",
     "asyncpg>=0.29.0",  # PostgreSQL async
     "aiosqlite>=0.19.0",  # SQLite async (dev fallback)
     "alembic>=1.13.0",  # Migrations
     "pgvector>=0.2.4",  # Vector extension
-
     # API
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "python-multipart>=0.0.6",  # File uploads
     "httpx>=0.26.0",  # HTTP client
-
     # PDF Processing
     "pymupdf>=1.23.8",  # PyMuPDF (fitz)
     "pdfplumber>=0.11.0",
     "pillow>=10.2.0",
     "pytesseract>=0.3.10",
     "paddleocr>=2.7.0",
-
     # LLMs
     "groq>=0.4.0",
     "anthropic>=0.23.0",
     "huggingface-hub>=0.20.0",
     "openai>=1.10.0",  # OpenAI-compatible clients
-
     # ML & Embeddings
     "sentence-transformers>=2.3.0",
     "scikit-learn>=1.4.0",
     "numpy>=1.26.0",
     "torch>=2.1.0",  # PyTorch for transformers
-
+    "hdbscan>=0.8.38",  # Clustering (Python 3.11+ compatible)
+    "umap-learn>=0.5.7",  # Dimensionality reduction (Python 3.11+ compatible)
+    "numba>=0.60.0",  # Required for UMAP Python 3.11+ compatibility
+    "pynndescent>=0.5.13",  # Required for UMAP Python 3.11+ compatibility
     # Data Processing
     "pandas>=2.2.0",
     "openpyxl>=3.1.0",  # Excel
-
     # Report Generation
     "reportlab>=4.0.0",  # PDF generation
     "markdown>=3.5.0",
@@ -58,18 +55,16 @@ dependencies = [
     "matplotlib>=3.8.0",
     "plotly>=5.18.0",
     "seaborn>=0.13.0",
-
     # CLI
     "typer[all]>=0.9.0",
     "rich>=13.7.0",  # Beautiful terminal output
     "tqdm>=4.66.0",  # Progress bars
-
     # Logging
     "loguru>=0.7.2",
-
     # Utilities
     "python-slugify>=8.0.0",
     "dateparser>=1.2.0",
+    "psycopg2-binary>=2.9.11",
 ]
 
 [project.optional-dependencies]
