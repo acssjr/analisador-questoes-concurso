@@ -1,80 +1,86 @@
 ---
-date: 2026-01-13T23:55:00Z
+date: 2026-01-14T07:55:00Z
 session_name: analisador-questoes-concurso
 branch: main
-status: active
+status: completed
+outcome: SUCCEEDED
 ---
 
 # Work Stream: analisador-questoes-concurso
 
 ## Ledger
 <!-- This section is extracted by SessionStart hook for quick resume -->
-**Updated:** 2026-01-13T23:55:00Z
-**Goal:** Build exam question analyzer with LLM-based extraction, React Router navigation, and queue monitoring
+**Updated:** 2026-01-14T07:55:00Z
+**Goal:** Build exam question analyzer with LLM-based extraction, PostgreSQL+pgvector storage, and full upload workflow
 **Branch:** main
-**Test:** cd frontend && npm test -- --run UploadDropzone QueueVisualization QueueSummary ProvasQuestoes
+**Test:** docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c "SELECT COUNT(*) FROM questoes;"
 
 ### Now
-[->] Implement TaxonomyTree component for displaying taxonomy with question counts
+[->] Continue with Phase 4: Deep analysis pipeline (embeddings, Map-Reduce, CoVe)
 
 ### This Session
-- [x] UploadDropzone component with drag & drop for PDFs (23 tests)
-- [x] QueueVisualization component with status, progress bars, icons (30 tests)
-- [x] QueueSummary component with stats and action buttons (35 tests)
-- [x] Integrated all components in ProvasQuestoes page (15 tests)
-- [x] Added queue API methods (upload, status, retry, cancel)
-- [x] Added IconPause to centralized Icons.tsx
-- [x] Fixed stale closure bug in ProvasQuestoes polling
-- [x] Added useMemo optimization to QueueSummary
-- [x] Committed and pushed Phase 3 (c9e4148)
+- [x] ESLint cleanup - fixed 23 errors across 8 files (commit 0eed5c5)
+- [x] PostgreSQL + pgvector setup via Docker Compose (pgvector 0.8.1)
+- [x] Migrated from SQLite to PostgreSQL for production-ready storage
+- [x] Fixed upload endpoint - now persists Prova and Questao records to DB (commit a133a71)
+- [x] Tested full upload workflow via API - 50 questions persisted correctly
+- [x] Fixed chunked extraction with page overlap (1 page overlap between chunks)
+- [x] Added optional `filter_by_edital` parameter to disable discipline filtering
+- [x] Implemented auto-repair for incomplete questions (empty alternatives)
+- [x] Committed extraction improvements (commit 70712ab)
 
 ### Next
+- [ ] Phase 4: Deep analysis pipeline (embeddings using pgvector, Map-Reduce, CoVe)
 - [ ] TaxonomyTree component - hierarchical tree with expand/collapse
-- [ ] Question counts per topic - display incidence numbers
 - [ ] QuestionPanel - side panel showing questions for selected topic
-- [ ] Integration - wire tree and panel in ProvasQuestoes page
-- [ ] Phase 4: Deep analysis pipeline (embeddings, Map-Reduce, CoVe)
+- [ ] Test UI upload flow in browser
 
 ### Decisions
-- subagent_driven_development: Used for all 4 tasks with spec + quality reviews
-- native_html5_dnd: No external drag-drop libraries, native HTML5 API
-- polling_3_seconds: Queue status polls every 3s while processing
-- memoization_stats: Added useMemo for stats calculation per code review
-- centralized_icons: Moved IconPause to Icons.tsx instead of inline
+- postgresql_pgvector: Migrated to PostgreSQL 16 + pgvector 0.8.1 for production-ready vector storage
+- async_session_context: Used AsyncSessionLocal() context manager to keep DB session open throughout upload
+- page_overlap: Added 1-page overlap between chunks to prevent questions split across pages
+- filter_optional: Added `filter_by_edital` parameter (default: true) to allow keeping all questions
+- auto_repair: Incomplete questions (empty alternatives) are automatically re-extracted with focused prompts
 
 ### Open Questions
-- CONFIRMED: All Phase 3 components working (103 tests passing)
-- CONFIRMED: Frontend running at localhost:5173
+- CONFIRMED: PostgreSQL + pgvector working (11 tables created)
+- CONFIRMED: Backend connected to PostgreSQL at localhost:5432
+- CONFIRMED: Upload persistence works - 50 questions from PDF stored in DB
+- CONFIRMED: Page overlap prevents split questions (10 PT questions vs 5 before)
+- CONFIRMED: Auto-repair fixes incomplete questions (2/2 repaired successfully)
 
 ### Workflow State
 pattern: subagent-driven-development
-phase: phase3-complete
+phase: extraction-improvements-complete
 total_phases: 4
 retries: 0
 max_retries: 3
 
 #### Resolved
-- goal: "Implement Phase 3 Upload UI"
-- phase3_upload: COMPLETE (UploadDropzone, QueueVisualization, QueueSummary)
-- phase3_integration: COMPLETE (ProvasQuestoes page wired)
-- stale_closure_fix: COMPLETE (removed queueItems from dependencies)
+- goal: "Improve PDF extraction reliability"
+- postgresql_setup: COMPLETE (docker-compose.yml, pgvector extension)
+- upload_persistence: COMPLETE (Prova + Questao records created)
+- extraction_overlap: COMPLETE (1-page overlap between chunks)
+- filter_optional: COMPLETE (filter_by_edital parameter)
+- auto_repair: COMPLETE (incomplete questions re-extracted)
 
 #### Unknowns
 - (none currently)
 
 ### Checkpoints
 **Agent:** main
-**Task:** Phase 3 Upload UI + Taxonomy Tree
-**Started:** 2026-01-13T22:30:00Z
-**Last Updated:** 2026-01-13T23:55:00Z
+**Task:** PDF extraction improvements
+**Started:** 2026-01-14T07:30:00Z
+**Last Updated:** 2026-01-14T07:55:00Z
 
 #### Phase Status
-- Phase 3a (UploadDropzone): ✓ VALIDATED (23 tests, commit c324193)
-- Phase 3b (QueueVisualization): ✓ VALIDATED (30 tests)
-- Phase 3c (QueueSummary): ✓ VALIDATED (35 tests)
-- Phase 3d (Integration): ✓ VALIDATED (15 tests, commit c9e4148)
+- Phase 3a-d (Upload UI): ✓ VALIDATED (103 tests, commit c9e4148)
+- PostgreSQL Setup: ✓ VALIDATED (pgvector 0.8.1, commit 0eed5c5)
+- Upload Persistence: ✓ VALIDATED (Prova+Questao persist, commit a133a71)
+- Extraction Improvements: ✓ VALIDATED (overlap + repair, commit 70712ab)
 - Phase 3e (TaxonomyTree): ○ PENDING
 - Phase 3f (QuestionPanel): ○ PENDING
+- Phase 4 (Deep Analysis): ○ PENDING
 
 #### Validation State
 ```json
@@ -82,21 +88,17 @@ max_retries: 3
   "test_count": 103,
   "tests_passing": 103,
   "files_modified": [
-    "frontend/src/components/features/UploadDropzone.tsx",
-    "frontend/src/components/features/QueueVisualization.tsx",
-    "frontend/src/components/features/QueueSummary.tsx",
-    "frontend/src/pages/projeto/ProvasQuestoes.tsx",
-    "frontend/src/services/api.ts",
-    "frontend/src/components/ui/Icons.tsx"
+    "src/api/routes/upload.py",
+    "src/extraction/llm_parser.py"
   ],
-  "last_test_command": "npm test -- --run UploadDropzone QueueVisualization QueueSummary ProvasQuestoes",
+  "last_test_command": "docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c 'SELECT COUNT(*) FROM questoes;'",
   "last_test_exit_code": 0
 }
 ```
 
 #### Resume Context
-- Current focus: TaxonomyTree component for taxonomy display
-- Next action: Create TaxonomyTree.tsx with recursive rendering and question counts
+- Current focus: Extraction improvements complete, ready for Phase 4
+- Next action: Implement embeddings with pgvector for semantic similarity
 - Blockers: (none)
 
 ---
@@ -109,50 +111,40 @@ max_retries: 3
 - LLM: Groq (Llama 4 Scout) primary, Anthropic fallback
 - Queue: State machine (pending → validating → processing → completed/failed)
 
+### Recent Commits
+- `70712ab` - feat(extraction): improve PDF question extraction reliability
+- `a133a71` - fix(api): persist Prova and Questao records to database on upload
+- `0eed5c5` - feat: ESLint cleanup, PostgreSQL+pgvector setup, Phase 3 components
+
+### Extraction Improvements (commit 70712ab)
+1. **Page Overlap**: 1-page overlap between chunks prevents questions split across pages
+   - Before: pages 1-4, 5-8, 9-12 (no overlap)
+   - After: pages 1-4, 4-7, 7-10, 10-13 (with overlap)
+   - Result: 10 Portuguese questions extracted (vs 5 before)
+
+2. **Optional Filter**: `filter_by_edital=false` keeps all questions regardless of discipline
+   - Before: 5 questions (23 filtered out)
+   - After: 50 questions (all kept)
+
+3. **Auto-Repair**: Incomplete questions (empty alternatives) are re-extracted
+   - Detects questions with missing/empty alternatives
+   - Re-extracts with focused prompt using full PDF text
+   - Merges repaired data back into results
+   - Result: 2/2 incomplete questions repaired successfully
+
+### Key Files Modified
+- `src/extraction/llm_parser.py` - overlap + repair logic
+- `src/api/routes/upload.py` - filter_by_edital parameter
+
 ### Phase 3 Components (COMPLETE)
 1. **UploadDropzone**: Drag & drop area for multiple PDFs
-   - Native HTML5 DnD API
-   - File validation (PDF only, max 50MB)
-   - Visual feedback (dragOver, disabled states)
-   - 23 tests
-
 2. **QueueVisualization**: Show processing status for each PDF
-   - 7 status states (pending, validating, processing, completed, partial, failed, retry)
-   - Progress bars with animation
-   - Action buttons (retry, cancel) on hover
-   - 30 tests
-
 3. **QueueSummary**: Stats and bulk actions
-   - Displays: completed, questions, need review, failed counts
-   - Buttons: Pausar, Cancelar Todos, Reprocessar Falhos
-   - useMemo for stats calculation
-   - 35 tests
-
 4. **ProvasQuestoes Integration**: Full page wiring
-   - Polls queue status every 3s while processing
-   - Auto-stops polling when no active items
-   - Error handling with notifications
-   - 15 tests
 
 ### Phase 3e Components (TO BUILD)
 1. **TaxonomyTree**: Hierarchical tree with question counts
-   - Recursive ItemConteudo rendering
-   - Expand/collapse nodes
-   - Badge showing question count per topic
-   - Click to select topic
-
 2. **QuestionPanel**: Side panel for selected topic
-   - Shows questions for selected topic
-   - Enunciado, alternativas, gabarito
-   - Confidence score indicator
-
-### Key Files
-- `frontend/src/pages/projeto/ProvasQuestoes.tsx` - Main page
-- `frontend/src/components/features/UploadDropzone.tsx` - Upload component
-- `frontend/src/components/features/QueueVisualization.tsx` - Queue display
-- `frontend/src/components/features/QueueSummary.tsx` - Summary row
-- `frontend/src/services/api.ts` - API client with queue methods
-- `docs/plans/2026-01-13-analisador-questoes-design.md` - Full design spec
 
 ### Existing Types (for TaxonomyTree)
 ```typescript

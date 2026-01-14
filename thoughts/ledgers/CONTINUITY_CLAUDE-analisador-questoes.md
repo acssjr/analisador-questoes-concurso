@@ -118,6 +118,10 @@ src/
 | Upload em lote com robustez | Fila com estados, checkpoints, retry com backoff | 2026-01-13 |
 | React Router + Zustand | Navegação com estado global no frontend | 2026-01-13 |
 | Self-Critique via CoVe | Self-critique isolado falha (MIT 2024), usar CoVe | 2026-01-13 |
+| PostgreSQL + pgvector | Migrou de SQLite para PostgreSQL com pgvector para embeddings/similarity | 2026-01-14 |
+| Page overlap extraction | 1 page overlap between chunks prevents split questions | 2026-01-14 |
+| Optional edital filter | filter_by_edital param allows keeping all questions | 2026-01-14 |
+| Auto-repair incomplete questions | Re-extract questions with empty alternatives using focused prompts | 2026-01-14 |
 
 ---
 
@@ -166,22 +170,40 @@ src/
   - [x] Phase 3g: API getProjetoQuestoes endpoint + frontend method
   - [x] Phase 3h: Test fixes (ProvasQuestoes mock, Home MemoryRouter)
 
-- Now: [->] ESLint Cleanup (23 errors in 8 files)
+- Done (ESLint Cleanup - commit 0eed5c5):
   - [x] TreemapChart.tsx - fixed any types with CustomContentProps interface
   - [x] EditaisList.tsx - fixed any types with TaxonomiaItem/Taxonomia interfaces
-  - [ ] UploadModal.tsx:89,95 - unused err vars (use catch without binding)
-  - [ ] Modal.test.tsx:8,23 - any types in framer-motion mock
-  - [ ] Dashboard.test.tsx - 9 any types in test mocks
-  - [ ] api.ts:103,107,160,161 - any types (use Edital type)
-  - [ ] mocks.ts:5 - unused Questao import
-  - [ ] calculations.ts:28 - unused _nivel variable
+  - [x] UploadModal.tsx - unused err vars (changed to catch without binding)
+  - [x] Modal.test.tsx - any types replaced with React.HTMLAttributes
+  - [x] Dashboard.test.tsx - 9 any types replaced with proper React types
+  - [x] api.ts - any types replaced with Edital, Questao types
+  - [x] mocks.ts - removed unused Questao import
+  - [x] calculations.ts - added void _nivel for unused param
+
+- Done (PostgreSQL + pgvector Setup):
+  - [x] Created docker-compose.yml with PostgreSQL 16 + pgvector
+  - [x] Updated .env for PostgreSQL connection
+  - [x] Created Alembic migration for pgvector extension
+  - [x] Installed psycopg2-binary for Alembic migrations
+  - [x] Created all tables in PostgreSQL
+  - [x] Verified pgvector 0.8.1 extension enabled
+
+- Done (Extraction Improvements - commit 70712ab):
+  - [x] Added page overlap (1 page) between chunks to prevent split questions
+  - [x] Added optional `filter_by_edital` parameter to upload endpoint
+  - [x] Implemented auto-repair for incomplete questions (empty alternatives)
+  - [x] Tested: 50 questions extracted (vs 5 before), 2/2 incomplete repaired
+
+- Now: [->] Phase 4: Deep analysis pipeline
+  - [ ] Implement embedding generation using pgvector
+  - [ ] Add similarity search for questions
 
 - Next:
-  - [ ] Complete ESLint cleanup (21 remaining errors)
-  - [ ] Phase 12a: Validação pré-processamento de PDF
-  - [ ] Phase 12b: Sistema de fila com estados
-  - [ ] Phase 12c: Score de confiança por questão
-  - [ ] Phase 12d: Retry com backoff + fallback
+  - [ ] TaxonomyTree component with expand/collapse
+  - [ ] QuestionPanel for selected topic
+  - [ ] Phase 16: Backend - Vetorização com embeddings
+  - [ ] Phase 17: Backend - Map-Reduce com chunks
+  - [ ] Phase 18: Backend - Multi-Pass + CoVe
 
 - Later:
   - [ ] Phase 16: Backend - Vetorização com embeddings
@@ -421,3 +443,34 @@ uvicorn src.api.main:app --reload
 - Build/test: 57 passed, 0 failed
 ## Session Auto-Summary (2026-01-14T03:31:13.030Z)
 - Build/test: 67 passed, 0 failed
+## Session Auto-Summary (2026-01-14T04:01:52.258Z)
+- Build/test: 74 passed, 0 failed
+
+### 2026-01-14 (Session 5) - Extraction Improvements
+
+- **Resumed from handoff** - needed to test upload persistence fix
+
+- **Tested Upload Workflow**
+  - Uploaded PDF via API endpoint
+  - Confirmed 50 questions persisted in PostgreSQL
+  - Identified issues: only 5 Portuguese questions (should be 10), question 5 had empty alternatives
+
+- **Fixed Page Overlap** (`src/extraction/llm_parser.py`)
+  - Problem: chunks 1-4, 5-8, 9-12 had no overlap
+  - Solution: Added `overlap_pages` parameter (default 1)
+  - Result: chunks 1-4, 4-7, 7-10, 10-13 now overlap
+  - Improvement: 10 Portuguese questions extracted (vs 5 before)
+
+- **Added Optional Filter** (`src/api/routes/upload.py`)
+  - Added `filter_by_edital` parameter (default: true)
+  - With filter=false, all 50 questions kept (vs 5 with filter)
+
+- **Implemented Auto-Repair**
+  - `_is_incomplete_question()`: Detects questions with empty/missing alternatives
+  - `_repair_incomplete_questions()`: Re-extracts using full PDF text with focused prompt
+  - Result: 2/2 incomplete questions (5 and 24) repaired successfully
+
+- **Commits**:
+  - `70712ab` - feat(extraction): improve PDF question extraction reliability
+
+- **Handoff updated**: `thoughts/shared/handoffs/analisador-questoes-concurso/current.md`
