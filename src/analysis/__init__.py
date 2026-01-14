@@ -5,6 +5,7 @@ from src.analysis.clustering import ClusteringService, ClusterResult
 from src.analysis.cove_service import CoVeService, VerificationResult, VerifiedReport
 from src.analysis.embeddings import EmbeddingGenerator
 from src.analysis.map_service import ChunkDigest, MapService, QuestionAnalysis
+from src.analysis.pipeline import AnalysisPipeline, PipelineResult
 from src.analysis.reduce_service import AnalysisReport, PatternFinding, ReduceService
 from src.analysis.similarity import (
     calculate_cosine_similarity,
@@ -27,6 +28,9 @@ __all__ = [
     "MapService",
     "ChunkDigest",
     "QuestionAnalysis",
+    # Pipeline Orchestrator (coordinates all 4 phases)
+    "AnalysisPipeline",
+    "PipelineResult",
     # Reduce Service (Phase 3 deep analysis)
     "ReduceService",
     "AnalysisReport",
