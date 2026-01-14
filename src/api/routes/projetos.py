@@ -397,12 +397,13 @@ async def get_projeto_questoes(
             count_result = await db.execute(count_stmt)
             total = count_result.scalar()
 
-            # Get distinct disciplinas
+            # Get distinct disciplinas ordered by first occurrence in exam
             disc_stmt = (
-                select(Questao.disciplina)
+                select(Questao.disciplina, func.min(Questao.numero).label("first_numero"))
                 .where(Questao.prova_id.in_(prova_ids))
                 .where(Questao.disciplina.isnot(None))
-                .distinct()
+                .group_by(Questao.disciplina)
+                .order_by(func.min(Questao.numero))
             )
             disc_result = await db.execute(disc_stmt)
             disciplinas = [d[0] for d in disc_result.all()]
@@ -437,7 +438,7 @@ async def get_projeto_questoes(
             return {
                 "questoes": questoes_response,
                 "total": total,
-                "disciplinas": sorted(disciplinas),
+                "disciplinas": disciplinas,  # Already ordered by first occurrence in exam
             }
 
     except HTTPException:

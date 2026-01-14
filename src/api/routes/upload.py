@@ -82,6 +82,64 @@ def normalize_disciplina(nome: str) -> str:
     return remove_accents(nome.lower().strip())
 
 
+# Canonical display names for common disciplines (normalized key → display name)
+CANONICAL_DISCIPLINAS = {
+    "lingua portuguesa": "Língua Portuguesa",
+    "portugues": "Língua Portuguesa",
+    "matematica": "Matemática",
+    "raciocinio logico": "Raciocínio Lógico",
+    "raciocinio logico-matematico": "Raciocínio Lógico-Matemático",
+    "matematica e raciocinio logico": "Matemática e Raciocínio Lógico",
+    "informatica": "Informática",
+    "nocoes de informatica": "Noções de Informática",
+    "direito constitucional": "Direito Constitucional",
+    "direito administrativo": "Direito Administrativo",
+    "direito penal": "Direito Penal",
+    "direito civil": "Direito Civil",
+    "direito tributario": "Direito Tributário",
+    "direito processual": "Direito Processual",
+    "administracao": "Administração",
+    "administracao publica": "Administração Pública",
+    "contabilidade": "Contabilidade",
+    "contabilidade geral": "Contabilidade Geral",
+    "contabilidade publica": "Contabilidade Pública",
+    "economia": "Economia",
+    "afo": "AFO",
+    "administracao financeira e orcamentaria": "Administração Financeira e Orçamentária",
+    "legislacao": "Legislação",
+    "legislacao basica": "Legislação Básica",
+    "legislacao basica aplicada a administracao publica": "Legislação Básica Aplicada à Administração Pública",
+    "nocoes de legislacao": "Noções de Legislação",
+    "atualidades": "Atualidades",
+    "conhecimentos gerais": "Conhecimentos Gerais",
+    "redacao": "Redação",
+    "tecnologia": "Tecnologia",
+    "tecnologia da informacao": "Tecnologia da Informação",
+}
+
+
+def canonicalize_disciplina(nome: str) -> str:
+    """
+    Convert discipline name to canonical display form.
+
+    Maps variations like "Lingua Portuguesa", "língua portuguesa", "LINGUA PORTUGUESA"
+    all to "Língua Portuguesa".
+
+    For unknown disciplines, applies title case.
+    """
+    if not nome:
+        return ""
+
+    normalized = normalize_disciplina(nome)
+
+    # Check canonical mapping
+    if normalized in CANONICAL_DISCIPLINAS:
+        return CANONICAL_DISCIPLINAS[normalized]
+
+    # For unknown disciplines, use title case on original (preserves accents if present)
+    return nome.strip().title()
+
+
 def get_edital_disciplinas(taxonomia: dict) -> list[str]:
     """Extrai lista de nomes de disciplinas do edital (normalizados)"""
     if not taxonomia:
@@ -365,7 +423,7 @@ async def upload_pdf(
                                     questao = Questao(
                                         prova_id=prova.id,
                                         numero=q.get("numero", 0),
-                                        disciplina=q.get("disciplina"),
+                                        disciplina=canonicalize_disciplina(q.get("disciplina")),
                                         enunciado=q.get("enunciado", ""),
                                         alternativas=q.get("alternativas", {}),
                                         gabarito=q.get("gabarito"),

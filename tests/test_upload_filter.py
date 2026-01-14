@@ -13,13 +13,15 @@ from src.api.routes.upload import (
 
 
 class TestNormalizeDisciplina:
-    """Tests for discipline name normalization"""
+    """Tests for discipline name normalization (lowercase, no accents)"""
 
     def test_lowercase(self):
-        assert normalize_disciplina("PORTUGUÊS") == "português"
+        # Normalization removes accents for comparison
+        assert normalize_disciplina("PORTUGUÊS") == "portugues"
 
     def test_strip_whitespace(self):
-        assert normalize_disciplina("  Matemática  ") == "matemática"
+        # Normalization removes accents for comparison
+        assert normalize_disciplina("  Matemática  ") == "matematica"
 
     def test_empty_string(self):
         assert normalize_disciplina("") == ""
@@ -27,15 +29,22 @@ class TestNormalizeDisciplina:
     def test_none(self):
         assert normalize_disciplina(None) == ""
 
+    def test_removes_accents(self):
+        """Normalization should remove accents for consistent comparison"""
+        assert normalize_disciplina("Língua Portuguesa") == "lingua portuguesa"
+        assert normalize_disciplina("Raciocínio Lógico") == "raciocinio logico"
+        assert normalize_disciplina("Informática") == "informatica"
+
 
 class TestGetEditalDisciplinas:
-    """Tests for extracting disciplines from taxonomy"""
+    """Tests for extracting disciplines from taxonomy (returns normalized names)"""
 
     def test_extract_disciplines(self, sample_taxonomia):
         result = get_edital_disciplinas(sample_taxonomia)
 
-        assert "língua portuguesa" in result
-        assert "raciocínio lógico" in result
+        # Normalized names (lowercase, no accents)
+        assert "lingua portuguesa" in result
+        assert "raciocinio logico" in result
         assert len(result) == 2
 
     def test_empty_taxonomy(self):
@@ -53,43 +62,44 @@ class TestGetEditalDisciplinas:
 
 
 class TestDisciplinaMatchesEdital:
-    """Tests for discipline matching logic"""
+    """Tests for discipline matching logic (edital disciplines should be normalized)"""
 
     def test_exact_match(self):
-        edital_disciplinas = ["língua portuguesa", "matemática"]
+        # Edital disciplines are normalized (no accents)
+        edital_disciplinas = ["lingua portuguesa", "matematica"]
         assert disciplina_matches_edital("Língua Portuguesa", edital_disciplinas) is True
 
     def test_substring_match_questao_in_edital(self):
         """Questão discipline is substring of edital discipline"""
-        edital_disciplinas = ["língua portuguesa"]
+        edital_disciplinas = ["lingua portuguesa"]
         assert disciplina_matches_edital("Português", edital_disciplinas) is True
 
     def test_substring_match_edital_in_questao(self):
         """Edital discipline is substring of questão discipline"""
-        edital_disciplinas = ["português"]
+        edital_disciplinas = ["portugues"]
         assert disciplina_matches_edital("Língua Portuguesa", edital_disciplinas) is True
 
     def test_alias_match_portugues(self):
         """Test alias matching for Português → Língua Portuguesa"""
-        edital_disciplinas = ["língua portuguesa"]
+        edital_disciplinas = ["lingua portuguesa"]
         assert disciplina_matches_edital("Português", edital_disciplinas) is True
 
     def test_alias_match_matematica_rlm(self):
         """Test alias matching for Matemática → Raciocínio Lógico"""
-        edital_disciplinas = ["raciocínio lógico"]
+        edital_disciplinas = ["raciocinio logico"]
         assert disciplina_matches_edital("Matemática", edital_disciplinas) is True
 
     def test_alias_match_informatica(self):
         """Test alias matching for Informática"""
-        edital_disciplinas = ["noções de informática"]
+        edital_disciplinas = ["nocoes de informatica"]
         assert disciplina_matches_edital("Informática", edital_disciplinas) is True
 
     def test_no_match(self):
-        edital_disciplinas = ["língua portuguesa", "matemática"]
+        edital_disciplinas = ["lingua portuguesa", "matematica"]
         assert disciplina_matches_edital("Inglês", edital_disciplinas) is False
 
     def test_empty_questao_disciplina(self):
-        edital_disciplinas = ["língua portuguesa"]
+        edital_disciplinas = ["lingua portuguesa"]
         assert disciplina_matches_edital("", edital_disciplinas) is False
 
     def test_empty_edital_disciplinas(self):
@@ -197,22 +207,23 @@ class TestFilterQuestoesByEdital:
 
 
 class TestDisciplinaAliases:
-    """Tests for discipline alias dictionary"""
+    """Tests for discipline alias dictionary (all keys are normalized, no accents)"""
 
     def test_aliases_exist(self):
-        assert "português" in DISCIPLINA_ALIASES
-        assert "matemática" in DISCIPLINA_ALIASES
-        assert "informática" in DISCIPLINA_ALIASES
+        # Keys are normalized (no accents)
+        assert "portugues" in DISCIPLINA_ALIASES
+        assert "matematica" in DISCIPLINA_ALIASES
+        assert "informatica" in DISCIPLINA_ALIASES
 
     def test_aliases_bidirectional(self):
         """Check that common aliases work both ways"""
-        # Português should alias to Língua Portuguesa
-        assert "língua portuguesa" in DISCIPLINA_ALIASES["português"]
+        # Português should alias to Língua Portuguesa (all normalized)
+        assert "lingua portuguesa" in DISCIPLINA_ALIASES["portugues"]
         # Língua Portuguesa should alias to Português
-        assert "português" in DISCIPLINA_ALIASES["língua portuguesa"]
+        assert "portugues" in DISCIPLINA_ALIASES["lingua portuguesa"]
 
     def test_aliases_case_insensitive(self):
-        """All aliases should be lowercase"""
+        """All aliases should be lowercase and without accents (normalized)"""
         for key, values in DISCIPLINA_ALIASES.items():
             assert key == key.lower(), f"Key {key} should be lowercase"
             for val in values:

@@ -17,11 +17,15 @@ from src.core.exceptions import ExtractionError
 
 def _extract_page_text_robust(page: fitz.Page) -> str:
     """
-    Extract text from a PDF page with robust handling of word-by-word layouts.
+    Extract text from a PDF page with robust handling of word-by-word layouts
+    and two-column layouts.
 
     Some PDFs store each word as a separate text element, causing get_text()
     to break text into individual words on separate lines. This function
     reconstructs proper text by analyzing block positions.
+
+    For two-column layouts, processes columns separately to preserve
+    question order.
 
     Args:
         page: PyMuPDF page object
@@ -29,7 +33,16 @@ def _extract_page_text_robust(page: fitz.Page) -> str:
     Returns:
         Properly reconstructed text from the page
     """
-    # First try the simple approach - if text looks normal, use it
+    # Check for two-column layout first
+    blocks = page.get_text("blocks", sort=True)
+    page_width = page.rect.width
+    col_boundary, _ = _detect_columns(blocks, page_width)
+
+    # If two columns detected, always use block-based reconstruction
+    if col_boundary is not None:
+        return _reconstruct_text_from_blocks(page)
+
+    # Otherwise, try the simple approach first
     simple_text = page.get_text("text", sort=True)
 
     # Check if text seems broken (many short lines with single words)
@@ -47,11 +60,100 @@ def _extract_page_text_robust(page: fitz.Page) -> str:
     return simple_text
 
 
+def _spans_to_text(spans: list[dict]) -> str:
+    """
+    Convert a list of text spans to text, grouping by y-coordinate to form lines.
+    """
+    if not spans:
+        return ""
+
+    # Sort by y-position, then x-position
+    spans.sort(key=lambda s: (s["y_center"], s["x0"]))
+
+    # Group spans into lines based on y-coordinate proximity
+    lines = []
+    current_line = []
+    current_y = None
+    y_threshold = 5
+
+    for span in spans:
+        if current_y is None:
+            current_y = span["y_center"]
+            current_line = [span]
+        elif abs(span["y_center"] - current_y) <= y_threshold:
+            current_line.append(span)
+        else:
+            current_line.sort(key=lambda s: s["x0"])
+            lines.append(current_line)
+            current_line = [span]
+            current_y = span["y_center"]
+
+    if current_line:
+        current_line.sort(key=lambda s: s["x0"])
+        lines.append(current_line)
+
+    # Build final text
+    result_lines = []
+    for line in lines:
+        line_text = ""
+        prev_x1 = None
+        for span in line:
+            if prev_x1 is not None:
+                gap = span["x0"] - prev_x1
+                if gap > 3:
+                    line_text += " "
+            line_text += span["text"]
+            prev_x1 = span["x1"]
+        result_lines.append(line_text)
+
+    return "\n".join(result_lines)
+
+
+def _detect_columns(blocks: list, page_width: float) -> tuple[float | None, float | None]:
+    """
+    Detect if page has two-column layout.
+
+    Returns (left_boundary, right_boundary) if two columns detected,
+    or (None, None) if single column.
+    """
+    # Collect x0 positions of text blocks
+    x_positions = []
+    for block in blocks:
+        if len(block) > 4 and block[4].strip():  # Has text content
+            x_positions.append(block[0])
+
+    if len(x_positions) < 4:
+        return None, None
+
+    # Check if there are two distinct clusters of x positions
+    # Typical two-column: left ~30-50, right ~280-310
+    left_blocks = [x for x in x_positions if x < page_width * 0.4]
+    right_blocks = [x for x in x_positions if x > page_width * 0.45]
+
+    # Need significant content in both columns
+    if len(left_blocks) >= 3 and len(right_blocks) >= 3:
+        # Calculate column boundary (midpoint between columns)
+        left_max = max(left_blocks) if left_blocks else 0
+        right_min = min(right_blocks) if right_blocks else page_width
+        boundary = (left_max + right_min) / 2
+        return boundary, boundary
+
+    return None, None
+
+
 def _reconstruct_text_from_blocks(page: fitz.Page) -> str:
     """
     Reconstruct text by analyzing text blocks and their positions.
     Groups words by their y-coordinate to form proper lines.
+    Handles two-column layouts by processing columns separately.
     """
+    # Get blocks for column detection
+    blocks = page.get_text("blocks", sort=True)
+    page_width = page.rect.width
+
+    # Detect columns
+    col_boundary, _ = _detect_columns(blocks, page_width)
+
     # Get text as dictionary with position info
     text_dict = page.get_text("dict", sort=True)
 
@@ -76,7 +178,17 @@ def _reconstruct_text_from_blocks(page: fitz.Page) -> str:
     if not spans:
         return page.get_text()
 
-    # Sort by y-position (top to bottom), then x-position (left to right)
+    # If two columns detected, process separately
+    if col_boundary is not None:
+        left_spans = [s for s in spans if s["x0"] < col_boundary]
+        right_spans = [s for s in spans if s["x0"] >= col_boundary]
+
+        left_text = _spans_to_text(left_spans)
+        right_text = _spans_to_text(right_spans)
+
+        return left_text + "\n\n" + right_text
+
+    # Single column: sort by y-position, then x-position
     spans.sort(key=lambda s: (s["y_center"], s["x0"]))
 
     # Group spans into lines based on y-coordinate proximity
