@@ -150,7 +150,8 @@ describe('Modal', () => {
 
       rerender(<Modal {...defaultProps} isOpen={false} />);
 
-      expect(document.body.style.overflow).toBe('unset');
+      // Empty string removes inline style, allowing CSS to take over
+      expect(document.body.style.overflow).toBe('');
     });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '../test/test-utils';
+import { render, screen, fireEvent, waitFor } from '../test/test-utils';
 import { MemoryRouter } from 'react-router';
 import { Home } from './Home';
 
@@ -112,11 +112,18 @@ describe('Home', () => {
     expect(screen.getByText('Analise os resultados')).toBeInTheDocument();
   });
 
-  it('should render the stats section', () => {
+  it('should render the stats section', async () => {
     renderHome();
 
-    // Initial state shows 0 for all stats
-    expect(screen.getAllByText('0')).toHaveLength(3);
+    // Wait for loading to complete (API calls will fail but loading state will change)
+    await waitFor(() => {
+      expect(screen.queryByText('Carregando...')).not.toBeInTheDocument();
+    });
+
+    // After loading, empty state shows 0 for all stats
+    await waitFor(() => {
+      expect(screen.getAllByText('0')).toHaveLength(3);
+    });
     expect(screen.getByText('Provas importadas')).toBeInTheDocument();
     expect(screen.getByText('Questões extraídas')).toBeInTheDocument();
     expect(screen.getByText('Disciplinas')).toBeInTheDocument();
