@@ -81,7 +81,10 @@ def test_build_analysis_prompt_without_cluster():
 
     assert "Disciplina: Matematica" in prompt
     assert "Banca: FGV" in prompt
-    assert "cluster" not in prompt.lower() or "clusters" not in prompt.lower()
+    # When cluster_info=None, cluster data (like "cluster_0") should not be in prompt
+    # Note: generic cluster instructions may still appear in the prompt template
+    assert "cluster_0" not in prompt
+    assert "cluster_1" not in prompt
 
 
 def test_parse_response_success():
