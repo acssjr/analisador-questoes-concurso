@@ -3,6 +3,7 @@ Analysis module for question analysis and clustering
 """
 from src.analysis.clustering import ClusteringService, ClusterResult
 from src.analysis.embeddings import EmbeddingGenerator
+from src.analysis.map_service import ChunkDigest, MapService, QuestionAnalysis
 from src.analysis.similarity import (
     calculate_cosine_similarity,
     calculate_similarity_matrix,
@@ -16,6 +17,10 @@ __all__ = [
     "ClusterResult",
     # Embeddings
     "EmbeddingGenerator",
+    # Map Service (Phase 2 deep analysis)
+    "MapService",
+    "ChunkDigest",
+    "QuestionAnalysis",
     # Similarity
     "calculate_cosine_similarity",
     "calculate_similarity_matrix",
