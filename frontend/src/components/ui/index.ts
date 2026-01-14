@@ -6,3 +6,5 @@ export { ProgressBar, PulsingProgressBar } from './ProgressBar';
 export type { ProgressBarProps, ProgressVariant, ProgressMode } from './ProgressBar';
 export { AnimatedProgress } from './AnimatedProgress';
 export type { AnimatedProgressProps } from './AnimatedProgress';
+export { UploadProgress, WorkflowProgress } from './UploadProgress';
+export type { UploadProgressProps, UploadStatus, WorkflowStep, WorkflowProgressProps } from './UploadProgress';

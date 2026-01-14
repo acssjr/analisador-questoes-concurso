@@ -61,20 +61,21 @@ describe('QueueVisualization', () => {
 
       render(<QueueVisualization items={items} />);
 
-      expect(screen.getByText('Validando...')).toBeInTheDocument();
+      expect(screen.getByText('Validando PDF...')).toBeInTheDocument();
     });
 
-    it('should display processing status with Processando when progress <= 50', () => {
+    it('should display processing status with detailed text based on progress', () => {
       const items: QueueItem[] = [
         createQueueItem({ queue_status: 'processing', progress: 30 }),
       ];
 
       render(<QueueVisualization items={items} />);
 
-      expect(screen.getByText('Processando...')).toBeInTheDocument();
+      // Progress 30% maps to "Detectando questoes..."
+      expect(screen.getByText('Detectando questoes...')).toBeInTheDocument();
     });
 
-    it('should display processing status with Classificando when progress > 50', () => {
+    it('should display Classificando when progress is between 60-80', () => {
       const items: QueueItem[] = [
         createQueueItem({ queue_status: 'processing', progress: 75 }),
       ];
@@ -146,12 +147,20 @@ describe('QueueVisualization', () => {
       expect(screen.getByText('50%')).toBeInTheDocument();
     });
 
-    it('should display 0% for pending items', () => {
+    it('should display 0% for pending items (determinate state)', () => {
       const items: QueueItem[] = [createQueueItem({ queue_status: 'pending' })];
 
       render(<QueueVisualization items={items} />);
 
       expect(screen.getByText('0%')).toBeInTheDocument();
+    });
+
+    it('should display -- for validating items (indeterminate state)', () => {
+      const items: QueueItem[] = [createQueueItem({ queue_status: 'validating' })];
+
+      render(<QueueVisualization items={items} />);
+
+      expect(screen.getByText('--')).toBeInTheDocument();
     });
 
     it('should display 100% for completed items without explicit progress', () => {
@@ -381,7 +390,8 @@ describe('QueueVisualization', () => {
       render(<QueueVisualization items={items} />);
 
       expect(screen.getByText('60 questoes')).toBeInTheDocument();
-      expect(screen.getByText('Processando...')).toBeInTheDocument();
+      // Progress 50% maps to "Processando questoes..."
+      expect(screen.getByText('Processando questoes...')).toBeInTheDocument();
       expect(screen.getByText('Na fila')).toBeInTheDocument();
       expect(screen.getByText('48 questoes (3 revisar)')).toBeInTheDocument();
       expect(screen.getByText('PDF e imagem')).toBeInTheDocument();

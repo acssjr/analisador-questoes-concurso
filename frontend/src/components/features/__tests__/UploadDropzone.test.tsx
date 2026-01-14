@@ -60,8 +60,9 @@ describe('UploadDropzone', () => {
 
       const dropzone = screen.getByTestId('upload-dropzone');
       expect(dropzone).toHaveAttribute('aria-disabled', 'true');
-      expect(dropzone).toHaveClass('opacity-50');
-      expect(dropzone).toHaveClass('cursor-not-allowed');
+      // Disabled state now shows active uploading animation instead of grayed out
+      expect(dropzone).toHaveClass('cursor-wait');
+      expect(dropzone).toHaveClass('animate-pulse');
     });
 
     it('should apply custom className', () => {

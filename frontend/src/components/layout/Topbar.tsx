@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../../store/appStore';
-import { EditalWorkflowModal } from '../features/EditalWorkflowModal';
+import { ProjetoWorkflowModal } from '../features/ProjetoWorkflowModal';
 import { useNotifications } from '../../hooks/useNotifications';
 import {
   IconBell,
@@ -213,7 +213,7 @@ export function Topbar() {
       </div>
 
       {/* Upload Modal */}
-      <EditalWorkflowModal
+      <ProjetoWorkflowModal
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
         onUploadSuccess={handleUploadSuccess}

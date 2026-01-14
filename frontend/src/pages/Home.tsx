@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EditalWorkflowModal } from '../components/features/EditalWorkflowModal';
-import { EditaisList } from '../components/features/EditaisList';
+import { ProjetoWorkflowModal } from '../components/features/ProjetoWorkflowModal';
 import { api } from '../services/api';
-import { useAppStore } from '../store/appStore';
-import type { Projeto, Edital } from '../types';
+import type { Projeto } from '../types';
 import {
   IconUpload,
   IconBookOpen,
@@ -212,23 +210,15 @@ export function Home() {
   const navigate = useNavigate();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [hasEditais, setHasEditais] = useState(false);
   const [loading, setLoading] = useState(true);
-  const setActiveEdital = useAppStore((state) => state.setActiveEdital);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [editaisKey, setEditaisKey] = useState(0);
-
-  // Load projects and check editais
+  // Load projects
   useEffect(() => {
     async function loadData() {
       try {
-        // Load projects
         const projectsResponse = await api.listProjetos();
         setProjetos(projectsResponse.projetos || []);
-
-        // Check editais
-        const editaisResponse = await api.listEditais();
-        setHasEditais(editaisResponse.length > 0);
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
       } finally {
@@ -236,11 +226,11 @@ export function Home() {
       }
     }
     loadData();
-  }, [editaisKey]);
+  }, [refreshKey]);
 
-  // Refresh lists
+  // Refresh projects list
   function refreshData() {
-    setEditaisKey(k => k + 1);
+    setRefreshKey(k => k + 1);
   }
 
   // Handle new project button
@@ -267,11 +257,6 @@ export function Home() {
     }
   }
 
-  // Handle edital selection - set as active edital
-  function handleSelectEdital(edital: Edital) {
-    setActiveEdital(edital);
-  }
-
   const features = [
     {
       icon: IconBookOpen,
@@ -291,7 +276,7 @@ export function Home() {
   ];
 
   const steps = [
-    { number: 1, label: 'Crie um edital' },
+    { number: 1, label: 'Crie um projeto' },
     { number: 2, label: 'Importe as provas' },
     { number: 3, label: 'Analise os resultados' },
   ];
@@ -384,17 +369,6 @@ export function Home() {
           </div>
         </motion.div>
 
-        {/* Editais List - always show if user has editais */}
-        {!loading && hasEditais && (
-          <div className="mb-8">
-            <EditaisList
-              key={editaisKey}
-              onSelectEdital={handleSelectEdital}
-              onNewEdital={() => setIsUploadModalOpen(true)}
-            />
-          </div>
-        )}
-
         {/* Projects Section with Cards */}
         {!loading && projetos.length > 0 && (
           <motion.div
@@ -482,7 +456,7 @@ export function Home() {
                         </span>
                       </div>
 
-                      <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+                      <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
                         <span
                           className="text-[11px] px-2 py-0.5 rounded-full"
                           style={{
@@ -492,6 +466,18 @@ export function Home() {
                         >
                           {status.label}
                         </span>
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/projeto/${projeto.id}/provas`);
+                          }}
+                          className="flex items-center gap-1 text-[11px] text-[var(--accent-green)] hover:text-[var(--accent-green-hover)] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <IconUpload size={12} />
+                          Importar Provas
+                        </motion.div>
                       </div>
                     </motion.button>
                   );
@@ -509,7 +495,7 @@ export function Home() {
         )}
 
         {/* Empty state - no projects */}
-        {!loading && projetos.length === 0 && !hasEditais && (
+        {!loading && projetos.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -533,8 +519,8 @@ export function Home() {
           </motion.div>
         )}
 
-        {/* Stats Grid - Empty State (only show if no editais and no projects) */}
-        {!loading && !hasEditais && projetos.length === 0 && (
+        {/* Stats Grid - Empty State (only show if no projects) */}
+        {!loading && projetos.length === 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <StatCard
               icon={IconBookOpen}
@@ -593,7 +579,7 @@ export function Home() {
               onClick={() => setIsUploadModalOpen(true)}
               className="btn btn-secondary w-full group"
             >
-              Criar primeiro edital
+              Criar primeiro projeto
               <motion.span
                 className="inline-block"
                 animate={{ x: [0, 4, 0] }}
@@ -647,7 +633,7 @@ export function Home() {
             Pronto para começar?
           </h3>
           <p className="text-[14px] text-[var(--text-secondary)] mb-4 max-w-md mx-auto">
-            Importe seu primeiro edital e descubra quais assuntos têm maior incidência nas provas anteriores.
+            Crie seu primeiro projeto e descubra quais assuntos têm maior incidência nas provas anteriores.
           </p>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -656,7 +642,7 @@ export function Home() {
             className="btn btn-primary"
           >
             <IconUpload size={16} />
-            Importar Edital
+            Novo Projeto
           </motion.button>
         </motion.div>
       </div>
@@ -664,8 +650,8 @@ export function Home() {
       {/* Footer */}
       <Footer />
 
-      {/* Upload Modal */}
-      <EditalWorkflowModal
+      {/* Projeto Creation Modal */}
+      <ProjetoWorkflowModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={() => {

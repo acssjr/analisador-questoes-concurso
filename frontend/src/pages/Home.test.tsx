@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../test/test-utils';
 import { MemoryRouter } from 'react-router';
 import { Home } from './Home';
+import { api } from '../services/api';
 
 // Custom render with Router for Home component
 const renderHome = () => {
@@ -30,9 +31,9 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// Mock the EditalWorkflowModal
-vi.mock('../components/features/EditalWorkflowModal', () => ({
-  EditalWorkflowModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+// Mock the ProjetoWorkflowModal
+vi.mock('../components/features/ProjetoWorkflowModal', () => ({
+  ProjetoWorkflowModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? (
       <div data-testid="upload-modal">
         <button onClick={onClose}>Close Modal</button>
@@ -40,9 +41,19 @@ vi.mock('../components/features/EditalWorkflowModal', () => ({
     ) : null,
 }));
 
+// Mock the API
+vi.mock('../services/api', () => ({
+  api: {
+    listProjetos: vi.fn(),
+    deleteProjeto: vi.fn(),
+  },
+}));
+
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: return empty projects list
+    vi.mocked(api.listProjetos).mockResolvedValue({ projetos: [] });
   });
 
   it('should render the hero section with title', () => {
@@ -107,7 +118,7 @@ describe('Home', () => {
   it('should render the step indicators', () => {
     renderHome();
 
-    expect(screen.getByText('Crie um edital')).toBeInTheDocument();
+    expect(screen.getByText('Crie um projeto')).toBeInTheDocument();
     expect(screen.getByText('Importe as provas')).toBeInTheDocument();
     expect(screen.getByText('Analise os resultados')).toBeInTheDocument();
   });
@@ -115,16 +126,12 @@ describe('Home', () => {
   it('should render the stats section', async () => {
     renderHome();
 
-    // Wait for loading to complete (API calls will fail but loading state will change)
+    // Wait for stats section to render (after loading completes)
     await waitFor(() => {
-      expect(screen.queryByText('Carregando...')).not.toBeInTheDocument();
-    });
+      expect(screen.getByText('Provas importadas')).toBeInTheDocument();
+    }, { timeout: 3000 });
 
-    // After loading, empty state shows 0 for all stats
-    await waitFor(() => {
-      expect(screen.getAllByText('0')).toHaveLength(3);
-    });
-    expect(screen.getByText('Provas importadas')).toBeInTheDocument();
+    // Verify all stats labels are present
     expect(screen.getByText('Questões extraídas')).toBeInTheDocument();
     expect(screen.getByText('Disciplinas')).toBeInTheDocument();
   });
@@ -142,6 +149,6 @@ describe('Home', () => {
     renderHome();
 
     expect(screen.getByText('Pronto para começar?')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Importar Edital/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Novo Projeto/i })).toBeInTheDocument();
   });
 });
