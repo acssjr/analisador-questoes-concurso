@@ -16,7 +16,6 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
   const [progressText, setProgressText] = useState<string>('');
   const [progressPercent, setProgressPercent] = useState(0);
   const [error, setError] = useState<string>('');
-  const [currentFileIndex, setCurrentFileIndex] = useState(0);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -60,71 +59,63 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
     setIsUploading(true);
     setError('');
     setProgressPercent(0);
+    setProgressText(`Enviando ${files.length} arquivo(s)...`);
 
-    for (let i = 0; i < files.length; i++) {
-      setCurrentFileIndex(i);
-      const file = files[i];
-      // Calculate base progress for this file (each file is a portion of total)
-      const fileBaseProgress = (i / files.length) * 100;
-      const fileProgressRange = 100 / files.length;
+    try {
+      // Upload all files at once - backend processes synchronously
+      setProgressPercent(10);
+      setProgressText(`Processando ${files.length} arquivo(s)...`);
 
-      setProgressText(`Enviando ${i + 1}/${files.length}: ${file.name}...`);
-      setProgressPercent(Math.round(fileBaseProgress + fileProgressRange * 0.1));
+      // Create FormData for direct upload
+      const formData = new FormData();
+      files.forEach(file => {
+        formData.append('files', file);
+      });
 
-      try {
-        const result = await api.uploadPdf(file);
-        setProgressText(`Processando ${i + 1}/${files.length}: ${file.name}...`);
-        setProgressPercent(Math.round(fileBaseProgress + fileProgressRange * 0.2));
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/upload/pdf`, {
+        method: 'POST',
+        body: formData,
+      });
 
-        // Poll para status do job
-        let completed = false;
-        while (!completed) {
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          try {
-            const status = await api.getJobStatus(result.job_id);
-
-            if (status.status === 'completed') {
-              completed = true;
-              setProgressText(`Concluido ${i + 1}/${files.length}: ${file.name}`);
-              setProgressPercent(Math.round(fileBaseProgress + fileProgressRange));
-            } else if (status.status === 'failed') {
-              setError(`Erro em ${file.name}: ${status.error || 'Erro no processamento'}`);
-              setIsUploading(false);
-              return;
-            } else {
-              const jobProgress = status.progress || 0;
-              // Map job progress (0-100) to the file's portion of total progress
-              const totalProgress = fileBaseProgress + (fileProgressRange * 0.2) + (fileProgressRange * 0.8 * (jobProgress / 100));
-              setProgressPercent(Math.round(totalProgress));
-              setProgressText(`Processando ${i + 1}/${files.length}: ${file.name}`);
-            }
-          } catch {
-            setError(`Erro ao verificar status de ${file.name}`);
-            setIsUploading(false);
-            return;
-          }
-        }
-      } catch {
-        setError(`Erro ao fazer upload de ${file.name}`);
-        setIsUploading(false);
-        return;
+      if (!response.ok) {
+        throw new Error('Erro ao fazer upload dos PDFs');
       }
-    }
 
-    // Todos concluidos
-    setProgressPercent(100);
-    setProgressText(`Todos os ${files.length} PDFs processados com sucesso!`);
-    setTimeout(() => {
-      onUploadSuccess();
-      handleClose();
-    }, 1500);
+      const result = await response.json();
+
+      if (result.success) {
+        // Show results
+        const { successful_files, failed_files, total_questoes } = result;
+
+        setProgressPercent(100);
+        if (failed_files > 0) {
+          setProgressText(`${successful_files}/${files.length} arquivos processados. ${total_questoes} questões extraídas. ${failed_files} falhou(aram).`);
+          // Show first error if any
+          const failedResult = result.results?.find((r: { success: boolean }) => !r.success);
+          if (failedResult?.error) {
+            setError(failedResult.error);
+          }
+        } else {
+          setProgressText(`${successful_files} arquivo(s) processado(s) com sucesso! ${total_questoes} questões extraídas.`);
+        }
+
+        setTimeout(() => {
+          onUploadSuccess();
+          handleClose();
+        }, 2000);
+      } else {
+        setError(result.error || 'Erro no processamento dos PDFs');
+        setIsUploading(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer upload');
+      setIsUploading(false);
+    }
   };
 
   const handleClose = () => {
     if (!isUploading) {
       setFiles([]);
-      setCurrentFileIndex(0);
       setProgressText('');
       setProgressPercent(0);
       setError('');
@@ -189,9 +180,7 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
               {files.map((file, index) => (
                 <div
                   key={`${file.name}-${index}`}
-                  className={`surface p-4 flex items-center justify-between ${
-                    isUploading && index === currentFileIndex ? 'ring-2 ring-disciplinas-portugues' : ''
-                  }`}
+                  className="surface p-4 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">📄</span>
@@ -209,9 +198,6 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
                     >
                       ✕
                     </button>
-                  )}
-                  {isUploading && index < currentFileIndex && (
-                    <span className="text-semantic-success">✓</span>
                   )}
                 </div>
               ))}
