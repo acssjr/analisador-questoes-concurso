@@ -5,6 +5,7 @@ import {
   IconAlertTriangle,
   IconSpinner,
   IconRefresh,
+  IconPause,
 } from '../ui/Icons';
 
 // Queue item status type
@@ -114,26 +115,6 @@ function getStatusConfig(item: QueueItem): StatusConfig {
         progressColor: 'bg-gray-500',
       };
   }
-}
-
-// Pause icon - not in Icons.tsx, create inline
-function IconPause({ size = 20, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect x="6" y="4" width="4" height="16" />
-      <rect x="14" y="4" width="4" height="16" />
-    </svg>
-  );
 }
 
 interface ProgressBarProps {

@@ -1,4 +1,5 @@
 import type { Dataset, Questao, QuestaoCompleta, DashboardStats, QuestaoSimilar, EditalUploadResponse, ConteudoProgramaticoUploadResponse, Projeto, ProjetoCreate, ProjetoListResponse, ProjetoStats } from '../types';
+import type { QueueItem } from '../components/features/QueueVisualization';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -208,5 +209,51 @@ export const api = {
 
   async getProjetoStats(projetoId: string): Promise<ProjetoStats> {
     return fetchApi(`/projetos/${projetoId}/stats`);
+  },
+
+  // Queue operations for Provas
+  async uploadProvasProjeto(projetoId: string, files: File[]): Promise<{
+    success: boolean;
+    total_files: number;
+    successful_files: number;
+    failed_files: number;
+    results: Array<{
+      success: boolean;
+      filename: string;
+      prova_id?: string;
+      error?: string;
+    }>;
+  }> {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+
+    const response = await fetch(`${API_BASE_URL}/upload/pdf?projeto_id=${projetoId}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw createApiError(response.status, 'Erro ao fazer upload das provas');
+    }
+
+    return response.json();
+  },
+
+  async getProvaQueueStatus(projetoId: string): Promise<{ items: QueueItem[] }> {
+    return fetchApi(`/provas/queue-status?projeto_id=${projetoId}`);
+  },
+
+  async retryProvaProcessing(provaId: string): Promise<{ success: boolean }> {
+    return fetchApi(`/provas/${provaId}/retry`, {
+      method: 'POST',
+    });
+  },
+
+  async cancelProvaProcessing(provaId: string): Promise<{ success: boolean }> {
+    return fetchApi(`/provas/${provaId}/cancel`, {
+      method: 'POST',
+    });
   },
 };
