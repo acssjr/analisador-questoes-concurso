@@ -1,5 +1,5 @@
 ---
-date: 2026-01-14T07:55:00Z
+date: 2026-01-14T09:49:00Z
 session_name: analisador-questoes-concurso
 branch: main
 status: completed
@@ -10,15 +10,24 @@ outcome: SUCCEEDED
 
 ## Ledger
 <!-- This section is extracted by SessionStart hook for quick resume -->
-**Updated:** 2026-01-14T07:55:00Z
+**Updated:** 2026-01-14T09:49:00Z
 **Goal:** Build exam question analyzer with LLM-based extraction, PostgreSQL+pgvector storage, and full upload workflow
 **Branch:** main
 **Test:** docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c "SELECT COUNT(*) FROM questoes;"
 
 ### Now
-[->] Continue with Phase 4: Deep analysis pipeline (embeddings, Map-Reduce, CoVe)
+[->] Continue with Phase 4: Deep analysis pipeline OR commit bug fixes
 
-### This Session
+### This Session (2026-01-14 09:00-09:49) - SUCCEEDED
+- [x] Fixed alternative E not being extracted (required 5 alternatives, not 4)
+- [x] Fixed repair prompt to include E in JSON example
+- [x] Fixed infinite loop in extract_questions_chunked (start_page += stride before continue)
+- [x] Fixed PDF format detection (increased sample from 3 to 6 pages)
+- [x] Improved question detection regex (added A., A -, Questão patterns)
+- [x] Fixed upload persistence (auto-create draft projeto when needed)
+- [x] User verified fixes working
+
+### Previous Session (2026-01-14 07:30-07:55)
 - [x] ESLint cleanup - fixed 23 errors across 8 files (commit 0eed5c5)
 - [x] PostgreSQL + pgvector setup via Docker Compose (pgvector 0.8.1)
 - [x] Migrated from SQLite to PostgreSQL for production-ready storage
@@ -41,6 +50,9 @@ outcome: SUCCEEDED
 - page_overlap: Added 1-page overlap between chunks to prevent questions split across pages
 - filter_optional: Added `filter_by_edital` parameter (default: true) to allow keeping all questions
 - auto_repair: Incomplete questions (empty alternatives) are automatically re-extracted with focused prompts
+- require_5_alternatives: Changed validation to require all 5 alternatives (A-E) non-empty
+- auto_create_projeto: Upload with edital_id auto-creates draft projeto for persistence
+- detection_sample_6pages: PDF detection analyzes 6 pages instead of 3 (questions often start after instructions)
 
 ### Open Questions
 - CONFIRMED: PostgreSQL + pgvector working (11 tables created)
@@ -89,17 +101,21 @@ max_retries: 3
   "tests_passing": 103,
   "files_modified": [
     "src/api/routes/upload.py",
-    "src/extraction/llm_parser.py"
+    "src/extraction/llm_parser.py",
+    "src/extraction/pdf_detector.py"
   ],
   "last_test_command": "docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c 'SELECT COUNT(*) FROM questoes;'",
-  "last_test_exit_code": 0
+  "last_test_exit_code": 0,
+  "uncommitted_changes": true
 }
 ```
 
 #### Resume Context
-- Current focus: Extraction improvements complete, ready for Phase 4
-- Next action: Implement embeddings with pgvector for semantic similarity
-- Blockers: (none)
+- Current focus: Bug fixes applied, awaiting user verification
+- Next action: User tests upload flow, then commit fixes
+- Blockers: Need user confirmation before committing
+- Backend: Running on localhost:8000 (task b8c7578)
+- Frontend: Running on localhost:5174 (task b786570)
 
 ---
 
