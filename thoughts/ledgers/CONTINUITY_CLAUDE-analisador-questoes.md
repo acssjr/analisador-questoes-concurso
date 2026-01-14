@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-14T18:30:00Z
+**Last Updated**: 2026-01-14T21:07:00Z
 
 ---
 
@@ -39,10 +39,10 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
   - [x] **Upload Modal Bug Fix** (commit 2fe9dad)
     - Fixed API contract mismatch (sync vs async response)
 
-- Now: [->] Frontend tests failing (1 test in Modal.test.tsx)
+- Now: [->] Re-upload PDFs to test two-column fix
 
 - Next:
-  - [ ] Fix Modal.test.tsx failing test
+  - [ ] Re-upload UNEB 2024 PDF to verify all 60 questions extracted
   - [ ] End-to-end testing of complete flow
   - [ ] Production deployment
 
@@ -57,13 +57,18 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 | Multi-Pass voting | 3/5 = high confidence, 2/5 = medium | 2026-01-14 |
 | CoVe validation | Self-critique isolado falha (MIT 2024) | 2026-01-14 |
 | Sync upload API | Backend processes synchronously, not job-based | 2026-01-14 |
+| Discipline canonicalization | Normalize accents then map to canonical form (e.g., "informatica" → "Informática") | 2026-01-14 |
+| Two-column PDF detection | Detect column boundary using block x-positions, merge left then right | 2026-01-14 |
+| Discipline order by exam | ORDER BY MIN(numero) instead of alphabetical sort | 2026-01-14 |
 
 ---
 
 ## Open Questions
 
 - **CONFIRMED**: Upload API is synchronous (fixed frontend to match)
-- **UNCONFIRMED**: Modal.test.tsx "should reset body overflow when closed" failing
+- **CONFIRMED**: Discipline canonicalization fixes duplicates (database migration applied)
+- **CONFIRMED**: Two-column detection algorithm works (left-then-right merge)
+- **UNCONFIRMED**: UNEB 2024 PDF extracts all 60 questions (needs re-upload to verify)
 
 ---
 
@@ -89,16 +94,11 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 ### Recent Commits
 
 ```
-2fe9dad fix(frontend): fix upload modal to handle synchronous API response
-f7ca893 feat(frontend): improve upload UI with progress animations
-04c931c fix(extraction): improve PDF question extraction reliability
-20f378d feat(frontend): implement Analise Profunda UI
-f00b1e7 feat(api): add deep analysis API endpoints
-55dd077 feat(analysis): add pipeline orchestrator for deep analysis
-b856498 feat(analysis): add Chain-of-Verification service
-98a8b8d feat(analysis): add Reduce service with Multi-Pass synthesis
-98eb052 feat(analysis): add Map service for chunk analysis
-5744333 feat(analysis): add HDBSCAN clustering service
+324fdcc refactor(frontend): rename EditalWorkflow to ProjetoWorkflow
+6fc139b fix(extraction): canonicalize disciplines and detect two-column PDFs
+82336b4 fix(tests): fix Modal overflow and Home stats async assertions
+d756d89 docs: update ledger and handoff with extraction improvements
+70712ab feat(extraction): improve PDF question extraction reliability
 ```
 
 ### Test Commands
@@ -118,6 +118,32 @@ cd frontend && npm run dev
 ---
 
 ## Session Log
+
+### 2026-01-14 (Session 7) - Extraction Bug Fixes
+
+- **Three bugs found and fixed** using systematic debugging:
+
+1. **Discipline Duplication** (Fixed - commit 6fc139b)
+   - Root cause: "Língua Portuguesa" vs "Lingua Portuguesa" stored separately
+   - Fix: Added `CANONICAL_DISCIPLINAS` mapping + `canonicalize_disciplina()` function
+   - Applied canonicalization when saving questions to database
+   - Ran database migration to normalize existing records
+
+2. **Discipline Order Wrong** (Fixed - commit 6fc139b)
+   - Root cause: `sorted(disciplinas)` returned alphabetical order
+   - Fix: Changed to `GROUP BY disciplina ORDER BY MIN(numero)`
+   - Disciplines now appear in exam order (as questions are numbered)
+
+3. **Missing Questions** (Fixed - commit 6fc139b)
+   - Root cause: Two-column PDF pages had text interleaved incorrectly
+   - Q49→Q53→Q50→Q54 instead of Q49→Q50→Q51→Q52 then Q53→Q54→Q55
+   - Fix: Added `_detect_columns()` and `_reconstruct_text_from_blocks()` in llm_parser.py
+   - Algorithm: Detect column boundary, merge left column text first, then right
+
+- **Frontend Rename** (commit 324fdcc)
+   - EditalWorkflowModal → ProjetoWorkflowModal (matches correct data model)
+
+- **Status**: All fixes pushed. Needs re-upload of UNEB PDF to verify all 60 questions extracted.
 
 ### 2026-01-14 (Session 6) - Phase 4 Complete + Upload Fix
 
