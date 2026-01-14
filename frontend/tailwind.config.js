@@ -54,11 +54,30 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.5' },
         },
+        // Progress bar indeterminate animation
+        'progress-indeterminate': {
+          '0%': { transform: 'translateX(-100%)', width: '40%' },
+          '50%': { transform: 'translateX(50%)', width: '60%' },
+          '100%': { transform: 'translateX(200%)', width: '40%' },
+        },
+        // Shimmer effect for active progress
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        // Gentle bounce for attention
+        'bounce-subtle': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-2px)' },
+        },
       },
       animation: {
         slideInRight: 'slideInRight 300ms cubic-bezier(0.4, 0, 0.2, 1)',
         fadeIn: 'fadeIn 200ms ease-out',
         pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'progress-indeterminate': 'progress-indeterminate 1.5s ease-in-out infinite',
+        shimmer: 'shimmer 2s ease-in-out infinite',
+        'bounce-subtle': 'bounce-subtle 1s ease-in-out infinite',
       },
       scale: {
         '98': '0.98',

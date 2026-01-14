@@ -7,6 +7,7 @@ import {
   IconRefresh,
   IconPause,
 } from '../ui/Icons';
+import { AnimatedProgress } from '../ui/AnimatedProgress';
 
 // Queue item status type
 export type QueueStatus =
@@ -35,6 +36,17 @@ export interface QueueVisualizationProps {
   onCancel?: (id: string) => void;
 }
 
+// Helper to get detailed processing status text based on progress percentage
+function getProcessingStatusText(progress: number): string {
+  if (progress === 0) return 'Iniciando...';
+  if (progress < 20) return 'Extraindo texto...';
+  if (progress < 40) return 'Detectando questoes...';
+  if (progress < 60) return 'Processando questoes...';
+  if (progress < 80) return 'Classificando...';
+  if (progress < 100) return 'Finalizando...';
+  return 'Concluido';
+}
+
 // Status configuration with colors, icons, and text
 interface StatusConfig {
   icon: React.ReactNode;
@@ -43,6 +55,7 @@ interface StatusConfig {
   textColor: string;
   progressColor: string;
   animate?: boolean;
+  isIndeterminate?: boolean;
 }
 
 function getStatusConfig(item: QueueItem): StatusConfig {
@@ -58,20 +71,23 @@ function getStatusConfig(item: QueueItem): StatusConfig {
     case 'validating':
       return {
         icon: <IconSpinner size={16} className="animate-spin" />,
-        text: 'Validando...',
+        text: 'Validando PDF...',
         bgColor: 'bg-yellow-500/20',
         textColor: 'text-yellow-400',
         progressColor: 'bg-yellow-500',
         animate: true,
+        isIndeterminate: true, // Unknown progress during validation
       };
     case 'processing':
       return {
         icon: <IconSpinner size={16} className="animate-spin" />,
-        text: (item.progress ?? 0) > 50 ? 'Classificando...' : 'Processando...',
+        text: getProcessingStatusText(item.progress ?? 0),
         bgColor: 'bg-blue-500/20',
         textColor: 'text-blue-400',
         progressColor: 'bg-blue-500',
         animate: true,
+        // Use indeterminate if progress is 0 (just started)
+        isIndeterminate: (item.progress ?? 0) === 0,
       };
     case 'completed':
       return {
@@ -117,29 +133,16 @@ function getStatusConfig(item: QueueItem): StatusConfig {
   }
 }
 
-interface ProgressBarProps {
-  progress: number;
-  colorClass: string;
-  animate?: boolean;
-}
-
-function ProgressBar({ progress, colorClass, animate }: ProgressBarProps) {
-  return (
-    <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-      <div
-        className={cn(
-          'h-full rounded-full transition-all duration-500 ease-out',
-          colorClass,
-          animate && 'animate-pulse'
-        )}
-        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-        role="progressbar"
-        aria-valuenow={progress}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      />
-    </div>
-  );
+// Helper to convert queue status to AnimatedProgress status
+function getProgressStatus(queueStatus: QueueStatus): 'loading' | 'success' | 'error' {
+  switch (queueStatus) {
+    case 'completed':
+      return 'success';
+    case 'failed':
+      return 'error';
+    default:
+      return 'loading';
+  }
 }
 
 interface QueueItemRowProps {
@@ -160,6 +163,11 @@ function QueueItemRow({ item, onRetry, onCancel }: QueueItemRowProps) {
       item.queue_status === 'processing') &&
     onCancel;
 
+  // Determine progress value for AnimatedProgress
+  // undefined = indeterminate (spinning), number = determinate
+  const progressValue = config.isIndeterminate ? undefined : progress;
+  const progressStatus = getProgressStatus(item.queue_status);
+
   return (
     <div
       className="flex items-center gap-4 px-4 py-3 hover:bg-gray-800/50 transition-colors group"
@@ -170,14 +178,16 @@ function QueueItemRow({ item, onRetry, onCancel }: QueueItemRowProps) {
         {item.nome}
       </div>
 
-      {/* Progress bar */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <ProgressBar
-          progress={progress}
-          colorClass={config.progressColor}
-          animate={config.animate}
+      {/* Circular progress indicator */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <AnimatedProgress
+          progress={progressValue}
+          size="sm"
+          status={progressStatus}
         />
-        <span className="text-xs text-gray-500 w-10 text-right">{progress}%</span>
+        <span className="text-xs text-gray-500 w-10 text-right tabular-nums">
+          {config.isIndeterminate ? '--' : `${progress}%`}
+        </span>
       </div>
 
       {/* Status indicator */}

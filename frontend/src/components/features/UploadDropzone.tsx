@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, type DragEvent, type ChangeEvent } from 'react';
 import { cn } from '../../utils/cn';
-import { IconUpload, IconFilePdf } from '../ui/Icons';
+import { IconUpload, IconFilePdf, IconSpinner } from '../ui/Icons';
 import { useNotifications } from '../../hooks/useNotifications';
 
 interface UploadDropzoneProps {
@@ -146,14 +146,14 @@ export function UploadDropzone({
       aria-label="Upload de arquivos PDF"
       aria-disabled={disabled}
       className={cn(
-        'relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer',
+        'relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900',
         // Default state
-        !isDragOver && !disabled && 'border-gray-700 hover:border-gray-600 bg-gray-900/50',
+        !isDragOver && !disabled && 'border-gray-700 hover:border-gray-600 bg-gray-900/50 cursor-pointer',
         // Drag over state
-        isDragOver && !disabled && 'border-blue-500 bg-blue-500/10 scale-[1.02]',
-        // Disabled state
-        disabled && 'border-gray-800 bg-gray-900/30 cursor-not-allowed opacity-50',
+        isDragOver && !disabled && 'border-blue-500 bg-blue-500/10 scale-[1.02] cursor-pointer',
+        // Disabled/uploading state - shows active with animation
+        disabled && 'border-blue-500/50 bg-blue-500/5 cursor-wait animate-pulse',
         className
       )}
       onDragEnter={handleDragEnter}
@@ -180,9 +180,12 @@ export function UploadDropzone({
         {/* Icon */}
         <div className={cn(
           'p-4 rounded-full transition-colors',
-          isDragOver && !disabled ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-800 text-gray-400'
+          disabled ? 'bg-blue-500/20 text-blue-400' :
+          isDragOver ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-800 text-gray-400'
         )}>
-          {isDragOver ? (
+          {disabled ? (
+            <IconSpinner size={32} className="animate-spin" />
+          ) : isDragOver ? (
             <IconFilePdf size={32} />
           ) : (
             <IconUpload size={32} />
@@ -191,7 +194,16 @@ export function UploadDropzone({
 
         {/* Text */}
         <div className="space-y-2">
-          {selectedCount !== null ? (
+          {disabled ? (
+            <div className="space-y-2">
+              <p className="text-blue-400 font-medium animate-pulse">
+                Enviando arquivos...
+              </p>
+              <p className="text-sm text-gray-500">
+                Aguarde o processamento
+              </p>
+            </div>
+          ) : selectedCount !== null ? (
             <p className="text-blue-400 font-medium">
               {selectedCount} arquivo{selectedCount > 1 ? 's' : ''} selecionado{selectedCount > 1 ? 's' : ''}
             </p>

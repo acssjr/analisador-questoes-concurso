@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Modal } from '../ui/Modal';
-import { Button } from '../ui';
+import { Button, PulsingProgressBar } from '../ui';
 import { api } from '../../services/api';
 
 interface UploadModalProps {
@@ -13,7 +13,8 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
   const [files, setFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [progress, setProgress] = useState<string>('');
+  const [progressText, setProgressText] = useState<string>('');
+  const [progressPercent, setProgressPercent] = useState(0);
   const [error, setError] = useState<string>('');
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
 
@@ -58,15 +59,22 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
 
     setIsUploading(true);
     setError('');
+    setProgressPercent(0);
 
     for (let i = 0; i < files.length; i++) {
       setCurrentFileIndex(i);
       const file = files[i];
-      setProgress(`Enviando ${i + 1}/${files.length}: ${file.name}...`);
+      // Calculate base progress for this file (each file is a portion of total)
+      const fileBaseProgress = (i / files.length) * 100;
+      const fileProgressRange = 100 / files.length;
+
+      setProgressText(`Enviando ${i + 1}/${files.length}: ${file.name}...`);
+      setProgressPercent(Math.round(fileBaseProgress + fileProgressRange * 0.1));
 
       try {
         const result = await api.uploadPdf(file);
-        setProgress(`Processando ${i + 1}/${files.length} (Job ID: ${result.job_id})...`);
+        setProgressText(`Processando ${i + 1}/${files.length}: ${file.name}...`);
+        setProgressPercent(Math.round(fileBaseProgress + fileProgressRange * 0.2));
 
         // Poll para status do job
         let completed = false;
@@ -78,13 +86,18 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
 
             if (status.status === 'completed') {
               completed = true;
-              setProgress(`✅ ${i + 1}/${files.length} concluído: ${file.name}`);
+              setProgressText(`Concluido ${i + 1}/${files.length}: ${file.name}`);
+              setProgressPercent(Math.round(fileBaseProgress + fileProgressRange));
             } else if (status.status === 'failed') {
               setError(`Erro em ${file.name}: ${status.error || 'Erro no processamento'}`);
               setIsUploading(false);
               return;
             } else {
-              setProgress(`Processando ${i + 1}/${files.length}: ${file.name} (${status.progress || 0}%)`);
+              const jobProgress = status.progress || 0;
+              // Map job progress (0-100) to the file's portion of total progress
+              const totalProgress = fileBaseProgress + (fileProgressRange * 0.2) + (fileProgressRange * 0.8 * (jobProgress / 100));
+              setProgressPercent(Math.round(totalProgress));
+              setProgressText(`Processando ${i + 1}/${files.length}: ${file.name}`);
             }
           } catch {
             setError(`Erro ao verificar status de ${file.name}`);
@@ -99,8 +112,9 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
       }
     }
 
-    // Todos concluídos
-    setProgress(`✅ Todos os ${files.length} PDFs processados com sucesso!`);
+    // Todos concluidos
+    setProgressPercent(100);
+    setProgressText(`Todos os ${files.length} PDFs processados com sucesso!`);
     setTimeout(() => {
       onUploadSuccess();
       handleClose();
@@ -111,7 +125,8 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
     if (!isUploading) {
       setFiles([]);
       setCurrentFileIndex(0);
-      setProgress('');
+      setProgressText('');
+      setProgressPercent(0);
       setError('');
       onClose();
     }
@@ -205,9 +220,14 @@ export function UploadModal({ isOpen, onClose, onUploadSuccess }: UploadModalPro
         )}
 
         {/* Progress */}
-        {progress && (
-          <div className="p-4 bg-semantic-info bg-opacity-10 border border-semantic-info rounded">
-            <p className="text-sm text-semantic-info">{progress}</p>
+        {isUploading && (
+          <div className="p-4 bg-semantic-info bg-opacity-10 border border-semantic-info rounded space-y-3">
+            <PulsingProgressBar
+              progress={progressPercent}
+              variant={progressPercent >= 100 ? 'success' : 'info'}
+              statusText={progressText}
+              size="md"
+            />
           </div>
         )}
 
