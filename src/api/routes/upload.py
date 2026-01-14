@@ -251,11 +251,26 @@ async def upload_pdf(
                         "cargo": edital.cargo,
                         "ano": edital.ano,
                     }
-                    # Get projeto from edital
+                    # Get projeto from edital, or create one if needed for persistence
                     if edital.projeto_id:
                         stmt = select(Projeto).where(Projeto.id == edital.projeto_id)
                         result = await db_session.execute(stmt)
                         projeto = result.scalar_one_or_none()
+                    else:
+                        # Auto-create draft projeto to ensure prova data is persisted
+                        logger.info(f"Creating draft projeto for edital: {edital.nome}")
+                        projeto = Projeto(
+                            nome=edital.nome or "Projeto Draft",
+                            banca=edital.banca,
+                            cargo=edital.cargo,
+                            ano=edital.ano,
+                            status="rascunho",
+                        )
+                        db_session.add(projeto)
+                        await db_session.flush()  # Get projeto.id
+                        # Link edital to projeto
+                        edital.projeto_id = projeto.id
+                        logger.info(f"Created draft projeto {projeto.id} and linked to edital")
                     logger.info(f"Linking upload to edital: {edital.nome}")
                 else:
                     logger.warning(f"Edital {edital_id} not found, proceeding without taxonomy")
@@ -283,8 +298,9 @@ async def upload_pdf(
                     if format_type in ["PCI", "GABARITO", "PROVA_GENERICA"]:
                         try:
                             # Use LLM for intelligent extraction (chunked for large PDFs)
+                            # Using defaults: pages_per_chunk=5, overlap_pages=2 for better cross-page handling
                             llm = LLMOrchestrator()
-                            extraction_result = extract_questions_chunked(file_path, llm, pages_per_chunk=4)
+                            extraction_result = extract_questions_chunked(file_path, llm)
                             questoes_extraidas = extraction_result["questoes"]
                             logger.info(f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}")
                         except Exception as llm_error:

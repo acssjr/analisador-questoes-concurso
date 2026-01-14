@@ -14,13 +14,13 @@ from src.core.config import get_settings
 settings = get_settings()
 
 
-# Default quotas per provider (free tier estimates)
+# Default quotas per provider (Dev tier - pay as you go)
 DEFAULT_QUOTAS = {
     "groq": {
-        "requests_per_minute": 30,
-        "requests_per_day": 6000,
-        "tokens_per_minute": 14400,
-        "tokens_per_day": 500000,
+        "requests_per_minute": 1000,  # Dev tier: 1000 RPM
+        "requests_per_day": 100000,   # Dev tier: effectively unlimited
+        "tokens_per_minute": 300000,  # Dev tier: 300K TPM
+        "tokens_per_day": 100000000,  # Dev tier: unlimited (100M placeholder)
     },
     "anthropic": {
         "requests_per_minute": 50,

@@ -13,6 +13,116 @@ import fitz  # PyMuPDF
 from loguru import logger
 
 from src.core.exceptions import ExtractionError
+
+
+def _extract_page_text_robust(page: fitz.Page) -> str:
+    """
+    Extract text from a PDF page with robust handling of word-by-word layouts.
+
+    Some PDFs store each word as a separate text element, causing get_text()
+    to break text into individual words on separate lines. This function
+    reconstructs proper text by analyzing block positions.
+
+    Args:
+        page: PyMuPDF page object
+
+    Returns:
+        Properly reconstructed text from the page
+    """
+    # First try the simple approach - if text looks normal, use it
+    simple_text = page.get_text("text", sort=True)
+
+    # Check if text seems broken (many short lines with single words)
+    lines = simple_text.strip().split('\n')
+    if lines:
+        # Count lines that are single words (no spaces)
+        single_word_lines = sum(1 for line in lines if line.strip() and ' ' not in line.strip())
+        total_lines = len([l for l in lines if l.strip()])
+
+        # If more than 50% of lines are single words, text is likely broken
+        if total_lines > 10 and single_word_lines / total_lines > 0.5:
+            # Use block-based reconstruction
+            return _reconstruct_text_from_blocks(page)
+
+    return simple_text
+
+
+def _reconstruct_text_from_blocks(page: fitz.Page) -> str:
+    """
+    Reconstruct text by analyzing text blocks and their positions.
+    Groups words by their y-coordinate to form proper lines.
+    """
+    # Get text as dictionary with position info
+    text_dict = page.get_text("dict", sort=True)
+
+    # Collect all text spans with their positions
+    spans = []
+    for block in text_dict.get("blocks", []):
+        if block.get("type") == 0:  # Text block
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    text = span.get("text", "").strip()
+                    if text:
+                        bbox = span.get("bbox", [0, 0, 0, 0])
+                        spans.append({
+                            "text": text,
+                            "x0": bbox[0],
+                            "y0": bbox[1],
+                            "x1": bbox[2],
+                            "y1": bbox[3],
+                            "y_center": (bbox[1] + bbox[3]) / 2
+                        })
+
+    if not spans:
+        return page.get_text()
+
+    # Sort by y-position (top to bottom), then x-position (left to right)
+    spans.sort(key=lambda s: (s["y_center"], s["x0"]))
+
+    # Group spans into lines based on y-coordinate proximity
+    # Words on the same line should have similar y_center values
+    lines = []
+    current_line = []
+    current_y = None
+    y_threshold = 5  # Pixels tolerance for same line
+
+    for span in spans:
+        if current_y is None:
+            current_y = span["y_center"]
+            current_line = [span]
+        elif abs(span["y_center"] - current_y) <= y_threshold:
+            current_line.append(span)
+        else:
+            # New line - sort current line by x-position and add
+            current_line.sort(key=lambda s: s["x0"])
+            lines.append(current_line)
+            current_line = [span]
+            current_y = span["y_center"]
+
+    # Don't forget the last line
+    if current_line:
+        current_line.sort(key=lambda s: s["x0"])
+        lines.append(current_line)
+
+    # Build final text
+    result_lines = []
+    for line in lines:
+        # Join words with spaces, handling gaps
+        line_text = ""
+        prev_x1 = None
+        for span in line:
+            if prev_x1 is not None:
+                # Add space if there's a gap between words
+                gap = span["x0"] - prev_x1
+                if gap > 3:  # Small gap = space
+                    line_text += " "
+            line_text += span["text"]
+            prev_x1 = span["x1"]
+        result_lines.append(line_text)
+
+    return "\n".join(result_lines)
+
+
 from src.extraction.pdf_detector import inferir_banca_cargo_ano
 from src.llm.llm_orchestrator import LLMOrchestrator
 
@@ -30,6 +140,12 @@ REGRAS IMPORTANTES:
 5. Extraia o enunciado COMPLETO, incluindo textos base quando aplicavel
 6. NAO invente questoes - extraia apenas o que esta no texto
 7. Mantenha a formatacao original do enunciado e alternativas
+
+ATENCAO - QUESTOES ENTRE PAGINAS:
+- Questoes podem COMECAR em uma pagina e TERMINAR em outra
+- Se voce ver "Questao X" seguido de rodape/numero de pagina, o ENUNCIADO e ALTERNATIVAS estarao na pagina seguinte
+- O texto no INICIO de uma pagina (antes de "Questao Y") geralmente pertence a questao anterior
+- Sempre associe o conteudo que aparece ANTES do proximo "Questao N" a questao anterior
 
 FORMATO DE SAIDA (JSON):
 {
@@ -92,7 +208,7 @@ def extract_questions_with_llm(
         for i, page in enumerate(doc):
             if i >= pages_to_process:
                 break
-            page_text = page.get_text()
+            page_text = _extract_page_text_robust(page)
             # Clean up the pcimarkpci watermark
             page_text = re.sub(r'pcimarkpci\s+\S+', '', page_text)
             page_text = re.sub(r'www\.pciconcursos\.com\.br', '', page_text)
@@ -174,7 +290,7 @@ Extraia todas as questoes no formato JSON especificado. Lembre-se de identificar
 
 def parse_llm_response(response_text: str) -> Optional[dict]:
     """
-    Parse JSON from LLM response, handling markdown code blocks.
+    Parse JSON from LLM response, handling markdown code blocks and truncation.
 
     Args:
         response_text: Raw LLM response
@@ -182,21 +298,46 @@ def parse_llm_response(response_text: str) -> Optional[dict]:
     Returns:
         Parsed dict or None if parsing fails
     """
-    # Try direct JSON parse first
+    # Step 1: Strip markdown code blocks aggressively
+    cleaned = response_text.strip()
+
+    # Remove opening markdown (```json or ```)
+    if cleaned.startswith('```'):
+        # Find end of first line
+        first_newline = cleaned.find('\n')
+        if first_newline > 0:
+            cleaned = cleaned[first_newline + 1:]
+
+    # Remove closing markdown
+    if cleaned.rstrip().endswith('```'):
+        cleaned = cleaned.rstrip()[:-3].rstrip()
+
+    # Step 2: Try direct JSON parse
     try:
-        return json.loads(response_text)
+        return json.loads(cleaned)
     except json.JSONDecodeError:
         pass
 
-    # Try to extract from markdown code block
-    json_match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', response_text, re.DOTALL)
-    if json_match:
+    # Step 3: Try to find the JSON object
+    # Look for opening brace
+    start_idx = cleaned.find('{')
+    if start_idx >= 0:
+        json_str = cleaned[start_idx:]
         try:
-            return json.loads(json_match.group(1))
+            return json.loads(json_str)
         except json.JSONDecodeError:
             pass
 
-    # Try to find JSON object in text
+        # Step 4: Try to repair truncated JSON
+        # Count braces to find where JSON was truncated
+        repaired = _repair_truncated_json(json_str)
+        if repaired:
+            try:
+                return json.loads(repaired)
+            except json.JSONDecodeError:
+                pass
+
+    # Step 5: Try regex extraction as fallback
     json_match = re.search(r'\{[\s\S]*"questoes"[\s\S]*\}', response_text)
     if json_match:
         try:
@@ -205,6 +346,76 @@ def parse_llm_response(response_text: str) -> Optional[dict]:
             pass
 
     logger.error(f"Could not parse JSON from response: {response_text[:500]}...")
+    return None
+
+
+def _repair_truncated_json(json_str: str) -> Optional[str]:
+    """
+    Attempt to repair truncated JSON by closing open braces/brackets.
+
+    Returns repaired JSON string or None if repair not possible.
+    """
+    # Track open braces and brackets
+    open_braces = 0
+    open_brackets = 0
+    in_string = False
+    escape_next = False
+    last_valid_pos = 0
+
+    for i, char in enumerate(json_str):
+        if escape_next:
+            escape_next = False
+            continue
+
+        if char == '\\' and in_string:
+            escape_next = True
+            continue
+
+        if char == '"' and not escape_next:
+            in_string = not in_string
+            continue
+
+        if in_string:
+            continue
+
+        if char == '{':
+            open_braces += 1
+        elif char == '}':
+            open_braces -= 1
+            if open_braces >= 0:
+                last_valid_pos = i
+        elif char == '[':
+            open_brackets += 1
+        elif char == ']':
+            open_brackets -= 1
+            if open_brackets >= 0:
+                last_valid_pos = i
+
+    # If we're still inside a string, try to close it
+    if in_string:
+        # Find the last complete question object
+        # Look for pattern: "numero": N followed by complete alternatives
+        last_complete = json_str.rfind('"gabarito"')
+        if last_complete > 0:
+            # Find the closing brace after gabarito value
+            search_start = last_complete + 10
+            brace_pos = json_str.find('}', search_start)
+            if brace_pos > 0:
+                last_valid_pos = brace_pos
+
+    if last_valid_pos > 0:
+        repaired = json_str[:last_valid_pos + 1]
+
+        # Close remaining brackets and braces
+        # Count what's still open
+        open_braces = repaired.count('{') - repaired.count('}')
+        open_brackets = repaired.count('[') - repaired.count(']')
+
+        # Add closing characters
+        repaired += ']' * open_brackets + '}' * open_braces
+
+        return repaired
+
     return None
 
 
@@ -219,8 +430,8 @@ def _is_incomplete_question(q: dict) -> bool:
     # Count non-empty alternatives
     non_empty = sum(1 for v in alternativas.values() if v and str(v).strip())
 
-    # Should have at least 4 alternatives with content
-    if non_empty < 4:
+    # Should have all 5 alternatives with content (A-E)
+    if non_empty < 5:
         return True
 
     # Enunciado too short (likely truncated)
@@ -231,6 +442,76 @@ def _is_incomplete_question(q: dict) -> bool:
     return False
 
 
+def _extract_orphan_content_between_questions(full_text: str, q_num: int, next_q_num: int) -> Optional[str]:
+    """
+    Extract text that appears between two question numbers in the PDF.
+
+    This handles cases where a question header is at the end of one page
+    and its content is at the beginning of the next page.
+
+    Args:
+        full_text: Full text of the PDF with page markers
+        q_num: Question number to find content for
+        next_q_num: Next question number (defines the end boundary)
+
+    Returns:
+        Extracted content or None if not found
+    """
+    # Pattern to find "Questão N" followed by content until "Questão N+1"
+    # Account for "(Correta: X)" right after question number
+    pattern = rf'Quest[ãa]o\s*{q_num}\s*(?:\([^)]+\))?\s*(.*?)Quest[ãa]o\s*{next_q_num}'
+
+    match = re.search(pattern, full_text, re.DOTALL | re.IGNORECASE)
+    if match:
+        content = match.group(1).strip()
+        # Clean up page markers and footers
+        content = re.sub(r'---\s*PAGINA\s*\d+\s*---', ' ', content)
+        content = re.sub(r'T[ée]cnico\s+Universit[áa]rio\s*-?\s*\d*', '', content, flags=re.IGNORECASE)
+        # Remove standalone page numbers at start (e.g., "4 O conhecimento..." -> "O conhecimento...")
+        content = re.sub(r'^\s*\d+\s+', '', content)
+        content = re.sub(r'\s+', ' ', content).strip()
+
+        # Only return if there's meaningful content
+        if len(content) > 30:
+            return content
+
+    return None
+
+
+def _parse_content_to_question_parts(content: str) -> tuple[str, dict]:
+    """
+    Parse raw content into enunciado and alternativas.
+
+    Args:
+        content: Raw text content
+
+    Returns:
+        Tuple of (enunciado, alternativas dict)
+    """
+    alternativas = {}
+    enunciado = content
+
+    # Find alternatives (A) through (E) or A) through E) or A. through E.
+    alt_pattern = r'\(([A-E])\)\s*([^(]*?)(?=\([A-E]\)|$)'
+    alt_matches = re.findall(alt_pattern, content, re.DOTALL)
+
+    if not alt_matches:
+        # Try alternative pattern without parentheses
+        alt_pattern = r'(?:^|\n)\s*([A-E])\s*[).\-]\s*([^\n]*?)(?=(?:^|\n)\s*[A-E]\s*[).\-]|$)'
+        alt_matches = re.findall(alt_pattern, content, re.DOTALL | re.MULTILINE)
+
+    if alt_matches:
+        for letter, text in alt_matches:
+            alternativas[letter] = text.strip()
+
+        # Extract enunciado (everything before first alternative)
+        first_alt = re.search(r'\([A-E]\)|(?:^|\n)\s*[A-E]\s*[).\-]', content)
+        if first_alt:
+            enunciado = content[:first_alt.start()].strip()
+
+    return enunciado, alternativas
+
+
 def _repair_incomplete_questions(
     all_questions: list[dict],
     incomplete: list[dict],
@@ -238,12 +519,11 @@ def _repair_incomplete_questions(
     llm: "LLMOrchestrator",
 ) -> list[dict]:
     """
-    Attempt to repair incomplete questions by re-extracting with focused prompts.
+    Attempt to repair incomplete questions by:
+    1. First trying direct regex extraction from PDF text (faster, more reliable)
+    2. If regex fails, fall back to LLM re-extraction
 
-    Strategy:
-    1. For each incomplete question, extract text from all pages
-    2. Ask LLM to find and complete that specific question
-    3. Merge the repaired data back
+    This handles cases where questions span page boundaries.
     """
     import fitz
 
@@ -251,27 +531,63 @@ def _repair_incomplete_questions(
     doc = fitz.open(pdf_path)
     all_text = ""
     for i, page in enumerate(doc):
-        page_text = page.get_text()
+        page_text = _extract_page_text_robust(page)
         page_text = re.sub(r'pcimarkpci\s+\S+', '', page_text)
         page_text = re.sub(r'www\.pciconcursos\.com\.br', '', page_text)
         all_text += f"\n--- PAGINA {i+1} ---\n{page_text}"
     doc.close()
 
+    # Sort incomplete questions by number to find next question boundaries
+    incomplete_sorted = sorted(incomplete, key=lambda x: x.get("numero", 0))
+    all_nums = sorted([q.get("numero") for q in all_questions if q.get("numero") is not None])
+
     repaired_map = {}
 
-    for q in incomplete:
+    for q in incomplete_sorted:
         numero = q.get("numero")
-        enunciado_partial = q.get("enunciado", "")[:100]
+        if numero is None:
+            continue
 
+        enunciado_partial = q.get("enunciado", "")[:100]
         logger.info(f"Repairing question {numero}: {enunciado_partial}...")
 
+        # Try direct regex extraction first
+        next_num = None
+        for n in all_nums:
+            if n > numero:
+                next_num = n
+                break
+
+        if next_num:
+            orphan_content = _extract_orphan_content_between_questions(all_text, numero, next_num)
+            if orphan_content:
+                enunciado, alternativas = _parse_content_to_question_parts(orphan_content)
+
+                # Check if we got meaningful content
+                if enunciado and len(alternativas) >= 4:
+                    repaired_q = q.copy()
+                    repaired_q["enunciado"] = enunciado
+                    repaired_q["alternativas"] = alternativas
+                    repaired_q["fonte"] = "regex_repair"
+                    repaired_q["status_extracao"] = "repaired"
+
+                    if not _is_incomplete_question(repaired_q):
+                        repaired_map[numero] = repaired_q
+                        logger.info(f"Successfully repaired question {numero} via regex")
+                        continue
+                    else:
+                        logger.debug(f"Regex repair incomplete for {numero}, falling back to LLM")
+
+        # Fall back to LLM repair
         repair_prompt = f"""Encontre e extraia a questao {numero} do texto abaixo.
 
-Esta questao pode estar INCOMPLETA ou com alternativas faltando.
-Procure pelo numero da questao e extraia:
-- Enunciado COMPLETO
-- TODAS as alternativas (A, B, C, D, E se houver)
-- Gabarito (resposta correta)
+ATENCAO: A questao pode estar DIVIDIDA entre paginas - o numero "Questao {numero}" pode estar no fim de uma pagina,
+e o enunciado/alternativas no INICIO da pagina seguinte.
+
+Procure pelo numero da questao e extraia TODO o conteudo ate a proxima questao:
+- Enunciado COMPLETO (pode estar na pagina seguinte ao numero)
+- TODAS as 5 alternativas (A, B, C, D, E)
+- Gabarito (resposta correta) - geralmente aparece como "(Correta: X)"
 
 TEXTO DO PDF:
 {all_text}
@@ -281,7 +597,7 @@ Retorne APENAS um JSON com a questao completa:
   "numero": {numero},
   "disciplina": "...",
   "enunciado": "texto completo do enunciado",
-  "alternativas": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
+  "alternativas": {{"A": "...", "B": "...", "C": "...", "D": "...", "E": "..."}},
   "gabarito": "X"
 }}"""
 
@@ -302,7 +618,7 @@ Retorne APENAS um JSON com a questao completa:
             elif repaired_data and "questoes" in repaired_data:
                 # Wrapped in questoes array
                 questoes = repaired_data.get("questoes", [])
-                repaired_q = next((q for q in questoes if q.get("numero") == numero), None)
+                repaired_q = next((rq for rq in questoes if rq.get("numero") == numero), None)
             else:
                 repaired_q = None
 
@@ -310,7 +626,7 @@ Retorne APENAS um JSON com a questao completa:
                 repaired_q["fonte"] = "LLM_repair"
                 repaired_q["status_extracao"] = "repaired"
                 repaired_map[numero] = repaired_q
-                logger.info(f"Successfully repaired question {numero}")
+                logger.info(f"Successfully repaired question {numero} via LLM")
             else:
                 logger.warning(f"Could not repair question {numero}")
 
@@ -336,8 +652,8 @@ Retorne APENAS um JSON com a questao completa:
 def extract_questions_chunked(
     pdf_path: str | Path,
     llm: Optional[LLMOrchestrator] = None,
-    pages_per_chunk: int = 4,
-    overlap_pages: int = 1,
+    pages_per_chunk: int = 5,
+    overlap_pages: int = 2,
 ) -> dict:
     """
     Extract questions from large PDFs by processing in chunks with overlap.
@@ -367,7 +683,7 @@ def extract_questions_chunked(
         # Infer metadata from first pages
         first_text = ""
         for i in range(min(3, total_pages)):
-            first_text += doc[i].get_text()
+            first_text += _extract_page_text_robust(doc[i])
         metadados = inferir_banca_cargo_ano(pdf_path, first_text)
 
         doc.close()
@@ -391,7 +707,7 @@ def extract_questions_chunked(
             doc = fitz.open(pdf_path)
             chunk_text = ""
             for i in range(start_page, end_page):
-                page_text = doc[i].get_text()
+                page_text = _extract_page_text_robust(doc[i])
                 page_text = re.sub(r'pcimarkpci\s+\S+', '', page_text)
                 page_text = re.sub(r'www\.pciconcursos\.com\.br', '', page_text)
                 chunk_text += f"\n--- PAGINA {i+1} ---\n{page_text}"
@@ -400,6 +716,7 @@ def extract_questions_chunked(
             # Skip mostly empty chunks
             if len(chunk_text.strip()) < 500:
                 logger.debug(f"Skipping near-empty chunk (pages {start_page+1}-{end_page})")
+                start_page += stride  # Must advance even when skipping!
                 continue
 
             # Call LLM for this chunk
@@ -414,7 +731,7 @@ Extraia todas as questoes encontradas no formato JSON."""
                 prompt=user_prompt,
                 system_prompt=EXTRACTION_SYSTEM_PROMPT,
                 temperature=0.1,
-                max_tokens=8000,
+                max_tokens=8192,  # Groq Llama 4 Scout max output limit
             )
 
             llm_info = {

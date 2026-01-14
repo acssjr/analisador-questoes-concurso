@@ -29,9 +29,9 @@ def detect_pdf_format(pdf_path: str | Path) -> PDFFormat:
     """
     try:
         doc = fitz.open(pdf_path)
-        # Extract first 3 pages for analysis
+        # Extract first 6 pages for analysis (questions often start after instructions)
         sample_text = ""
-        for page_num in range(min(3, len(doc))):
+        for page_num in range(min(6, len(doc))):
             sample_text += doc[page_num].get_text()
         doc.close()
 
@@ -46,9 +46,13 @@ def detect_pdf_format(pdf_path: str | Path) -> PDFFormat:
         ]
 
         # Check if has question content (enunciados longos, alternativas)
+        # More flexible detection for various PDF formats
         has_question_content = bool(
-            re.search(r"\([A-E]\)\s+.{20,}", sample_text) or  # (A) texto longo
-            re.search(r"[A-E]\)\s+.{20,}", sample_text)  # A) texto longo
+            re.search(r"\([A-E]\)\s*.{15,}", sample_text) or  # (A) texto...
+            re.search(r"[A-E]\)\s*.{15,}", sample_text) or    # A) texto...
+            re.search(r"[A-E]\.\s+.{15,}", sample_text) or    # A. texto...
+            re.search(r"[A-E]\s*[-–]\s*.{15,}", sample_text) or  # A - texto... or A – texto...
+            re.search(r"(?i)Quest[aã]o\s+\d+", sample_text)  # "Questão 01" header
         )
 
         pci_matches = sum(1 for p in pci_patterns if re.search(p, sample_text))
