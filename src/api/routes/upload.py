@@ -11,12 +11,14 @@ from fastapi import APIRouter, File, Query, UploadFile
 from loguru import logger
 from sqlalchemy import select
 
+from src.classification.classifier import QuestionClassifier
 from src.core.config import get_settings
 from src.core.database import get_db, AsyncSessionLocal
 from src.extraction.pci_parser import parse_pci_pdf
 from src.extraction.pdf_detector import detect_pdf_format
 from src.extraction.llm_parser import extract_questions_with_llm, extract_questions_chunked
 from src.llm.llm_orchestrator import LLMOrchestrator
+from src.models.classificacao import Classificacao
 from src.models.edital import Edital
 from src.models.projeto import Projeto
 from src.models.prova import Prova
@@ -416,6 +418,8 @@ async def upload_pdf(
 
                         # Create Prova and Questao records if projeto available
                         prova_id = None
+                        classificacoes_criadas = 0
+                        classificacao_erros = 0
                         if projeto:
                             try:
                                 # Calculate confidence score
@@ -447,7 +451,9 @@ async def upload_pdf(
                                 prova_id = prova.id
                                 logger.info(f"Created Prova record: {prova.id}")
 
-                                # Create Questao records
+                                # Create Questao records and track them for classification
+                                questao_records = []
+                                questao_data_map = {}  # Maps numero -> original dict for classification
                                 for q in questoes_finais:
                                     questao = Questao(
                                         prova_id=prova.id,
@@ -464,9 +470,99 @@ async def upload_pdf(
                                         metadados=q.get("metadados", {}),
                                     )
                                     db_session.add(questao)
+                                    questao_records.append(questao)
+                                    questao_data_map[q.get("numero", 0)] = q
+
+                                # Flush to get Questao IDs before classification
+                                await db_session.flush()
+                                logger.info(f"Created {len(questoes_finais)} Questao records for prova {prova.id}")
+
+                                # Classify questions and create Classificacao records
+                                if edital_taxonomia and questao_records:
+                                    try:
+                                        logger.info(f"Starting classification for {len(questao_records)} questions")
+                                        classifier = QuestionClassifier()
+
+                                        # Build list of question dicts for batch classification
+                                        questoes_para_classificar = []
+                                        for qr in questao_records:
+                                            # Use original dict data for classification
+                                            q_data = questao_data_map.get(qr.numero, {})
+                                            questoes_para_classificar.append({
+                                                "numero": qr.numero,
+                                                "enunciado": qr.enunciado,
+                                                "alternativas": qr.alternativas,
+                                                "gabarito": qr.gabarito,
+                                                "disciplina": qr.disciplina,
+                                                "_questao_id": qr.id,  # Internal: link to DB record
+                                            })
+
+                                        # Call classifier (synchronous - has built-in throttling)
+                                        classificacoes = classifier.classify_batch(
+                                            questoes_para_classificar,
+                                            edital_taxonomia=edital_taxonomia,
+                                        )
+
+                                        # Get edital_id for linking
+                                        edital_id_for_classificacao = None
+                                        if projeto and projeto.edital:
+                                            edital_id_for_classificacao = projeto.edital.id
+
+                                        # Create Classificacao records
+                                        for i, classificacao_result in enumerate(classificacoes):
+                                            questao_id = questoes_para_classificar[i].get("_questao_id")
+                                            if not questao_id:
+                                                continue
+
+                                            # Skip if classification had error
+                                            if classificacao_result.get("erro"):
+                                                logger.warning(
+                                                    f"Classification failed for question #{classificacao_result.get('questao_numero')}: "
+                                                    f"{classificacao_result.get('erro')}"
+                                                )
+                                                classificacao_erros += 1
+                                                continue
+
+                                            try:
+                                                classificacao = Classificacao(
+                                                    questao_id=questao_id,
+                                                    edital_id=edital_id_for_classificacao,
+                                                    disciplina=classificacao_result.get("disciplina", ""),
+                                                    assunto=classificacao_result.get("assunto"),
+                                                    topico=classificacao_result.get("topico"),
+                                                    subtopico=classificacao_result.get("subtopico"),
+                                                    conceito_especifico=classificacao_result.get("conceito_especifico"),
+                                                    item_edital_path=classificacao_result.get("item_edital_path"),
+                                                    confianca_disciplina=classificacao_result.get("confianca_disciplina"),
+                                                    confianca_assunto=classificacao_result.get("confianca_assunto"),
+                                                    confianca_topico=classificacao_result.get("confianca_topico"),
+                                                    confianca_subtopico=classificacao_result.get("confianca_subtopico"),
+                                                    conceito_testado=classificacao_result.get("conceito_testado"),
+                                                    habilidade_bloom=classificacao_result.get("habilidade_bloom"),
+                                                    nivel_dificuldade=classificacao_result.get("nivel_dificuldade"),
+                                                    llm_provider=classificacao_result.get("llm_provider"),
+                                                    llm_model=classificacao_result.get("llm_model"),
+                                                    prompt_usado=classificacao_result.get("prompt_usado"),
+                                                    raw_response=classificacao_result.get("raw_response"),
+                                                )
+                                                db_session.add(classificacao)
+                                                classificacoes_criadas += 1
+                                            except Exception as cls_record_error:
+                                                logger.error(
+                                                    f"Failed to create Classificacao record for question {questao_id}: {cls_record_error}"
+                                                )
+                                                classificacao_erros += 1
+
+                                        logger.info(
+                                            f"Classification complete: {classificacoes_criadas} created, {classificacao_erros} errors"
+                                        )
+
+                                    except Exception as classification_error:
+                                        # Classification is best-effort - don't fail the upload
+                                        logger.error(f"Classification batch failed: {classification_error}")
+                                        logger.info("Continuing with upload - questions saved without classification")
 
                                 await db_session.commit()
-                                logger.info(f"Created {len(questoes_finais)} Questao records for prova {prova.id}")
 
                             except Exception as db_error:
                                 logger.error(f"Failed to persist to database: {db_error}")
@@ -487,6 +583,19 @@ async def upload_pdf(
                         # Add prova_id if persisted
                         if prova_id:
                             file_result["prova_id"] = str(prova_id)
+
+                        # Add classification stats if classification was attempted
+                        if projeto and edital_taxonomia:
+                            file_result["classificacao"] = {
+                                "tentada": True,
+                                "criadas": classificacoes_criadas,
+                                "erros": classificacao_erros,
+                            }
+                        else:
+                            file_result["classificacao"] = {
+                                "tentada": False,
+                                "motivo": "Sem edital/taxonomia vinculada" if not edital_taxonomia else "Sem projeto vinculado",
+                            }
 
                         # Adicionar stats do filtro se aplicado
                         if filter_stats:
