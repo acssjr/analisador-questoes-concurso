@@ -1,13 +1,13 @@
 // frontend/src/pages/projeto/ProvasQuestoes.tsx
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { useOutletContext } from 'react-router';
 import { UploadDropzone } from '../../components/features/UploadDropzone';
 import { QueueVisualization, type QueueItem } from '../../components/features/QueueVisualization';
 import { QueueSummary } from '../../components/features/QueueSummary';
-import { TaxonomyTree, type TaxonomyNode } from '../../components/features/TaxonomyTree';
 import { QuestionPanel, type QuestaoItem } from '../../components/features/QuestionPanel';
 import { useNotifications } from '../../hooks/useNotifications';
 import { api } from '../../services/api';
+import { BookOpen, ChevronRight } from 'lucide-react';
 
 interface ProjetoContext {
   projeto: { id: string; has_taxonomia?: boolean };
@@ -16,22 +16,41 @@ interface ProjetoContext {
 // Polling interval in milliseconds
 const QUEUE_POLL_INTERVAL = 3000;
 
-// Helper to convert API incidence nodes to TaxonomyNode format
-interface IncidenciaNode {
-  id: string;
+// Simple discipline item for the sidebar
+interface DisciplinaItem {
   nome: string;
   count: number;
-  children?: IncidenciaNode[];
 }
 
-function convertIncidenciaToTaxonomyNodes(incidencia: IncidenciaNode[]): TaxonomyNode[] {
-  return incidencia.map((node) => ({
-    id: node.id,
-    nome: node.nome,
-    count: node.count,
-    children: node.children ? convertIncidenciaToTaxonomyNodes(node.children) : undefined,
-  }));
-}
+// Memoized discipline list item
+const DisciplinaListItem = memo(function DisciplinaListItem({
+  disciplina,
+  isSelected,
+  onSelect,
+}: {
+  disciplina: DisciplinaItem;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left ${
+        isSelected
+          ? 'bg-[var(--accent-green)] text-white'
+          : 'hover:bg-gray-100 text-gray-700'
+      }`}
+    >
+      <span className="text-[14px] font-medium truncate flex-1">{disciplina.nome}</span>
+      <div className="flex items-center gap-2">
+        <span className={`text-[12px] ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
+          {disciplina.count}
+        </span>
+        <ChevronRight size={14} className={isSelected ? 'text-white/60' : 'text-gray-400'} />
+      </div>
+    </button>
+  );
+});
 
 export default function ProvasQuestoes() {
   const { projeto } = useOutletContext<ProjetoContext>();
@@ -42,11 +61,9 @@ export default function ProvasQuestoes() {
   const [isUploading, setIsUploading] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
 
-  // Taxonomy and questions state
-  const [taxonomyNodes, setTaxonomyNodes] = useState<TaxonomyNode[]>([]);
-  const [hasTaxonomia, setHasTaxonomia] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [selectedNodeName, setSelectedNodeName] = useState<string | null>(null);
+  // Discipline and questions state (simple list, not taxonomy tree)
+  const [disciplinas, setDisciplinas] = useState<DisciplinaItem[]>([]);
+  const [selectedDisciplina, setSelectedDisciplina] = useState<string | null>(null);
   const [questoes, setQuestoes] = useState<QuestaoItem[]>([]);
   const [totalQuestoes, setTotalQuestoes] = useState(0);
   const [isLoadingQuestoes, setIsLoadingQuestoes] = useState(false);
@@ -76,65 +93,82 @@ export default function ProvasQuestoes() {
     }
   }, [projeto.id]);
 
-  // Fetch taxonomy with incidence counts
-  const fetchTaxonomy = useCallback(async () => {
+  // Fetch discipline list with counts (simple flat list from questions)
+  const fetchDisciplinas = useCallback(async () => {
     try {
-      // First try to get the full taxonomy with incidence from the edital
-      const taxonomiaResponse = await api.getProjetoTaxonomiaIncidencia(projeto.id);
+      // Get questions grouped by discipline - this uses the discipline from the questions themselves
+      const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
 
-      if (taxonomiaResponse.has_taxonomia && taxonomiaResponse.incidencia.length > 0) {
-        // Use the edital's taxonomy structure with counts
-        const nodes = convertIncidenciaToTaxonomyNodes(
-          taxonomiaResponse.incidencia as IncidenciaNode[]
-        );
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(true);
-        setTotalQuestoes(taxonomiaResponse.total_questoes);
-      } else {
-        // Fall back to simple disciplina list from questions
-        const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
-        const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
-          id: `disciplina-${index}`,
-          nome: disciplina || 'Sem disciplina',
-          count: 0, // Will be updated when we have per-disciplina counts
+      // Build discipline counts from the disciplinas array returned by the API
+      const disciplinaCounts: DisciplinaItem[] = response.disciplinas.map((nome) => ({
+        nome,
+        count: 0, // We'll fetch actual counts below
+      }));
+
+      // Get total questions
+      setTotalQuestoes(response.total);
+
+      // If we have disciplinas, fetch counts for each (or use a single call)
+      if (disciplinaCounts.length > 0) {
+        // Fetch all questions to count by discipline
+        const allResponse = await api.getProjetoQuestoes(projeto.id, { limit: 500 });
+        const counts: Record<string, number> = {};
+        allResponse.questoes.forEach((q) => {
+          const disc = q.disciplina || 'Sem disciplina';
+          counts[disc] = (counts[disc] || 0) + 1;
+        });
+
+        // Update discipline list with counts
+        const disciplinasWithCounts = Object.entries(counts).map(([nome, count]) => ({
+          nome,
+          count,
         }));
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(false);
-        setTotalQuestoes(response.total);
+
+        // Sort by the first question number in each discipline (exam order)
+        const disciplineOrder: Record<string, number> = {};
+        allResponse.questoes.forEach((q) => {
+          const disc = q.disciplina || 'Sem disciplina';
+          if (!(disc in disciplineOrder) || q.numero < disciplineOrder[disc]) {
+            disciplineOrder[disc] = q.numero;
+          }
+        });
+        disciplinasWithCounts.sort((a, b) =>
+          (disciplineOrder[a.nome] || 999) - (disciplineOrder[b.nome] || 999)
+        );
+
+        setDisciplinas(disciplinasWithCounts);
+
+        // Auto-select first discipline if none selected
+        if (!selectedDisciplina && disciplinasWithCounts.length > 0) {
+          setSelectedDisciplina(disciplinasWithCounts[0].nome);
+          fetchQuestoes(disciplinasWithCounts[0].nome);
+        }
+      } else {
+        setDisciplinas([]);
       }
     } catch (error) {
-      console.error('Error fetching taxonomy:', error);
-      // Try fallback
-      try {
-        const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
-        const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
-          id: `disciplina-${index}`,
-          nome: disciplina || 'Sem disciplina',
-          count: 0,
-        }));
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(false);
-        setTotalQuestoes(response.total);
-      } catch (fallbackError) {
-        console.error('Error fetching fallback taxonomy:', fallbackError);
-      }
+      console.error('Error fetching disciplinas:', error);
+      setDisciplinas([]);
+      setTotalQuestoes(0);
     }
-  }, [projeto.id]);
+  }, [projeto.id, selectedDisciplina]);
 
-  // Fetch questions for selected node (disciplina or topic)
-  const fetchQuestoes = useCallback(async (nodeName: string) => {
+  // Fetch questions for selected discipline
+  const fetchQuestoes = useCallback(async (disciplinaNome: string) => {
     setIsLoadingQuestoes(true);
     try {
       const response = await api.getProjetoQuestoes(projeto.id, {
-        disciplina: nodeName === 'Sem disciplina' ? '' : nodeName,
+        disciplina: disciplinaNome === 'Sem disciplina' ? '' : disciplinaNome,
         limit: 100,
       });
-      setQuestoes(response.questoes);
+      // Sort questions by numero
+      const sortedQuestoes = [...response.questoes].sort((a, b) => a.numero - b.numero);
+      setQuestoes(sortedQuestoes);
     } catch (error) {
       console.error('Error fetching questoes:', error);
       addNotification({
         type: 'error',
-        title: 'Erro ao carregar questoes',
+        title: 'Erro ao carregar questões',
         message: error instanceof Error ? error.message : 'Erro desconhecido',
       });
     } finally {
@@ -142,11 +176,10 @@ export default function ProvasQuestoes() {
     }
   }, [projeto.id, addNotification]);
 
-  // Handle taxonomy node selection
-  const handleNodeSelect = useCallback((nodeId: string, nodeName: string) => {
-    setSelectedNode(nodeId);
-    setSelectedNodeName(nodeName);
-    fetchQuestoes(nodeName);
+  // Handle discipline selection
+  const handleDisciplinaSelect = useCallback((disciplinaNome: string) => {
+    setSelectedDisciplina(disciplinaNome);
+    fetchQuestoes(disciplinaNome);
   }, [fetchQuestoes]);
 
   // Start polling
@@ -163,10 +196,10 @@ export default function ProvasQuestoes() {
         }
         setIsPolling(false);
         // Refresh taxonomy when processing completes
-        fetchTaxonomy();
+        fetchDisciplinas();
       }
     }, QUEUE_POLL_INTERVAL);
-  }, [fetchQueueStatus, hasActiveItems, fetchTaxonomy]);
+  }, [fetchQueueStatus, hasActiveItems, fetchDisciplinas]);
 
   // Stop polling
   const stopPolling = useCallback(() => {
@@ -185,7 +218,7 @@ export default function ProvasQuestoes() {
         startPolling();
       }
       // Also fetch taxonomy
-      fetchTaxonomy();
+      fetchDisciplinas();
     };
 
     initializeQueue();
@@ -315,7 +348,7 @@ export default function ProvasQuestoes() {
 
       // Refresh queue and taxonomy
       await fetchQueueStatus();
-      await fetchTaxonomy();
+      await fetchDisciplinas();
     } catch (error) {
       addNotification({
         type: 'error',
@@ -323,14 +356,15 @@ export default function ProvasQuestoes() {
         message: error instanceof Error ? error.message : 'Erro desconhecido',
       });
     }
-  }, [addNotification, fetchQueueStatus, fetchTaxonomy]);
+  }, [addNotification, fetchQueueStatus, fetchDisciplinas]);
 
   return (
     <div className="space-y-6" data-projeto-id={projeto.id}>
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Provas & Questoes</h2>
+        <h2 className="text-[18px] font-semibold text-gray-900">Provas & Questões</h2>
         {isPolling && (
-          <span className="text-xs text-blue-400 animate-pulse">
+          <span className="text-[12px] text-[var(--accent-green)] animate-pulse flex items-center gap-1">
+            <span className="w-1.5 h-1.5 bg-[var(--accent-green)] rounded-full animate-pulse"></span>
             Atualizando...
           </span>
         )}
@@ -352,8 +386,8 @@ export default function ProvasQuestoes() {
 
       {/* Queue Visualization */}
       {queueItems.length > 0 && (
-        <div>
-          <h3 className="text-md font-medium text-white mb-4">Fila de Processamento</h3>
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <h3 className="text-[15px] font-semibold text-gray-900 mb-4">Fila de Processamento</h3>
           <QueueVisualization
             items={queueItems}
             onRetry={handleRetry}
@@ -363,36 +397,60 @@ export default function ProvasQuestoes() {
         </div>
       )}
 
-      {/* Taxonomy Tree and Questions Panel */}
-      {(totalQuestoes > 0 || hasTaxonomia) && (
+      {/* Disciplines and Questions Panel */}
+      {totalQuestoes > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Taxonomy Tree - Left Column */}
-          <div className="lg:col-span-1">
-            <h3 className="text-md font-medium text-white mb-4">
-              {hasTaxonomia ? 'Taxonomia do Edital' : 'Disciplinas'} ({totalQuestoes} questoes)
+          {/* Discipline List - Left Column (simple flat list) */}
+          <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl p-5">
+            <h3 className="text-[15px] font-semibold text-gray-900 mb-4">
+              Disciplinas
+              <span className="text-gray-500 font-normal ml-1">({totalQuestoes} questões)</span>
             </h3>
-            <TaxonomyTree
-              nodes={taxonomyNodes}
-              selectedNode={selectedNode}
-              onNodeSelect={handleNodeSelect}
-            />
+            {disciplinas.length > 0 ? (
+              <div className="space-y-1">
+                {disciplinas.map((disciplina) => (
+                  <DisciplinaListItem
+                    key={disciplina.nome}
+                    disciplina={disciplina}
+                    isSelected={selectedDisciplina === disciplina.nome}
+                    onSelect={() => handleDisciplinaSelect(disciplina.nome)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <BookOpen size={32} className="text-gray-300 mx-auto mb-2" />
+                <p className="text-[13px] text-gray-500">Nenhuma questão ainda</p>
+              </div>
+            )}
           </div>
 
           {/* Questions Panel - Right Column */}
-          <div className="lg:col-span-2">
-            <h3 className="text-md font-medium text-white mb-4">
-              Questoes
-              {selectedNodeName && (
-                <span className="text-gray-500 font-normal ml-2">- {selectedNodeName}</span>
+          <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-5">
+            <h3 className="text-[15px] font-semibold text-gray-900 mb-4">
+              Questões
+              {selectedDisciplina && (
+                <span className="text-gray-500 font-normal ml-2">— {selectedDisciplina}</span>
               )}
             </h3>
             <QuestionPanel
               questoes={questoes}
-              selectedDisciplina={selectedNodeName}
+              selectedDisciplina={selectedDisciplina}
               isLoading={isLoadingQuestoes}
-              total={totalQuestoes}
+              total={questoes.length}
             />
           </div>
+        </div>
+      )}
+
+      {/* Empty state when no questions */}
+      {totalQuestoes === 0 && queueItems.length === 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+          <BookOpen size={40} className="text-gray-300 mx-auto mb-3" />
+          <h3 className="text-[15px] font-medium text-gray-900 mb-2">Nenhuma questão extraída</h3>
+          <p className="text-[13px] text-gray-500">
+            Faça upload de provas em PDF para extrair as questões
+          </p>
         </div>
       )}
     </div>

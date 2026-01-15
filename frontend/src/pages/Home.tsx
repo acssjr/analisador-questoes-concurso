@@ -1,34 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import {
+  FolderOpen,
+  FileText,
+  HelpCircle,
+  TrendingUp,
+  Plus,
+  ChevronRight,
+  BookOpen,
+  Target,
+  BarChart3,
+  ArrowRight,
+  Loader2,
+} from 'lucide-react';
 import { ProjetoWorkflowModal } from '../components/features/ProjetoWorkflowModal';
 import { api } from '../services/api';
 import type { Projeto } from '../types';
-import {
-  IconUpload,
-  IconBookOpen,
-  IconTarget,
-  IconChart,
-  IconArrowRight,
-  IconPlus,
-  IconFolder,
-  IconChevronRight,
-  IconTrash,
-  ProgressRing,
-  IconGithub,
-  IconSpinner,
-} from '../components/ui/Icons';
 
-// Status labels with colors
+// Status labels
 const statusLabels: Record<string, { label: string; color: string }> = {
   configurando: { label: 'Configurando', color: 'var(--text-muted)' },
-  coletando: { label: 'Coletando', color: 'var(--accent-yellow)' },
-  analisando: { label: 'Analisando', color: 'var(--accent-blue)' },
-  concluido: { label: 'Concluído', color: 'var(--accent-green)' },
+  coletando: { label: 'Coletando', color: 'var(--accent-amber)' },
+  analisando: { label: 'Analisando', color: 'var(--status-info)' },
+  concluido: { label: 'Concluido', color: 'var(--status-success)' },
 };
 
-// Stat card component - clickable with hover
-function StatCard({
+// Memoized stat card
+const StatCard = memo(function StatCard({
   icon: Icon,
   value,
   label,
@@ -47,178 +46,111 @@ function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      whileTap={{ scale: 0.98 }}
+      transition={{ delay, duration: 0.3 }}
+      whileHover={{ y: -2 }}
       onClick={onClick}
-      className="card-interactive p-5"
+      className="bg-white border border-gray-200 rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all"
     >
-      <div className="flex items-start justify-between mb-4">
-        <motion.div
-          className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center"
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          transition={{ type: "spring", stiffness: 400 }}
-        >
+      <div className="flex items-start justify-between mb-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
           <Icon size={20} className="text-[var(--accent-green)]" />
-        </motion.div>
+        </div>
         {trend && (
-          <span className="badge badge-green text-[11px]">{trend}</span>
+          <span className="text-[11px] font-medium text-[var(--status-success)] bg-emerald-50 px-2 py-0.5 rounded-full">
+            {trend}
+          </span>
         )}
       </div>
-      <p className="text-[28px] font-semibold text-[var(--text-primary)] text-mono mb-1">
-        {value}
-      </p>
-      <p className="text-[13px] text-[var(--text-tertiary)]">{label}</p>
+      <p className="text-[28px] font-semibold text-gray-900 mb-1">{value}</p>
+      <p className="text-[13px] text-gray-500">{label}</p>
     </motion.div>
   );
-}
+});
 
-// Feature card for empty state - clickable
-function FeatureCard({
+// Feature card for quick start
+const FeatureCard = memo(function FeatureCard({
   icon: Icon,
   title,
   description,
   delay,
-  onClick,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
   delay: number;
-  onClick?: () => void;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      whileHover={{ x: 4, backgroundColor: 'var(--bg-subtle)' }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-colors group"
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.3 }}
+      className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors"
     >
-      <motion.div
-        className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center flex-shrink-0"
-        whileHover={{ scale: 1.1 }}
-        transition={{ type: "spring", stiffness: 400 }}
-      >
+      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
         <Icon size={20} className="text-[var(--accent-green)]" />
-      </motion.div>
-      <div className="flex-1">
-        <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1 group-hover:text-[var(--accent-green)] transition-colors">
-          {title}
-        </h3>
-        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-          {description}
-        </p>
       </div>
-      <motion.div
-        initial={{ opacity: 0, x: -8 }}
-        whileHover={{ opacity: 1, x: 0 }}
-        className="text-[var(--accent-green)] opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <IconArrowRight size={16} />
-      </motion.div>
+      <div>
+        <h4 className="text-[14px] font-medium text-gray-900 mb-1">{title}</h4>
+        <p className="text-[13px] text-gray-500 leading-relaxed">{description}</p>
+      </div>
     </motion.div>
   );
-}
+});
 
-// Step indicator with animation
-function StepBadge({ number, label, isActive }: { number: number; label: string; isActive?: boolean }) {
+// Step badge
+const StepBadge = memo(function StepBadge({
+  number,
+  label,
+  isActive,
+}: {
+  number: number;
+  label: string;
+  isActive?: boolean;
+}) {
   return (
-    <motion.div
-      className="flex items-center gap-3"
-      whileHover={{ x: 4 }}
-      transition={{ type: "spring", stiffness: 400 }}
-    >
-      <motion.div
+    <div className="flex items-center gap-3">
+      <div
         className={`w-7 h-7 rounded-full text-[12px] font-semibold flex items-center justify-center transition-colors ${
           isActive
             ? 'bg-[var(--accent-green)] text-white'
-            : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
+            : 'bg-gray-100 text-gray-500'
         }`}
-        whileHover={{ scale: 1.15 }}
-        transition={{ type: "spring", stiffness: 400 }}
       >
         {number}
-      </motion.div>
-      <span className={`text-[13px] transition-colors ${
-        isActive ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'
-      }`}>
+      </div>
+      <span
+        className={`text-[13px] ${
+          isActive ? 'text-gray-900 font-medium' : 'text-gray-500'
+        }`}
+      >
         {label}
       </span>
-    </motion.div>
+    </div>
   );
-}
-
-// Footer component
-function Footer() {
-  return (
-    <footer className="footer">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-              className="w-8 h-8 rounded-lg bg-[var(--accent-green)] flex items-center justify-center"
-            >
-              <IconBookOpen size={16} className="text-white" />
-            </motion.div>
-            <span className="text-[14px] font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
-              Analisador de Questões
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <motion.a
-              href="#"
-              className="footer-link"
-              whileHover={{ y: -2 }}
-            >
-              Documentação
-            </motion.a>
-            <motion.a
-              href="#"
-              className="footer-link"
-              whileHover={{ y: -2 }}
-            >
-              Suporte
-            </motion.a>
-            <motion.a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-link flex items-center gap-1.5"
-              whileHover={{ y: -2 }}
-            >
-              <IconGithub size={14} />
-              GitHub
-            </motion.a>
-          </div>
-
-          <p className="text-[12px] text-[var(--text-muted)]">
-            © 2024 Todos os direitos reservados
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
+});
 
 export function Home() {
   const navigate = useNavigate();
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [stats, setStats] = useState({ provas: 0, questões: 0, disciplinas: 0 });
 
-  // Load projects
   useEffect(() => {
     async function loadData() {
       try {
-        const projectsResponse = await api.listProjetos();
-        setProjetos(projectsResponse.projetos || []);
+        const projectsRes = await api.listProjetos();
+        const projetosList = projectsRes.projetos || [];
+        setProjetos(projetosList);
+
+        // Calculate stats from projects
+        const totalProvas = projetosList.reduce((sum, p) => sum + (p.total_provas || 0), 0);
+        const totalQuestoes = projetosList.reduce((sum, p) => sum + (p.total_questoes || 0), 0);
+        setStats({
+          provas: totalProvas,
+          questões: totalQuestoes,
+          disciplinas: 0, // Will be calculated per project
+        });
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
       } finally {
@@ -226,437 +158,239 @@ export function Home() {
       }
     }
     loadData();
-  }, [refreshKey]);
+  }, []);
 
-  // Refresh projects list
-  function refreshData() {
-    setRefreshKey(k => k + 1);
-  }
-
-  // Handle new project button
-  function handleNewProject() {
-    setIsUploadModalOpen(true);
-  }
-
-  // Handle project card click - navigate to project page
-  function handleProjectClick(projeto: Projeto) {
-    navigate(`/projeto/${projeto.id}`);
-  }
-
-  // Handle project delete
-  async function handleDeleteProject(e: React.MouseEvent, projeto: Projeto) {
-    e.stopPropagation();
-    if (!confirm(`Tem certeza que deseja excluir "${projeto.nome}"?`)) return;
-
-    try {
-      await api.deleteProjeto(projeto.id);
-      setProjetos(prev => prev.filter(p => p.id !== projeto.id));
-    } catch (err) {
-      console.error('Erro ao excluir projeto:', err);
-      alert('Erro ao excluir projeto');
-    }
-  }
+  const recentProjetos = projetos.slice(0, 5);
 
   const features = [
     {
-      icon: IconBookOpen,
+      icon: BookOpen,
       title: 'Extração Inteligente',
-      description: 'Nossa IA extrai e classifica questões automaticamente de qualquer PDF de prova de concurso.',
+      description: 'Nossa IA extrai e classifica questões automaticamente de qualquer PDF.',
     },
     {
-      icon: IconTarget,
+      icon: Target,
       title: 'Análise de Incidência',
-      description: 'Visualize em 5 níveis hierárquicos quais assuntos mais aparecem nas provas anteriores.',
+      description: 'Visualize em 5 níveis hierárquicos quais assuntos mais aparecem.',
     },
     {
-      icon: IconChart,
+      icon: BarChart3,
       title: 'Relatórios Detalhados',
-      description: 'Gere relatórios com estatísticas de distribuição por ano, banca e cargo.',
+      description: 'Gere relatórios com estatísticas de distribuição por ano e banca.',
     },
-  ];
-
-  const steps = [
-    { number: 1, label: 'Crie um projeto' },
-    { number: 2, label: 'Importe as provas' },
-    { number: 3, label: 'Analise os resultados' },
   ];
 
   return (
-    <div className="min-h-full flex flex-col">
-      <div className="flex-1 max-w-5xl mx-auto w-full py-8 px-4">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="card-accent p-8 mb-8 relative overflow-hidden"
-        >
-          {/* Decorative pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <motion.div
-              className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white blur-3xl"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.15, 0.1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white blur-2xl"
-              animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.12, 0.1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            />
-          </div>
+    <div className="p-6 max-w-6xl mx-auto">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <h1 className="text-[24px] font-semibold text-gray-900">
+          Bem-vindo ao Analisador
+        </h1>
+        <p className="text-[14px] text-gray-500 mt-1">
+          Descubra o que mais cai no seu concurso
+        </p>
+      </motion.div>
 
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="max-w-lg">
-              <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-[12px] uppercase tracking-wider text-white/70 mb-2"
-              >
-                Bem-vindo ao Analisador
-              </motion.p>
-              <motion.h1
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-title text-white mb-3"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Descubra o que mais cai no seu concurso
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-[15px] text-white/80 mb-6 leading-relaxed"
-              >
-                Importe provas anteriores e deixe nossa IA analisar os padrões de incidência
-                para otimizar seus estudos.
-              </motion.p>
-              <motion.button
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsUploadModalOpen(true)}
-                className="btn btn-lg bg-white text-[var(--accent-green)] hover:bg-white/95 shadow-lg"
-              >
-                <IconUpload size={18} />
-                Começar Agora
-              </motion.button>
-            </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          icon={FolderOpen}
+          value={projetos.length}
+          label="Projetos"
+          delay={0.1}
+          onClick={() => navigate('/projetos')}
+        />
+        <StatCard
+          icon={FileText}
+          value={stats.provas}
+          label="Provas importadas"
+          delay={0.15}
+        />
+        <StatCard
+          icon={HelpCircle}
+          value={stats.questões}
+          label="Questões extraídas"
+          delay={0.2}
+        />
+        <StatCard
+          icon={TrendingUp}
+          value={stats.disciplinas}
+          label="Disciplinas"
+          delay={0.25}
+        />
+      </div>
 
-            {/* Progress illustration */}
-            <motion.div
-              className="hidden lg:block"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, type: "spring" }}
-            >
-              <motion.div
-                className="relative"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <ProgressRing progress={72} size={140} strokeWidth={10} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[28px] font-bold text-white">72%</span>
-                  <span className="text-[11px] text-white/70">acurácia</span>
-                </div>
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Projects Section with Cards */}
-        {!loading && projetos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
-                  Meus Projetos
-                </h2>
-                <p className="text-[13px] text-[var(--text-secondary)] mt-1">
-                  Gerencie seus projetos de análise de questões
-                </p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleNewProject}
-                className="btn btn-primary flex items-center gap-2"
-              >
-                <IconPlus size={18} />
-                Novo Projeto
-              </motion.button>
-            </div>
-
-            {/* Project Cards Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence>
-                {projetos.map((projeto, index) => {
-                  const status = statusLabels[projeto.status] || statusLabels.configurando;
-
-                  return (
-                    <motion.button
-                      key={projeto.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleProjectClick(projeto)}
-                      className="text-left card p-5 group cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <motion.div
-                            className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center flex-shrink-0"
-                            whileHover={{ scale: 1.1 }}
-                          >
-                            <IconFolder size={20} className="text-[var(--accent-green)]" />
-                          </motion.div>
-                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-green)] transition-colors">
-                            {projeto.nome}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={(e) => handleDeleteProject(e, projeto)}
-                            className="p-1.5 rounded-lg hover:bg-[var(--bg-muted)] text-[var(--text-muted)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            <IconTrash size={14} />
-                          </motion.div>
-                          <IconChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--accent-green)] transition-colors" />
-                        </div>
-                      </div>
-
-                      <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-                        {projeto.banca && `${projeto.banca} `}
-                        {projeto.ano && `• ${projeto.ano} `}
-                        {projeto.cargo && `• ${projeto.cargo}`}
-                        {!projeto.banca && !projeto.ano && !projeto.cargo && 'Sem metadados'}
-                      </p>
-
-                      <div className="flex items-center gap-4 text-[12px]">
-                        <span className="text-[var(--text-secondary)]">
-                          <span className="text-[var(--text-primary)] font-medium">{projeto.total_provas}</span> provas
-                        </span>
-                        <span className="text-[var(--text-secondary)]">
-                          <span className="text-[var(--text-primary)] font-medium">{projeto.total_questoes}</span> questões
-                        </span>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                        <span
-                          className="text-[11px] px-2 py-0.5 rounded-full"
-                          style={{
-                            backgroundColor: `color-mix(in srgb, ${status.color} 15%, transparent)`,
-                            color: status.color,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/projeto/${projeto.id}/provas`);
-                          }}
-                          className="flex items-center gap-1 text-[11px] text-[var(--accent-green)] hover:text-[var(--accent-green-hover)] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <IconUpload size={12} />
-                          Importar Provas
-                        </motion.div>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Loading state */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <IconSpinner size={32} className="text-[var(--accent-green)]" />
-          </div>
-        )}
-
-        {/* Empty state - no projects */}
-        {!loading && projetos.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-16 card mb-8"
-          >
-            <IconFolder size={48} className="text-[var(--text-muted)] mx-auto mb-4" />
-            <h3 className="text-[16px] font-medium text-[var(--text-primary)] mb-2">
-              Nenhum projeto ainda
-            </h3>
-            <p className="text-[14px] text-[var(--text-secondary)] mb-6">
-              Crie seu primeiro projeto para começar a análise
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleNewProject}
-              className="btn btn-primary"
-            >
-              Criar Projeto
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* Stats Grid - Empty State (only show if no projects) */}
-        {!loading && projetos.length === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <StatCard
-              icon={IconBookOpen}
-              value="0"
-              label="Provas importadas"
-              delay={0.1}
-              onClick={() => setIsUploadModalOpen(true)}
-            />
-            <StatCard
-              icon={IconTarget}
-              value="0"
-              label="Questões extraídas"
-              delay={0.2}
-              onClick={() => setIsUploadModalOpen(true)}
-            />
-            <StatCard
-              icon={IconChart}
-              value="0"
-              label="Disciplinas"
-              delay={0.3}
-              onClick={() => setIsUploadModalOpen(true)}
-            />
-          </div>
-        )}
-
-        {/* How it works + Features */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-          {/* How it works */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-            className="card p-6"
-          >
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-5">
-              Como funciona
-            </h2>
-            <div className="space-y-4 mb-6">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center gap-4">
-                  <StepBadge number={step.number} label={step.label} isActive={index === 0} />
-                  {index < steps.length - 1 && (
-                    <motion.div
-                      className="flex-1 h-px bg-[var(--border-subtle)]"
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              onClick={() => setIsUploadModalOpen(true)}
-              className="btn btn-secondary w-full group"
-            >
-              Criar primeiro projeto
-              <motion.span
-                className="inline-block"
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                <IconArrowRight size={16} />
-              </motion.span>
-            </motion.button>
-          </motion.div>
-
-          {/* Features */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="card p-6"
-          >
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-4">
-              Recursos
-            </h2>
-            <div className="space-y-2">
-              {features.map((feature, index) => (
-                <FeatureCard
-                  key={feature.title}
-                  icon={feature.icon}
-                  title={feature.title}
-                  description={feature.description}
-                  delay={0.6 + index * 0.1}
-                  onClick={() => setIsUploadModalOpen(true)}
-                />
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Call to action banner */}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Projects - 2 columns */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.4 }}
-          className="card p-6 text-center mb-8"
+          transition={{ delay: 0.3 }}
+          className="lg:col-span-2 bg-white border border-gray-200 rounded-xl"
         >
-          <motion.div
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-12 h-12 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center mx-auto mb-4"
-          >
-            <IconUpload size={24} className="text-[var(--accent-green)]" />
-          </motion.div>
-          <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
-            Pronto para começar?
-          </h3>
-          <p className="text-[14px] text-[var(--text-secondary)] mb-4 max-w-md mx-auto">
-            Crie seu primeiro projeto e descubra quais assuntos têm maior incidência nas provas anteriores.
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsUploadModalOpen(true)}
-            className="btn btn-primary"
-          >
-            <IconUpload size={16} />
-            Novo Projeto
-          </motion.button>
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-[16px] font-semibold text-gray-900">
+                Projetos Recentes
+              </h2>
+              <p className="text-[13px] text-gray-500">
+                Acesse rapidamente seus projetos
+              </p>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="btn btn-primary btn-sm"
+            >
+              <Plus size={16} />
+              Novo Projeto
+            </button>
+          </div>
+
+          <div className="p-5">
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={24} className="text-gray-400 animate-spin" />
+              </div>
+            )}
+
+            {!loading && recentProjetos.length === 0 && (
+              <div className="text-center py-12">
+                <FolderOpen size={40} className="text-gray-300 mx-auto mb-3" />
+                <p className="text-[14px] text-gray-500 mb-4">
+                  Nenhum projeto ainda
+                </p>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Criar primeiro projeto
+                </button>
+              </div>
+            )}
+
+            {!loading && recentProjetos.length > 0 && (
+              <div className="space-y-3">
+                {recentProjetos.map((projeto) => {
+                  const status = statusLabels[projeto.status] || statusLabels.configurando;
+                  return (
+                    <motion.div
+                      key={projeto.id}
+                      whileHover={{ x: 4 }}
+                      onClick={() => navigate(`/projeto/${projeto.id}`)}
+                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 cursor-pointer group transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                        <FolderOpen size={18} className="text-[var(--accent-green)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-[14px] font-medium text-gray-900 truncate group-hover:text-[var(--accent-green)] transition-colors">
+                          {projeto.nome}
+                        </h4>
+                        <p className="text-[12px] text-gray-500">
+                          {projeto.total_provas} provas • {projeto.total_questoes} questões
+                        </p>
+                      </div>
+                      <span
+                        className="text-[11px] px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: `color-mix(in srgb, ${status.color} 15%, transparent)`,
+                          color: status.color,
+                        }}
+                      >
+                        {status.label}
+                      </span>
+                      <ChevronRight
+                        size={16}
+                        className="text-gray-300 group-hover:text-[var(--accent-green)] transition-colors"
+                      />
+                    </motion.div>
+                  );
+                })}
+
+                {projetos.length > 5 && (
+                  <button
+                    onClick={() => navigate('/projetos')}
+                    className="w-full py-3 text-[13px] text-[var(--accent-green)] hover:bg-emerald-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    Ver todos os projetos
+                    <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Quick Start - 1 column */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="bg-white border border-gray-200 rounded-xl"
+        >
+          <div className="p-5 border-b border-gray-100">
+            <h2 className="text-[16px] font-semibold text-gray-900">
+              Como funciona
+            </h2>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <StepBadge number={1} label="Crie um projeto" isActive />
+            <div className="ml-3 pl-3 border-l-2 border-gray-100">
+              <StepBadge number={2} label="Importe as provas" />
+            </div>
+            <div className="ml-3 pl-3 border-l-2 border-gray-100">
+              <StepBadge number={3} label="Analise os resultados" />
+            </div>
+
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full mt-4 btn btn-secondary flex items-center justify-center gap-2"
+            >
+              Criar primeiro projeto
+              <ArrowRight size={16} />
+            </button>
+          </div>
         </motion.div>
       </div>
 
-      {/* Footer */}
-      <Footer />
+      {/* Features Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mt-6 bg-white border border-gray-200 rounded-xl p-5"
+      >
+        <h2 className="text-[16px] font-semibold text-gray-900 mb-4">
+          Recursos
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {features.map((feature, index) => (
+            <FeatureCard
+              key={feature.title}
+              icon={feature.icon}
+              title={feature.title}
+              description={feature.description}
+              delay={0.45 + index * 0.05}
+            />
+          ))}
+        </div>
+      </motion.div>
 
-      {/* Projeto Creation Modal */}
+      {/* Modal */}
       <ProjetoWorkflowModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onUploadSuccess={() => {
-          setIsUploadModalOpen(false);
-          refreshData();
+          setIsModalOpen(false);
+          // Reload data
+          api.listProjetos().then((res) => setProjetos(res.projetos || []));
         }}
       />
     </div>

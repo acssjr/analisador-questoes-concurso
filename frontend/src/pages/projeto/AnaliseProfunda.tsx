@@ -279,12 +279,12 @@ export default function AnaliseProfunda() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Analise Profunda</h2>
+          <h2 className="text-[18px] font-semibold text-gray-900">Análise Profunda</h2>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full" />
-            <span className="ml-3 text-gray-400">Carregando...</span>
+            <div className="animate-spin h-8 w-8 border-2 border-[var(--accent-green)] border-t-transparent rounded-full" />
+            <span className="ml-3 text-gray-500">Carregando...</span>
           </div>
         </div>
       </div>
@@ -295,7 +295,7 @@ export default function AnaliseProfunda() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Analise Profunda</h2>
+        <h2 className="text-[18px] font-semibold text-gray-900">Análise Profunda</h2>
         <div className="flex items-center gap-3">
           {isRunning && (
             <Button variant="secondary" size="sm" onClick={handleCancelAnalise}>
@@ -308,39 +308,39 @@ export default function AnaliseProfunda() {
             className={cn(
               'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
               canAnalyze && !isRunning && !isStarting
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                ? 'bg-[var(--accent-green)] hover:bg-[var(--accent-green-light)] text-white'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             )}
           >
-            {isStarting ? 'Iniciando...' : isRunning ? 'Em andamento...' : 'Gerar Analise'}
+            {isStarting ? 'Iniciando...' : isRunning ? 'Em andamento...' : 'Gerar Análise'}
           </Button>
         </div>
       </div>
 
       {/* Warning if not enough questions */}
       {!canAnalyze && (
-        <div className="bg-amber-900/20 border border-amber-700/50 rounded-lg p-4">
-          <p className="text-amber-200 text-sm">
-            Voce precisa de pelo menos {MIN_QUESTOES} questoes para gerar uma analise profunda.
-            Atualmente: {projeto.total_questoes} questoes.
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-amber-800 text-[14px]">
+            Você precisa de pelo menos {MIN_QUESTOES} questões para gerar uma análise profunda.
+            Atualmente: {projeto.total_questoes} questões.
           </p>
         </div>
       )}
 
       {/* Error display */}
       {error && (
-        <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4">
-          <p className="text-red-200 text-sm">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <p className="text-red-700 text-[14px]">{error}</p>
         </div>
       )}
 
       {/* Progress indicator when running */}
       {isRunning && status && (
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-white border-gray-200 rounded-xl">
           <CardBody>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-white font-medium">Analisando...</span>
+                <span className="text-gray-900 font-medium">Analisando...</span>
                 <Badge variant="info">
                   Fase {status.current_phase || 1} de 4
                 </Badge>
@@ -352,7 +352,7 @@ export default function AnaliseProfunda() {
                 statusText={
                   status.current_phase
                     ? `Fase ${status.current_phase}: ${PHASE_LABELS[status.current_phase] || 'Processando'}`
-                    : 'Iniciando analise...'
+                    : 'Iniciando análise...'
                 }
               />
 
@@ -366,12 +366,12 @@ export default function AnaliseProfunda() {
                     <div
                       key={phase}
                       className={cn(
-                        'p-2 rounded text-center text-xs',
+                        'p-2 rounded-lg text-center text-xs',
                         isComplete
-                          ? 'bg-green-900/30 border border-green-700/50 text-green-300'
+                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
                           : isCurrent
-                          ? 'bg-blue-900/30 border border-blue-700/50 text-blue-300'
-                          : 'bg-gray-800 border border-gray-700 text-gray-500'
+                          ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                          : 'bg-gray-50 border border-gray-200 text-gray-500'
                       )}
                     >
                       <div className="font-medium">Fase {phase}</div>
@@ -384,8 +384,8 @@ export default function AnaliseProfunda() {
               </div>
 
               {status.total_questoes > 0 && (
-                <p className="text-gray-400 text-sm text-center">
-                  Analisando {status.total_questoes} questoes
+                <p className="text-gray-500 text-sm text-center">
+                  Analisando {status.total_questoes} questões
                 </p>
               )}
             </div>
@@ -437,9 +437,9 @@ export default function AnaliseProfunda() {
 
       {/* Results with discipline tabs */}
       {resultado && !isRunning && resultado.disciplinas.length > 0 && (
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-white border-gray-200 rounded-xl">
           {/* Discipline Tabs */}
-          <div className="border-b border-gray-800 px-4">
+          <div className="border-b border-gray-100 px-4">
             <div className="flex overflow-x-auto gap-1 py-2">
               {resultado.disciplinas.map((disc) => {
                 const discResult = resultado.results[disc];
@@ -453,10 +453,10 @@ export default function AnaliseProfunda() {
                     className={cn(
                       'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
                       isSelected
-                        ? 'text-white'
-                        : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
+                        ? 'text-gray-900'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                     )}
-                    style={isSelected ? { backgroundColor: `${color}30`, borderColor: color, border: '1px solid' } : {}}
+                    style={isSelected ? { backgroundColor: `${color}15`, borderColor: color, border: '1px solid' } : {}}
                   >
                     {disc}
                     {discResult && (
@@ -481,9 +481,9 @@ export default function AnaliseProfunda() {
 
       {/* Empty state */}
       {!isRunning && !resultado && canAnalyze && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-          <p className="text-gray-400 text-center py-8">
-            Clique em "Gerar Analise" para iniciar o processo de analise profunda
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <p className="text-gray-500 text-center py-8">
+            Clique em "Gerar Análise" para iniciar o processo de análise profunda
           </p>
         </div>
       )}
@@ -503,12 +503,12 @@ interface DashboardCardProps {
 
 function DashboardCard({ label, value, icon }: DashboardCardProps) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+    <div className="bg-white border border-gray-200 rounded-xl p-4">
       <div className="flex items-center justify-between">
-        <span className="text-gray-400 text-sm">{label}</span>
-        <span className="text-gray-500">{icon}</span>
+        <span className="text-gray-500 text-sm">{label}</span>
+        <span className="text-[var(--accent-green)]">{icon}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold text-white">{value}</div>
+      <div className="mt-2 text-2xl font-bold text-gray-900">{value}</div>
     </div>
   );
 }
@@ -533,19 +533,19 @@ function DisciplinaResultPanel({ result }: DisciplinaResultPanelProps) {
   return (
     <div className="space-y-4">
       {/* Sub-tabs for discipline */}
-      <div className="flex gap-2 border-b border-gray-800 pb-2">
+      <div className="flex gap-2 border-b border-gray-100 pb-2">
         <TabButton
           active={activeTab === 'overview'}
           onClick={() => setActiveTab('overview')}
         >
-          Visao Geral
+          Visão Geral
         </TabButton>
         {hasPatterns && (
           <TabButton
             active={activeTab === 'patterns'}
             onClick={() => setActiveTab('patterns')}
           >
-            Padroes ({(result.analysis_report?.temporal_patterns?.length || 0) +
+            Padrões ({(result.analysis_report?.temporal_patterns?.length || 0) +
               (result.analysis_report?.similarity_patterns?.length || 0)})
           </TabButton>
         )}
@@ -562,7 +562,7 @@ function DisciplinaResultPanel({ result }: DisciplinaResultPanelProps) {
             active={activeTab === 'recommendations'}
             onClick={() => setActiveTab('recommendations')}
           >
-            Recomendacoes ({result.analysis_report?.study_recommendations?.length || 0})
+            Recomendações ({result.analysis_report?.study_recommendations?.length || 0})
           </TabButton>
         )}
       </div>
@@ -587,10 +587,10 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
     <button
       onClick={onClick}
       className={cn(
-        'px-3 py-1.5 text-sm rounded transition-colors',
+        'px-3 py-1.5 text-sm rounded-lg transition-colors',
         active
-          ? 'bg-gray-800 text-white'
-          : 'text-gray-400 hover:text-gray-300'
+          ? 'bg-gray-100 text-gray-900 font-medium'
+          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
       )}
     >
       {children}
@@ -611,18 +611,18 @@ function OverviewTab({ result }: { result: AnaliseResultadoDisciplina }) {
 
       {/* Cluster Info */}
       {result.cluster_result && result.cluster_result.n_clusters > 0 && (
-        <div className="bg-gray-800/50 rounded-lg p-4">
-          <h4 className="text-white font-medium mb-3">Distribuicao por Clusters</h4>
+        <div className="bg-gray-50 rounded-xl p-4">
+          <h4 className="text-gray-900 font-medium mb-3">Distribuição por Clusters</h4>
           <div className="flex flex-wrap gap-2">
             {Object.entries(result.cluster_result.cluster_sizes).map(([cluster, count]) => (
               <Badge key={cluster} variant="default">
-                Cluster {cluster}: {count} questoes
+                Cluster {cluster}: {count} questões
               </Badge>
             ))}
           </div>
           {result.cluster_result.silhouette_score !== null &&
             result.cluster_result.silhouette_score !== undefined && (
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-500 text-sm mt-2">
               Silhouette Score: {result.cluster_result.silhouette_score.toFixed(3)}
             </p>
           )}
@@ -630,33 +630,33 @@ function OverviewTab({ result }: { result: AnaliseResultadoDisciplina }) {
       )}
 
       {/* Analysis Metadata */}
-      <div className="bg-gray-800/50 rounded-lg p-4">
-        <h4 className="text-white font-medium mb-3">Informacoes da Analise</h4>
+      <div className="bg-gray-50 rounded-xl p-4">
+        <h4 className="text-gray-900 font-medium mb-3">Informações da Análise</h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           {result.banca && (
             <div>
-              <span className="text-gray-400">Banca:</span>
-              <span className="text-white ml-2">{result.banca}</span>
+              <span className="text-gray-500">Banca:</span>
+              <span className="text-gray-900 ml-2">{result.banca}</span>
             </div>
           )}
           {result.anos && result.anos.length > 0 && (
             <div>
-              <span className="text-gray-400">Anos:</span>
-              <span className="text-white ml-2">{result.anos.join(', ')}</span>
+              <span className="text-gray-500">Anos:</span>
+              <span className="text-gray-900 ml-2">{result.anos.join(', ')}</span>
             </div>
           )}
           {result.started_at && (
             <div>
-              <span className="text-gray-400">Iniciada em:</span>
-              <span className="text-white ml-2">
+              <span className="text-gray-500">Iniciada em:</span>
+              <span className="text-gray-900 ml-2">
                 {new Date(result.started_at).toLocaleString('pt-BR')}
               </span>
             </div>
           )}
           {result.duration_seconds && (
             <div>
-              <span className="text-gray-400">Duracao:</span>
-              <span className="text-white ml-2">
+              <span className="text-gray-500">Duração:</span>
+              <span className="text-gray-900 ml-2">
                 {formatDuration(result.duration_seconds)}
               </span>
             </div>
@@ -666,9 +666,9 @@ function OverviewTab({ result }: { result: AnaliseResultadoDisciplina }) {
 
       {/* Errors if any */}
       {result.errors && result.errors.length > 0 && (
-        <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4">
-          <h4 className="text-red-300 font-medium mb-2">Erros durante a analise</h4>
-          <ul className="text-red-200 text-sm space-y-1">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <h4 className="text-red-700 font-medium mb-2">Erros durante a análise</h4>
+          <ul className="text-red-600 text-sm space-y-1">
             {result.errors.map((error, idx) => (
               <li key={idx}>{error}</li>
             ))}
@@ -688,7 +688,7 @@ function PatternsTab({ result }: { result: AnaliseResultadoDisciplina }) {
       {/* Temporal Patterns */}
       {temporalPatterns.length > 0 && (
         <div>
-          <h4 className="text-white font-medium mb-3">Padroes Temporais</h4>
+          <h4 className="text-gray-900 font-medium mb-3">Padrões Temporais</h4>
           <div className="space-y-3">
             {temporalPatterns.map((pattern, idx) => (
               <PatternCard key={`temporal-${idx}`} pattern={pattern} />
@@ -700,7 +700,7 @@ function PatternsTab({ result }: { result: AnaliseResultadoDisciplina }) {
       {/* Similarity Patterns */}
       {similarityPatterns.length > 0 && (
         <div>
-          <h4 className="text-white font-medium mb-3">Padroes de Similaridade</h4>
+          <h4 className="text-gray-900 font-medium mb-3">Padrões de Similaridade</h4>
           <div className="space-y-3">
             {similarityPatterns.map((pattern, idx) => (
               <PatternCard key={`similarity-${idx}`} pattern={pattern} />
@@ -710,8 +710,8 @@ function PatternsTab({ result }: { result: AnaliseResultadoDisciplina }) {
       )}
 
       {temporalPatterns.length === 0 && similarityPatterns.length === 0 && (
-        <p className="text-gray-400 text-center py-4">
-          Nenhum padrao encontrado nesta analise.
+        <p className="text-gray-500 text-center py-4">
+          Nenhum padrão encontrado nesta análise.
         </p>
       )}
     </div>
@@ -720,32 +720,32 @@ function PatternsTab({ result }: { result: AnaliseResultadoDisciplina }) {
 
 function PatternCard({ pattern }: { pattern: PatternFinding }) {
   const confidenceColors = {
-    high: 'text-green-400 bg-green-900/30',
-    medium: 'text-yellow-400 bg-yellow-900/30',
-    low: 'text-gray-400 bg-gray-800',
+    high: 'text-emerald-700 bg-emerald-50',
+    medium: 'text-amber-700 bg-amber-50',
+    low: 'text-gray-600 bg-gray-100',
   };
 
   return (
-    <div className="bg-gray-800/50 rounded-lg p-4">
+    <div className="bg-gray-50 rounded-xl p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="default">{pattern.pattern_type}</Badge>
             <span className={cn('px-2 py-0.5 rounded text-xs', confidenceColors[pattern.confidence])}>
-              {pattern.confidence === 'high' ? 'Alta' : pattern.confidence === 'medium' ? 'Media' : 'Baixa'} confianca
+              {pattern.confidence === 'high' ? 'Alta' : pattern.confidence === 'medium' ? 'Média' : 'Baixa'} confiança
             </span>
             {pattern.votes > 1 && (
-              <span className="text-gray-500 text-xs">
+              <span className="text-gray-400 text-xs">
                 ({pattern.votes} votos)
               </span>
             )}
           </div>
-          <p className="text-gray-300">{pattern.description}</p>
+          <p className="text-gray-700">{pattern.description}</p>
         </div>
       </div>
       {pattern.evidence_ids.length > 0 && (
         <div className="mt-2 text-xs text-gray-500">
-          Evidencias: {pattern.evidence_ids.slice(0, 5).join(', ')}
+          Evidências: {pattern.evidence_ids.slice(0, 5).join(', ')}
           {pattern.evidence_ids.length > 5 && ` e mais ${pattern.evidence_ids.length - 5}`}
         </div>
       )}
@@ -758,8 +758,8 @@ function VerifiedTab({ result }: { result: AnaliseResultadoDisciplina }) {
 
   if (!verifiedReport) {
     return (
-      <p className="text-gray-400 text-center py-4">
-        Nenhuma verificacao disponivel.
+      <p className="text-gray-500 text-center py-4">
+        Nenhuma verificação disponível.
       </p>
     );
   }
@@ -786,9 +786,9 @@ function VerifiedTab({ result }: { result: AnaliseResultadoDisciplina }) {
 
       {/* Cleaned Report */}
       {verifiedReport.cleaned_report && (
-        <div className="bg-gray-800/50 rounded-lg p-4">
-          <h4 className="text-white font-medium mb-3">Relatorio Verificado</h4>
-          <p className="text-gray-300 whitespace-pre-wrap text-sm">
+        <div className="bg-gray-50 rounded-xl p-4">
+          <h4 className="text-gray-900 font-medium mb-3">Relatório Verificado</h4>
+          <p className="text-gray-700 whitespace-pre-wrap text-sm">
             {verifiedReport.cleaned_report}
           </p>
         </div>
@@ -797,7 +797,7 @@ function VerifiedTab({ result }: { result: AnaliseResultadoDisciplina }) {
       {/* Verification Details */}
       {verifiedReport.verification_results.length > 0 && (
         <div>
-          <h4 className="text-white font-medium mb-3">Detalhes da Verificacao</h4>
+          <h4 className="text-gray-900 font-medium mb-3">Detalhes da Verificação</h4>
           <div className="space-y-3">
             {verifiedReport.verification_results.map((vr, idx) => (
               <VerificationCard key={idx} verification={vr} />
@@ -812,15 +812,15 @@ function VerifiedTab({ result }: { result: AnaliseResultadoDisciplina }) {
 function VerificationCard({ verification }: { verification: VerificationResult }) {
   return (
     <div className={cn(
-      'rounded-lg p-4 border',
+      'rounded-xl p-4 border',
       verification.is_verified
-        ? 'bg-green-900/20 border-green-700/50'
-        : 'bg-red-900/20 border-red-700/50'
+        ? 'bg-emerald-50 border-emerald-200'
+        : 'bg-red-50 border-red-200'
     )}>
       <div className="flex items-start gap-3">
         <div className={cn(
           'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center',
-          verification.is_verified ? 'bg-green-600' : 'bg-red-600'
+          verification.is_verified ? 'bg-emerald-500' : 'bg-red-500'
         )}>
           {verification.is_verified ? (
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -835,11 +835,11 @@ function VerificationCard({ verification }: { verification: VerificationResult }
         <div className="flex-1">
           <p className={cn(
             'font-medium',
-            verification.is_verified ? 'text-green-300' : 'text-red-300'
+            verification.is_verified ? 'text-emerald-700' : 'text-red-700'
           )}>
             {verification.claim}
           </p>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-gray-600 text-sm mt-1">
             {verification.evidence_summary}
           </p>
           {verification.notes && (
@@ -858,8 +858,8 @@ function RecommendationsTab({ result }: { result: AnaliseResultadoDisciplina }) 
 
   if (recommendations.length === 0) {
     return (
-      <p className="text-gray-400 text-center py-4">
-        Nenhuma recomendacao disponivel.
+      <p className="text-gray-500 text-center py-4">
+        Nenhuma recomendação disponível.
       </p>
     );
   }
@@ -867,11 +867,11 @@ function RecommendationsTab({ result }: { result: AnaliseResultadoDisciplina }) 
   return (
     <div className="space-y-3">
       {recommendations.map((rec, idx) => (
-        <div key={idx} className="bg-gray-800/50 rounded-lg p-4 flex items-start gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400 font-medium">
+        <div key={idx} className="bg-gray-50 rounded-xl p-4 flex items-start gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent-green)] flex items-center justify-center text-white font-medium text-sm">
             {idx + 1}
           </div>
-          <p className="text-gray-300 flex-1">{rec}</p>
+          <p className="text-gray-700 flex-1">{rec}</p>
         </div>
       ))}
     </div>
@@ -886,15 +886,21 @@ interface StatBoxProps {
 
 function StatBox({ label, value, variant = 'default' }: StatBoxProps) {
   const variantStyles = {
-    default: 'bg-gray-800/50',
-    success: 'bg-green-900/30',
-    error: 'bg-red-900/30',
+    default: 'bg-gray-50',
+    success: 'bg-emerald-50',
+    error: 'bg-red-50',
+  };
+
+  const textStyles = {
+    default: 'text-gray-900',
+    success: 'text-emerald-700',
+    error: 'text-red-700',
   };
 
   return (
-    <div className={cn('rounded-lg p-3 text-center', variantStyles[variant])}>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      <div className="text-gray-400 text-xs mt-1">{label}</div>
+    <div className={cn('rounded-xl p-3 text-center', variantStyles[variant])}>
+      <div className={cn('text-2xl font-bold', textStyles[variant])}>{value}</div>
+      <div className="text-gray-500 text-xs mt-1">{label}</div>
     </div>
   );
 }

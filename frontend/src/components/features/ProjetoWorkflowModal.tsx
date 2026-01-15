@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Modal } from '../ui/Modal';
 import { UploadProgress } from '../ui/UploadProgress';
 import type { UploadStatus } from '../ui/UploadProgress';
@@ -623,8 +624,11 @@ function DropZone({
             className={`
               inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-[13px]
               bg-[var(--accent-green)] text-white shadow-lg shadow-[var(--accent-green)]/30
-              hover:bg-[var(--accent-green-hover)] transition-all duration-200
-              ${disabled ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:scale-105'}
+              transition-all duration-200
+              ${disabled
+                ? 'pointer-events-none opacity-50'
+                : 'cursor-pointer hover:bg-[var(--accent-green-light)] hover:shadow-xl hover:shadow-[var(--accent-green)]/40 active:scale-95'
+              }
             `}
           >
             <IconUpload size={16} />
@@ -652,6 +656,7 @@ export function ProjetoWorkflowModal({
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>('idle');
   const [uploadMessage, setUploadMessage] = useState<string>('');
   const [currentFileName, setCurrentFileName] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
 
   // Extracted data states
   const [extractedEdital, setExtractedEdital] = useState<EditalUploadResponse | null>(null);
@@ -670,6 +675,7 @@ export function ProjetoWorkflowModal({
   >(null);
 
   const [selectedCargo, setSelectedCargo] = useState<string | null>(null);
+  const [projetoId, setProjetoId] = useState<string | null>(null);
 
   // Store actions
   const setActiveEdital = useAppStore((state) => state.setActiveEdital);
@@ -689,23 +695,32 @@ export function ProjetoWorkflowModal({
     setUploadStatus('uploading');
     setUploadMessage('Enviando arquivo...');
     setCurrentFileName(file.name);
+    setUploadProgress(0);
     setError('');
 
     try {
-      // Simulate upload phase briefly
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Upload with progress tracking
+      const result = await api.uploadEdital(file, (progress) => {
+        setUploadProgress(progress);
+        setUploadMessage(`Enviando arquivo... ${progress}%`);
 
-      setUploadStatus('processing');
-      setUploadMessage('Extraindo informações do edital com IA...');
+        // When upload completes, switch to processing phase
+        if (progress === 100) {
+          setUploadStatus('processing');
+          setUploadProgress(undefined);
+          setUploadMessage('Extraindo informações do edital com IA...');
+        }
+      });
 
-      const result = await api.uploadEdital(file);
       setExtractedEdital(result);
       setUploadStatus('success');
       setUploadMessage('Edital processado com sucesso!');
+      setUploadProgress(undefined);
     } catch {
       setUploadStatus('error');
       setError('Erro ao fazer upload do edital');
       setUploadMessage('');
+      setUploadProgress(undefined);
     }
   }, []);
 
@@ -717,59 +732,80 @@ export function ProjetoWorkflowModal({
       setUploadStatus('uploading');
       setUploadMessage('Enviando arquivo...');
       setCurrentFileName(file.name);
+      setUploadProgress(0);
       setError('');
 
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        setUploadStatus('processing');
-        setUploadMessage('Extraindo taxonomia do conteúdo programático...');
-
         const result = await api.uploadConteudoProgramatico(
           extractedEdital.edital_id,
           file,
-          selectedCargo || undefined
+          selectedCargo || undefined,
+          (progress) => {
+            setUploadProgress(progress);
+            setUploadMessage(`Enviando arquivo... ${progress}%`);
+
+            if (progress === 100) {
+              setUploadStatus('processing');
+              setUploadProgress(undefined);
+              setUploadMessage('Extraindo taxonomia do conteúdo programático...');
+            }
+          }
         );
+
         setExtractedTaxonomy(result);
         setUploadStatus('success');
         setUploadMessage('Conteúdo extraído com sucesso!');
+        setUploadProgress(undefined);
       } catch {
         setUploadStatus('error');
         setError('Erro ao fazer upload do conteúdo programático');
         setUploadMessage('');
+        setUploadProgress(undefined);
       }
     },
     [extractedEdital, selectedCargo]
   );
 
-  // Upload provas
+  // Upload provas - uses projetoId to ensure all provas go to the same project
   const uploadProvas = useCallback(
     async (files: File[]) => {
-      if (!extractedEdital || files.length === 0) return;
+      if (!projetoId || files.length === 0) return;
 
       setUploadStatus('uploading');
       setUploadMessage(`Enviando ${files.length} arquivo(s)...`);
       setCurrentFileName(files.map(f => f.name).join(', '));
+      setUploadProgress(0);
       setError('');
 
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const result = await api.uploadProvasProjeto(
+          projetoId,
+          files,
+          (progress) => {
+            setUploadProgress(progress);
+            setUploadMessage(`Enviando ${files.length} arquivo(s)... ${progress}%`);
 
-        setUploadStatus('processing');
-        setUploadMessage(`Extraindo questões de ${files.length} prova(s)... Isso pode demorar alguns minutos.`);
+            if (progress === 100) {
+              setUploadStatus('processing');
+              setUploadProgress(undefined);
+              setUploadMessage(`Extraindo questões de ${files.length} prova(s)... Isso pode demorar alguns minutos.`);
+            }
+          }
+        );
 
-        const result = await api.uploadProvasVinculadas(extractedEdital.edital_id, files);
         setExtractionResults(result.results);
         setUploadStatus('success');
         setUploadMessage('Extração concluída!');
+        setUploadProgress(undefined);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Erro ao fazer upload das provas';
         setUploadStatus('error');
         setError(message);
         setUploadMessage('');
+        setUploadProgress(undefined);
       }
     },
-    [extractedEdital]
+    [projetoId]
   );
 
   const handleDrop = useCallback(
@@ -838,15 +874,38 @@ export function ProjetoWorkflowModal({
     [provasFiles, uploadEdital, uploadConteudo, uploadProvas]
   );
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 1 && extractedEdital) {
       if (extractedEdital.cargos?.length > 1 && !selectedCargo) {
         setError('Por favor, selecione um cargo antes de continuar');
         return;
       }
-      setCurrentStep(2);
-      setUploadStatus('idle');
-      setUploadMessage('');
+
+      // Create the project now so that provas uploads go to this project
+      setUploadStatus('processing');
+      setUploadMessage('Criando projeto...');
+
+      try {
+        const projeto = await api.createProjeto({
+          nome: extractedEdital.nome,
+          banca: extractedEdital.banca,
+          cargo: selectedCargo || (extractedEdital.cargos?.length === 1 ? extractedEdital.cargos[0] : undefined),
+          ano: extractedEdital.ano,
+        });
+
+        // Link the edital to the project
+        await api.vincularEdital(projeto.id, extractedEdital.edital_id);
+
+        setProjetoId(projeto.id);
+        setCurrentStep(2);
+        setUploadStatus('idle');
+        setUploadMessage('');
+      } catch (err) {
+        console.error('Erro ao criar projeto:', err);
+        setUploadStatus('error');
+        setError('Erro ao criar projeto. Por favor, tente novamente.');
+        setUploadMessage('');
+      }
     } else if (currentStep === 2) {
       setCurrentStep(3);
       setUploadStatus('idle');
@@ -855,7 +914,7 @@ export function ProjetoWorkflowModal({
   };
 
   const handleFinish = async () => {
-    if (!extractedEdital || !extractionResults) return;
+    if (!extractedEdital || !extractionResults || !projetoId) return;
 
     const questoesExtraidas: Questao[] = (extractionResults || [])
       .filter((r) => r.success && r.questoes)
@@ -880,18 +939,8 @@ export function ProjetoWorkflowModal({
     const totalQuestoes = extractionResults.reduce((acc, r) => acc + (r.total_questoes || 0), 0);
     const totalProvas = extractionResults.filter((r) => r.success).length;
 
-    try {
-      const projeto = await api.createProjeto({
-        nome: extractedEdital.nome,
-        banca: extractedEdital.banca,
-        cargo: selectedCargo || undefined,
-        ano: extractedEdital.ano,
-      });
-
-      await api.vincularEdital(projeto.id, extractedEdital.edital_id);
-    } catch (err) {
-      console.error('Erro ao criar projeto:', err);
-    }
+    // Project was already created in handleNext (step 1 -> step 2 transition)
+    // No need to create another project here
 
     const editalAtivo: Edital = {
       id: extractedEdital.edital_id,
@@ -935,6 +984,7 @@ export function ProjetoWorkflowModal({
       setExtractedTaxonomy(null);
       setExtractionResults(null);
       setSelectedCargo(null);
+      setProjetoId(null);
       setUploadStatus('idle');
       setUploadMessage('');
       setCurrentFileName('');
@@ -980,145 +1030,172 @@ export function ProjetoWorkflowModal({
           <StepIndicator step={3} currentStep={currentStep} label="Provas" />
         </div>
 
-        {/* Step 1: Upload Edital */}
-        {currentStep === 1 && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
-                Upload do Edital
-              </h3>
-              <p className="text-[13px] text-[var(--text-secondary)]">
-                Faça upload do PDF do edital. A IA extrairá automaticamente as informações.
-              </p>
-            </div>
-
-            {!extractedEdital && uploadStatus === 'idle' && (
-              <DropZone
-                onDrop={(e) => handleDrop(e, 1)}
-                onFileSelect={(e) => handleFileSelect(e, 1)}
-                isDragging={isDragging}
-                setIsDragging={setIsDragging}
-                icon={IconFileText}
-                title="Arraste o PDF do edital aqui"
-                subtitle="ou clique para selecionar o arquivo"
-                inputId="edital-input"
-                disabled={isUploading}
-              />
-            )}
-
-            {(uploadStatus === 'uploading' || uploadStatus === 'processing') && !extractedEdital && (
-              <UploadProgress
-                status={uploadStatus}
-                fileName={currentFileName}
-                message={uploadMessage}
-              />
-            )}
-
-            {extractedEdital && (
-              <EditalPreview
-                data={extractedEdital}
-                selectedCargo={selectedCargo}
-                onCargoSelect={setSelectedCargo}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Upload Conteúdo Programático */}
-        {currentStep === 2 && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
-                Conteúdo Programático
-                <span className="text-[var(--text-muted)] font-normal text-[13px] ml-2">(Opcional)</span>
-              </h3>
-              <p className="text-[13px] text-[var(--text-secondary)]">
-                Faça upload do PDF com o conteúdo programático para classificação automática.
-                {selectedCargo && (
-                  <span className="text-[var(--accent-green)] font-medium"> Cargo: {selectedCargo}</span>
-                )}
-              </p>
-            </div>
-
-            {!extractedTaxonomy && uploadStatus === 'idle' && (
-              <DropZone
-                onDrop={(e) => handleDrop(e, 2)}
-                onFileSelect={(e) => handleFileSelect(e, 2)}
-                isDragging={isDragging}
-                setIsDragging={setIsDragging}
-                icon={IconBookOpen}
-                title="Arraste o conteúdo programático aqui"
-                subtitle="ou clique para selecionar (opcional)"
-                inputId="conteudo-input"
-                disabled={isUploading}
-              />
-            )}
-
-            {(uploadStatus === 'uploading' || uploadStatus === 'processing') && !extractedTaxonomy && (
-              <UploadProgress
-                status={uploadStatus}
-                fileName={currentFileName}
-                message={uploadMessage}
-              />
-            )}
-
-            {extractedTaxonomy && <TaxonomyPreview data={extractedTaxonomy} />}
-          </div>
-        )}
-
-        {/* Step 3: Upload Provas */}
-        {currentStep === 3 && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
-                Upload das Provas
-              </h3>
-              <p className="text-[13px] text-[var(--text-secondary)]">
-                Faça upload dos PDFs das provas. A IA extrairá as questões automaticamente.
-              </p>
-            </div>
-
-            {!extractionResults && uploadStatus === 'idle' && (
-              <DropZone
-                onDrop={(e) => handleDrop(e, 3)}
-                onFileSelect={(e) => handleFileSelect(e, 3)}
-                isDragging={isDragging}
-                setIsDragging={setIsDragging}
-                icon={IconFolder}
-                title="Arraste os PDFs das provas aqui"
-                subtitle="Você pode selecionar múltiplos arquivos"
-                inputId="provas-input"
-                multiple
-                disabled={isUploading}
-              />
-            )}
-
-            {(uploadStatus === 'uploading' || uploadStatus === 'processing') && !extractionResults && (
-              <UploadProgress
-                status={uploadStatus}
-                fileName={currentFileName}
-                message={uploadMessage}
-              />
-            )}
-
-            {extractionResults && <ExtractionResultsPreview results={extractionResults} />}
-
-            {extractionResults && (
-              <div className="flex justify-center">
-                <button
-                  onClick={() => {
-                    setExtractionResults(null);
-                    setProvasFiles([]);
-                    setUploadStatus('idle');
-                  }}
-                  className="text-[13px] text-[var(--accent-green)] hover:underline"
-                >
-                  Selecionar outros arquivos
-                </button>
+        {/* Steps Content with Animations */}
+        <AnimatePresence mode="wait">
+          {/* Step 1: Upload Edital */}
+          {currentStep === 1 && (
+            <motion.div
+              key="step-1"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="space-y-4"
+            >
+              <div>
+                <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
+                  Upload do Edital
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)]">
+                  Faça upload do PDF do edital. A IA extrairá automaticamente as informações.
+                </p>
               </div>
-            )}
-          </div>
-        )}
+
+              {!extractedEdital && uploadStatus === 'idle' && (
+                <DropZone
+                  onDrop={(e) => handleDrop(e, 1)}
+                  onFileSelect={(e) => handleFileSelect(e, 1)}
+                  isDragging={isDragging}
+                  setIsDragging={setIsDragging}
+                  icon={IconFileText}
+                  title="Arraste o PDF do edital aqui"
+                  subtitle="ou clique para selecionar o arquivo"
+                  inputId="edital-input"
+                  disabled={isUploading}
+                />
+              )}
+
+              {(uploadStatus === 'uploading' || uploadStatus === 'processing') && !extractedEdital && (
+                <UploadProgress
+                  status={uploadStatus}
+                  progress={uploadProgress}
+                  fileName={currentFileName}
+                  message={uploadMessage}
+                />
+              )}
+
+              {extractedEdital && (
+                <EditalPreview
+                  data={extractedEdital}
+                  selectedCargo={selectedCargo}
+                  onCargoSelect={setSelectedCargo}
+                />
+              )}
+            </motion.div>
+          )}
+
+          {/* Step 2: Upload Conteúdo Programático */}
+          {currentStep === 2 && (
+            <motion.div
+              key="step-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="space-y-4"
+            >
+              <div>
+                <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
+                  Conteúdo Programático
+                  <span className="text-[var(--text-muted)] font-normal text-[13px] ml-2">(Opcional)</span>
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)]">
+                  Faça upload do PDF com o conteúdo programático para classificação automática.
+                  {selectedCargo && (
+                    <span className="text-[var(--accent-green)] font-medium"> Cargo: {selectedCargo}</span>
+                  )}
+                </p>
+              </div>
+
+              {!extractedTaxonomy && uploadStatus === 'idle' && (
+                <DropZone
+                  onDrop={(e) => handleDrop(e, 2)}
+                  onFileSelect={(e) => handleFileSelect(e, 2)}
+                  isDragging={isDragging}
+                  setIsDragging={setIsDragging}
+                  icon={IconBookOpen}
+                  title="Arraste o conteúdo programático aqui"
+                  subtitle="ou clique para selecionar (opcional)"
+                  inputId="conteudo-input"
+                  disabled={isUploading}
+                />
+              )}
+
+              {(uploadStatus === 'uploading' || uploadStatus === 'processing') && !extractedTaxonomy && (
+                <UploadProgress
+                  status={uploadStatus}
+                  progress={uploadProgress}
+                  fileName={currentFileName}
+                  message={uploadMessage}
+                />
+              )}
+
+              {extractedTaxonomy && <TaxonomyPreview data={extractedTaxonomy} />}
+            </motion.div>
+          )}
+
+          {/* Step 3: Upload Provas */}
+          {currentStep === 3 && (
+            <motion.div
+              key="step-3"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="space-y-4"
+            >
+              <div>
+                <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-1">
+                  Upload das Provas
+                </h3>
+                <p className="text-[13px] text-[var(--text-secondary)]">
+                  Faça upload dos PDFs das provas. A IA extrairá as questões automaticamente.
+                </p>
+              </div>
+
+              {!extractionResults && uploadStatus === 'idle' && (
+                <DropZone
+                  onDrop={(e) => handleDrop(e, 3)}
+                  onFileSelect={(e) => handleFileSelect(e, 3)}
+                  isDragging={isDragging}
+                  setIsDragging={setIsDragging}
+                  icon={IconFolder}
+                  title="Arraste os PDFs das provas aqui"
+                  subtitle="Você pode selecionar múltiplos arquivos"
+                  inputId="provas-input"
+                  multiple
+                  disabled={isUploading}
+                />
+              )}
+
+              {(uploadStatus === 'uploading' || uploadStatus === 'processing') && !extractionResults && (
+                <UploadProgress
+                  status={uploadStatus}
+                  progress={uploadProgress}
+                  fileName={currentFileName}
+                  message={uploadMessage}
+                />
+              )}
+
+              {extractionResults && <ExtractionResultsPreview results={extractionResults} />}
+
+              {extractionResults && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => {
+                      setExtractionResults(null);
+                      setProvasFiles([]);
+                      setUploadStatus('idle');
+                    }}
+                    className="text-[13px] text-[var(--accent-green)] hover:underline"
+                  >
+                    Selecionar outros arquivos
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Error */}
         {error && (

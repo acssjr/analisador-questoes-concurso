@@ -52,10 +52,10 @@ interface QuestionCardProps {
 
 // Color schemes for classification tags by level
 const tagColors = {
-  disciplina: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  assunto: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  topico: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
-  subtopico: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  disciplina: 'bg-blue-100 text-blue-700 border-blue-200',
+  assunto: 'bg-purple-100 text-purple-700 border-purple-200',
+  topico: 'bg-teal-100 text-teal-700 border-teal-200',
+  subtopico: 'bg-gray-100 text-gray-600 border-gray-200',
 };
 
 interface ClassificationTagProps {
@@ -156,29 +156,29 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
 
   const getConfiancaColor = (score: number | null) => {
     if (score === null) return 'text-gray-500';
-    if (score >= 80) return 'text-green-400';
-    if (score >= 50) return 'text-yellow-400';
-    return 'text-red-400';
+    if (score >= 80) return 'text-green-600';
+    if (score >= 50) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   return (
     <div
       className={cn(
-        'bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden transition-all',
-        isExpanded && 'ring-1 ring-blue-500/50'
+        'bg-white border border-gray-200 rounded-lg overflow-hidden transition-all shadow-sm',
+        isExpanded && 'ring-1 ring-blue-400'
       )}
     >
       {/* Header - always visible */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-800/80 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
       >
-        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-700 rounded text-sm font-medium text-gray-300">
+        <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded text-sm font-medium text-gray-600">
           {questao.numero}
         </span>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-gray-300 truncate">
+          <p className="text-sm text-gray-700 truncate">
             {questao.enunciado.slice(0, 100)}
             {questao.enunciado.length > 100 && '...'}
           </p>
@@ -196,16 +196,16 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
 
         <div className="flex items-center gap-2 flex-shrink-0">
           {questao.anulada && (
-            <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">
+            <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded">
               Anulada
             </span>
           )}
           {questao.gabarito && (
-            <span className="w-6 h-6 flex items-center justify-center bg-green-500/20 text-green-400 text-xs font-medium rounded">
+            <span className="w-6 h-6 flex items-center justify-center bg-green-100 text-green-600 text-xs font-medium rounded">
               {questao.gabarito}
             </span>
           )}
-          <span className="text-gray-500">
+          <span className="text-gray-400">
             {isExpanded ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
           </span>
         </div>
@@ -213,10 +213,10 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-gray-700">
+        <div className="px-4 pb-4 border-t border-gray-200">
           {/* Full question text */}
           <div className="mt-4">
-            <p className="text-sm text-gray-300 whitespace-pre-wrap">{questao.enunciado}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{questao.enunciado}</p>
           </div>
 
           {/* Alternatives */}
@@ -229,22 +229,22 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
                     key={letra}
                     className={cn(
                       'flex items-start gap-2 p-2 rounded text-sm',
-                      isCorrect ? 'bg-green-500/10 border border-green-500/30' : 'bg-gray-700/30'
+                      isCorrect ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
                     )}
                   >
                     <span
                       className={cn(
                         'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded text-xs font-medium',
-                        isCorrect ? 'bg-green-500/30 text-green-300' : 'bg-gray-600 text-gray-400'
+                        isCorrect ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'
                       )}
                     >
                       {letra}
                     </span>
-                    <span className={cn('flex-1', isCorrect ? 'text-green-300' : 'text-gray-400')}>
+                    <span className={cn('flex-1', isCorrect ? 'text-green-700' : 'text-gray-600')}>
                       {texto}
                     </span>
                     {isCorrect && (
-                      <IconCheck size={16} className="text-green-400 flex-shrink-0 mt-0.5" />
+                      <IconCheck size={16} className="text-green-600 flex-shrink-0 mt-0.5" />
                     )}
                   </div>
                 );
@@ -254,7 +254,7 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
 
           {/* Classification tags (full view) */}
           {questao.classificacao && (
-            <div className="mt-4 pt-3 border-t border-gray-700">
+            <div className="mt-4 pt-3 border-t border-gray-200">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs text-gray-500 font-medium">Classificacao:</span>
               </div>
@@ -262,14 +262,14 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
               {questao.classificacao.item_edital_path && (
                 <div className="mt-2 text-xs text-gray-500">
                   <span className="font-medium">Caminho edital:</span>{' '}
-                  <span className="text-gray-400">{questao.classificacao.item_edital_path}</span>
+                  <span className="text-gray-600">{questao.classificacao.item_edital_path}</span>
                 </div>
               )}
             </div>
           )}
 
           {/* Metadata footer */}
-          <div className="mt-4 pt-3 border-t border-gray-700 flex items-center gap-4 text-xs">
+          <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-4 text-xs">
             {questao.confianca_score !== null && (
               <div className="flex items-center gap-1">
                 <span className="text-gray-500">Confianca:</span>
@@ -285,7 +285,7 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
               </div>
             )}
             {questao.status_extracao === 'revisar_manual' && (
-              <div className="flex items-center gap-1 text-yellow-400">
+              <div className="flex items-center gap-1 text-yellow-600">
                 <IconAlertTriangle size={12} />
                 <span>Revisar</span>
               </div>
@@ -294,12 +294,12 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
 
           {/* Anulada reason */}
           {questao.anulada && questao.motivo_anulacao && (
-            <div className="mt-3 p-2 bg-red-500/10 border border-red-500/30 rounded text-xs">
-              <div className="flex items-center gap-1 text-red-400 mb-1">
+            <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs">
+              <div className="flex items-center gap-1 text-red-600 mb-1">
                 <IconX size={12} />
                 <span className="font-medium">Motivo da anulacao:</span>
               </div>
-              <p className="text-red-300">{questao.motivo_anulacao}</p>
+              <p className="text-red-700">{questao.motivo_anulacao}</p>
             </div>
           )}
         </div>
@@ -331,9 +331,9 @@ export function QuestionPanel({
 
   if (isLoading) {
     return (
-      <div className={cn('bg-gray-900 border border-gray-800 rounded-lg p-8', className)}>
+      <div className={cn('bg-gray-50 border border-gray-200 rounded-lg p-8', className)}>
         <div className="flex items-center justify-center gap-2 text-gray-500">
-          <div className="w-4 h-4 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
           <span className="text-sm">Carregando questoes...</span>
         </div>
       </div>
@@ -342,7 +342,7 @@ export function QuestionPanel({
 
   if (!selectedDisciplina) {
     return (
-      <div className={cn('bg-gray-900 border border-gray-800 rounded-lg p-8 text-center', className)}>
+      <div className={cn('bg-gray-50 border border-gray-200 rounded-lg p-8 text-center', className)}>
         <p className="text-gray-500 text-sm">Selecione uma disciplina para ver as questoes</p>
       </div>
     );
@@ -350,18 +350,18 @@ export function QuestionPanel({
 
   if (questoes.length === 0) {
     return (
-      <div className={cn('bg-gray-900 border border-gray-800 rounded-lg p-8 text-center', className)}>
+      <div className={cn('bg-gray-50 border border-gray-200 rounded-lg p-8 text-center', className)}>
         <p className="text-gray-500 text-sm">Nenhuma questao encontrada para esta disciplina</p>
       </div>
     );
   }
 
   return (
-    <div className={cn('bg-gray-900 border border-gray-800 rounded-lg overflow-hidden', className)}>
+    <div className={cn('bg-gray-50 border border-gray-200 rounded-lg overflow-hidden', className)}>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-800 bg-gray-900/50">
+      <div className="px-4 py-3 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-gray-300">{selectedDisciplina}</h3>
+          <h3 className="text-sm font-medium text-gray-700">{selectedDisciplina}</h3>
           <span className="text-xs text-gray-500">
             {questoes.length} de {total} questoes
           </span>
