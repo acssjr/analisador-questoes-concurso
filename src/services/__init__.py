@@ -2,6 +2,7 @@
 """
 Services module - Business logic and processing services.
 """
-from src.services.queue_processor import QueueProcessor, ProcessingResult
+
+from src.services.queue_processor import ProcessingResult, QueueProcessor
 
 __all__ = ["QueueProcessor", "ProcessingResult"]

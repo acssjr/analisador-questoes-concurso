@@ -1,11 +1,11 @@
 """Tests for Analysis Pipeline Orchestrator"""
-import pytest
+
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 from src.analysis.clustering import ClusterResult
 from src.analysis.cove_service import VerifiedReport
-from src.analysis.map_service import ChunkDigest, QuestionAnalysis
+from src.analysis.map_service import ChunkDigest
 from src.analysis.pipeline import AnalysisPipeline, PipelineResult
 from src.analysis.reduce_service import AnalysisReport
 
@@ -196,9 +196,7 @@ def test_pipeline_handles_phase_1_errors():
         cove_service=MagicMock(),
     )
 
-    result = pipeline.run(
-        questoes=[{"id": "q1"}], disciplina="Test", banca="Test", anos=[2023]
-    )
+    result = pipeline.run(questoes=[{"id": "q1"}], disciplina="Test", banca="Test", anos=[2023])
 
     assert len(result.errors) > 0
     assert "Phase 1" in result.errors[0]
@@ -225,9 +223,7 @@ def test_pipeline_handles_phase_2_errors():
         cove_service=MagicMock(),
     )
 
-    result = pipeline.run(
-        questoes=[{"id": "q1"}], disciplina="Test", banca="Test", anos=[2023]
-    )
+    result = pipeline.run(questoes=[{"id": "q1"}], disciplina="Test", banca="Test", anos=[2023])
 
     # Phase 1 should complete, Phase 2 should fail
     assert "Phase 1" in result.phases_completed[0]
@@ -381,7 +377,7 @@ def test_pipeline_builds_cluster_info_for_phase_2():
         cove_service=MagicMock(),
     )
 
-    result = pipeline.run(
+    pipeline.run(
         questoes=[{"id": "q1"}, {"id": "q2"}, {"id": "q3"}],
         disciplina="Test",
         banca="Test",
@@ -435,7 +431,7 @@ def test_pipeline_similarity_report_format():
     with patch("src.analysis.pipeline.find_most_similar_pairs") as mock_similar:
         mock_similar.return_value = [("q1", "q2", 0.95)]
 
-        result = pipeline.run(
+        pipeline.run(
             questoes=[{"id": "q1"}],
             disciplina="Test",
             banca="Test",

@@ -1,6 +1,7 @@
 """
 Similarity calculation between questions
 """
+
 import numpy as np
 from loguru import logger
 from sklearn.metrics.pairwise import cosine_similarity

@@ -1,14 +1,15 @@
 """
 Relatorio model (relatórios gerados)
 """
+
 import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, Integer, String, Text, JSON
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, Date, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -16,22 +17,16 @@ from src.core.database import Base
 class Relatorio(Base):
     __tablename__ = "relatorios"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    tipo: Mapped[Optional[str]] = mapped_column(
-        String(50)
-    )  # 'disciplina', 'assunto', 'completo'
+    tipo: Mapped[Optional[str]] = mapped_column(String(50))  # 'disciplina', 'assunto', 'completo'
     titulo: Mapped[str] = mapped_column(String(255), nullable=False)
 
     disciplina: Mapped[Optional[str]] = mapped_column(String(100))
     assunto: Mapped[Optional[str]] = mapped_column(String(200))
 
     # Escopo do relatório
-    provas_analisadas: Mapped[Optional[list]] = mapped_column(
-        JSON, default=list
-    )
+    provas_analisadas: Mapped[Optional[list]] = mapped_column(JSON, default=list)
     total_questoes: Mapped[Optional[int]] = mapped_column(Integer)
     periodo_inicio: Mapped[Optional[date]] = mapped_column(Date)
     periodo_fim: Mapped[Optional[date]] = mapped_column(Date)

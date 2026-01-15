@@ -1,27 +1,26 @@
 """
 Projeto routes - CRUD for projects
 """
+
 import uuid
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from loguru import logger
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_db
-from src.models.projeto import Projeto
 from src.models.edital import Edital
-from src.models.prova import Prova
+from src.models.projeto import Projeto
 from src.models.questao import Questao
-from src.models.classificacao import Classificacao
 from src.schemas.projeto import (
     ProjetoCreate,
+    ProjetoListResponse,
     ProjetoRead,
     ProjetoReadWithEdital,
-    ProjetoUpdate,
     ProjetoStats,
-    ProjetoListResponse,
+    ProjetoUpdate,
 )
 
 router = APIRouter()
@@ -387,10 +386,7 @@ async def get_projeto_questoes(
                 q_stmt = q_stmt.where(Questao.assunto_pci == topico)
 
             # Count total before pagination
-            count_stmt = (
-                select(func.count(Questao.id))
-                .where(Questao.prova_id.in_(prova_ids))
-            )
+            count_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
             if disciplina:
                 count_stmt = count_stmt.where(Questao.disciplina == disciplina)
             if topico:
@@ -438,22 +434,24 @@ async def get_projeto_questoes(
                         "confianca_topico": c.confianca_topico,
                     }
 
-                questoes_response.append({
-                    "id": str(q.id),
-                    "numero": q.numero,
-                    "disciplina": q.disciplina,
-                    "assunto_pci": q.assunto_pci,
-                    "enunciado": q.enunciado,
-                    "alternativas": q.alternativas,
-                    "gabarito": q.gabarito,
-                    "anulada": q.anulada,
-                    "motivo_anulacao": q.motivo_anulacao,
-                    "confianca_score": q.confianca_score,
-                    "status_extracao": q.status_extracao,
-                    "prova_nome": prova.nome if prova else None,
-                    "prova_ano": prova.ano if prova else None,
-                    "classificacao": classificacao,
-                })
+                questoes_response.append(
+                    {
+                        "id": str(q.id),
+                        "numero": q.numero,
+                        "disciplina": q.disciplina,
+                        "assunto_pci": q.assunto_pci,
+                        "enunciado": q.enunciado,
+                        "alternativas": q.alternativas,
+                        "gabarito": q.gabarito,
+                        "anulada": q.anulada,
+                        "motivo_anulacao": q.motivo_anulacao,
+                        "confianca_score": q.confianca_score,
+                        "status_extracao": q.status_extracao,
+                        "prova_nome": prova.nome if prova else None,
+                        "prova_ano": prova.ano if prova else None,
+                        "classificacao": classificacao,
+                    }
+                )
 
             return {
                 "questoes": questoes_response,
@@ -537,19 +535,12 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
             topic_counts = {row[0]: row[1] for row in topic_result.all()}
 
             # Get total questions
-            total_stmt = (
-                select(func.count(Questao.id))
-                .where(Questao.prova_id.in_(prova_ids))
-            )
+            total_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
             total_result = await db.execute(total_stmt)
             total_questoes = total_result.scalar() or 0
 
             # Build incidencia tree with counts
-            incidencia = _build_incidencia_tree(
-                taxonomia,
-                disciplina_counts,
-                topic_counts
-            )
+            incidencia = _build_incidencia_tree(taxonomia, disciplina_counts, topic_counts)
 
             return {
                 "has_taxonomia": True,
@@ -570,9 +561,10 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
 def _normalize_for_matching(text: str) -> str:
     """Normalize text for case-insensitive matching."""
     import unicodedata
+
     # Remove accents and convert to lowercase
-    normalized = unicodedata.normalize('NFD', text)
-    without_accents = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    normalized = unicodedata.normalize("NFD", text)
+    without_accents = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
     return without_accents.lower().strip()
 
 
@@ -594,9 +586,7 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
 
 
 def _build_incidencia_tree(
-    taxonomia: dict,
-    disciplina_counts: dict,
-    topic_counts: dict | None = None
+    taxonomia: dict, disciplina_counts: dict, topic_counts: dict | None = None
 ) -> list:
     """
     Build an incidencia tree from the taxonomia structure with question counts.
@@ -655,35 +645,45 @@ def _build_incidencia_tree(
 
                     subtopico_children = []
                     for subtopico in topico.get("subtopicos", []):
-                        subtopico_nome = subtopico if isinstance(subtopico, str) else subtopico.get("nome", "")
+                        subtopico_nome = (
+                            subtopico if isinstance(subtopico, str) else subtopico.get("nome", "")
+                        )
                         subtopico_count = _find_count_case_insensitive(subtopico_nome, topic_counts)
-                        subtopico_children.append({
-                            "id": f"subtopico-{len(subtopico_children)}",
-                            "nome": subtopico_nome,
-                            "count": subtopico_count,
-                            "children": [],
-                        })
+                        subtopico_children.append(
+                            {
+                                "id": f"subtopico-{len(subtopico_children)}",
+                                "nome": subtopico_nome,
+                                "count": subtopico_count,
+                                "children": [],
+                            }
+                        )
 
-                    topico_children.append({
-                        "id": f"topico-{len(topico_children)}",
-                        "nome": topico_nome,
-                        "count": topico_count,
-                        "children": subtopico_children,
-                    })
+                    topico_children.append(
+                        {
+                            "id": f"topico-{len(topico_children)}",
+                            "nome": topico_nome,
+                            "count": topico_count,
+                            "children": subtopico_children,
+                        }
+                    )
 
-                children.append({
-                    "id": f"assunto-{len(children)}",
-                    "nome": assunto_nome,
-                    "count": assunto_count,
-                    "children": topico_children,
-                })
+                children.append(
+                    {
+                        "id": f"assunto-{len(children)}",
+                        "nome": assunto_nome,
+                        "count": assunto_count,
+                        "children": topico_children,
+                    }
+                )
 
-        incidencia.append({
-            "id": f"disciplina-{idx}",
-            "nome": disc_nome,
-            "count": disc_count,
-            "children": children,
-        })
+        incidencia.append(
+            {
+                "id": f"disciplina-{idx}",
+                "nome": disc_nome,
+                "count": disc_count,
+                "children": children,
+            }
+        )
 
     return incidencia
 
@@ -706,11 +706,13 @@ def _build_item_children(itens: list, topic_counts: dict | None, parent_path: st
         filhos = item.get("filhos", [])
         item_children = _build_item_children(filhos, topic_counts, full_path) if filhos else []
 
-        children.append({
-            "id": item_id,
-            "nome": item_texto,
-            "count": item_count,
-            "children": item_children,
-        })
+        children.append(
+            {
+                "id": item_id,
+                "nome": item_texto,
+                "count": item_count,
+                "children": item_children,
+            }
+        )
 
     return children

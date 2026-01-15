@@ -2,6 +2,7 @@
 Deep Analysis Pipeline Orchestrator
 Coordinates all 4 phases of the analysis pipeline
 """
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
@@ -96,9 +97,7 @@ class AnalysisPipeline:
             started_at=datetime.now(),
         )
 
-        logger.info(
-            f"Starting analysis pipeline for {disciplina}: {len(questoes)} questions"
-        )
+        logger.info(f"Starting analysis pipeline for {disciplina}: {len(questoes)} questions")
 
         try:
             # Phase 1: Vetorizacao
@@ -144,9 +143,7 @@ class AnalysisPipeline:
 
             # Cluster embeddings
             logger.info("Clustering embeddings...")
-            result.cluster_result = self.clustering_service.cluster_embeddings(
-                embeddings
-            )
+            result.cluster_result = self.clustering_service.cluster_embeddings(embeddings)
 
             # Find similar pairs
             logger.info("Finding similar pairs...")
@@ -182,22 +179,17 @@ class AnalysisPipeline:
             cluster_info = {}
             if result.cluster_result:
                 for cluster_id in result.cluster_result.cluster_sizes.keys():
-                    cluster_info[cluster_id] = (
-                        self.clustering_service.get_cluster_questions(
-                            result.cluster_result,
-                            [
-                                str(q.get("id", q.get("numero", i)))
-                                for i, q in enumerate(questoes)
-                            ],
-                            cluster_id,
-                        )
+                    cluster_info[cluster_id] = self.clustering_service.get_cluster_questions(
+                        result.cluster_result,
+                        [str(q.get("id", q.get("numero", i))) for i, q in enumerate(questoes)],
+                        cluster_id,
                     )
 
             # Analyze each chunk
             result.chunk_digests = []
             for i, chunk in enumerate(chunks):
                 digest = self.map_service.analyze_chunk(
-                    chunk_id=f"chunk_{i+1}",
+                    chunk_id=f"chunk_{i + 1}",
                     questoes=chunk,
                     disciplina=disciplina,
                     banca=banca,
@@ -231,12 +223,9 @@ class AnalysisPipeline:
             # Build similarity report from Phase 1
             similarity_report = {
                 "similar_pairs": [
-                    {"q1": p[0], "q2": p[1], "score": p[2]}
-                    for p in result.similar_pairs
+                    {"q1": p[0], "q2": p[1], "score": p[2]} for p in result.similar_pairs
                 ],
-                "clusters": (
-                    result.cluster_result.n_clusters if result.cluster_result else 0
-                ),
+                "clusters": (result.cluster_result.n_clusters if result.cluster_result else 0),
             }
 
             # Run synthesis

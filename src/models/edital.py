@@ -1,14 +1,15 @@
 """
 Edital model (taxonomia hierárquica)
 """
+
 import uuid
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, String, JSON, ForeignKey
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -19,9 +20,7 @@ if TYPE_CHECKING:
 class Edital(Base):
     __tablename__ = "editais"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nome: Mapped[str] = mapped_column(String(255), nullable=False)
     banca: Mapped[Optional[str]] = mapped_column(String(100))
     cargo: Mapped[Optional[str]] = mapped_column(String(200))
@@ -60,9 +59,7 @@ class Edital(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     # Relationship back to Projeto
-    projeto: Mapped[Optional["Projeto"]] = relationship(
-        "Projeto", back_populates="edital"
-    )
+    projeto: Mapped[Optional["Projeto"]] = relationship("Projeto", back_populates="edital")
 
     def __repr__(self) -> str:
         return f"<Edital(id={self.id}, nome='{self.nome}', banca='{self.banca}')>"

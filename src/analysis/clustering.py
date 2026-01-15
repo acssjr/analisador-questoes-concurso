@@ -2,11 +2,12 @@
 Clustering service using HDBSCAN for automatic cluster detection
 Part of Phase 1 (Vetorizacao) of the deep analysis pipeline
 """
+
 from dataclasses import dataclass
-import numpy as np
-from loguru import logger
 
 import hdbscan
+import numpy as np
+from loguru import logger
 from umap import UMAP
 
 

@@ -9,6 +9,7 @@ Scoring criteria (total 100 points):
 - 15 pts: Disciplina matches edital
 - 15 pts: Format consistent (has numero, no missing fields)
 """
+
 import unicodedata
 from typing import Optional
 
@@ -17,18 +18,14 @@ def normalize_text(text: str) -> str:
     """Normalize text for comparison (lowercase, no accents)"""
     if not text:
         return ""
-    nfkd = unicodedata.normalize('NFKD', text.lower())
-    return ''.join(c for c in nfkd if not unicodedata.combining(c))
+    nfkd = unicodedata.normalize("NFKD", text.lower())
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
 class ConfidenceScorer:
     """Calculate confidence score for extracted questions"""
 
-    def calculate(
-        self,
-        questao: dict,
-        edital_disciplinas: Optional[list[str]] = None
-    ) -> dict:
+    def calculate(self, questao: dict, edital_disciplinas: Optional[list[str]] = None) -> dict:
         """
         Calculate confidence score for a question.
 
@@ -103,11 +100,7 @@ class ConfidenceScorer:
         # Calculate total
         score = sum(detalhes.values())
 
-        return {
-            "score": score,
-            "detalhes": detalhes,
-            "nivel": self._get_nivel(score)
-        }
+        return {"score": score, "detalhes": detalhes, "nivel": self._get_nivel(score)}
 
     def _get_nivel(self, score: int) -> str:
         """Get confidence level from score"""

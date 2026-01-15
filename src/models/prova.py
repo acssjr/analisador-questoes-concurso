@@ -1,14 +1,15 @@
 """
 Prova model
 """
+
 import uuid
 from datetime import date, datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Date, Float, Integer, String, Text, JSON, ForeignKey
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, Date, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -19,9 +20,7 @@ if TYPE_CHECKING:
 class Prova(Base):
     __tablename__ = "provas"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nome: Mapped[str] = mapped_column(String(255), nullable=False)
     banca: Mapped[Optional[str]] = mapped_column(String(100))
     cargo: Mapped[Optional[str]] = mapped_column(String(200))
@@ -44,9 +43,7 @@ class Prova(Base):
     )  # 'extraido', 'classificado', 'analisado'
 
     # Queue processing status
-    queue_status: Mapped[str] = mapped_column(
-        String(50), default="pending"
-    )
+    queue_status: Mapped[str] = mapped_column(String(50), default="pending")
     """
     Queue status:
     - pending: Aguardando processamento
@@ -70,14 +67,10 @@ class Prova(Base):
     metadados: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    projeto: Mapped[Optional["Projeto"]] = relationship(
-        "Projeto", back_populates="provas"
-    )
+    projeto: Mapped[Optional["Projeto"]] = relationship("Projeto", back_populates="provas")
     questoes: Mapped[list["Questao"]] = relationship(
         "Questao", back_populates="prova", cascade="all, delete-orphan"
     )
@@ -86,11 +79,11 @@ class Prova(Base):
         """Initialize Prova with column defaults applied at instantiation time."""
         # Apply column defaults if not provided in kwargs
         defaults = {
-            'queue_status': 'pending',
-            'queue_retry_count': 0,
-            'total_questoes': 0,
-            'total_anuladas': 0,
-            'status': 'extraido',
+            "queue_status": "pending",
+            "queue_retry_count": 0,
+            "total_questoes": 0,
+            "total_anuladas": 0,
+            "status": "extraido",
         }
         for key, value in defaults.items():
             if key not in kwargs:

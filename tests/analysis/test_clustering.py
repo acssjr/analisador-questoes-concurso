@@ -1,6 +1,7 @@
 """Tests for clustering service"""
-import pytest
+
 import numpy as np
+
 from src.analysis.clustering import ClusteringService, ClusterResult
 
 

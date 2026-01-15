@@ -1,13 +1,24 @@
 """
 FastAPI application
 """
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from src.api.routes import analise, classificacao, editais, projetos, provas, questoes, relatorios, sistema, upload
+from src.api.routes import (
+    analise,
+    classificacao,
+    editais,
+    projetos,
+    provas,
+    questoes,
+    relatorios,
+    sistema,
+    upload,
+)
 from src.core.config import get_settings
 from src.core.database import close_db, init_db
 

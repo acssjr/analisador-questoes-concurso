@@ -1,6 +1,6 @@
 # tests/extraction/test_confidence_scorer.py
 """Tests for ConfidenceScorer - TDD approach"""
-import pytest
+
 from src.extraction.confidence_scorer import ConfidenceScorer
 
 
@@ -14,9 +14,15 @@ class TestConfidenceScorer:
         questao = {
             "numero": 1,
             "enunciado": "Este e um enunciado de teste com tamanho adequado para uma questao de concurso publico.",
-            "alternativas": {"A": "Opcao A", "B": "Opcao B", "C": "Opcao C", "D": "Opcao D", "E": "Opcao E"},
+            "alternativas": {
+                "A": "Opcao A",
+                "B": "Opcao B",
+                "C": "Opcao C",
+                "D": "Opcao D",
+                "E": "Opcao E",
+            },
             "gabarito": "A",
-            "disciplina": "Portugues"
+            "disciplina": "Portugues",
         }
 
         edital_disciplinas = ["portugues", "matematica"]
@@ -36,7 +42,7 @@ class TestConfidenceScorer:
             "enunciado": "A" * 100,  # Good length
             "alternativas": {"A": "1", "B": "2", "C": "3", "D": "4", "E": "5"},
             "gabarito": "A",
-            "disciplina": "Portugues"
+            "disciplina": "Portugues",
         }
 
         result = scorer.calculate(questao, ["portugues"])
@@ -64,7 +70,7 @@ class TestConfidenceScorer:
             "enunciado": "A" * 100,
             "alternativas": {"A": "1", "B": "2", "C": "3", "D": "4", "E": "5"},
             "gabarito": "A",
-            "disciplina": "Portugues"
+            "disciplina": "Portugues",
         }
 
         result = scorer.calculate(questao_alta, ["portugues"])
@@ -97,7 +103,7 @@ class TestConfidenceScorer:
         # 5 valid alternatives (A-E) -> 25 pts
         questao_5alt = {
             "enunciado": "Test",
-            "alternativas": {"A": "1", "B": "2", "C": "3", "D": "4", "E": "5"}
+            "alternativas": {"A": "1", "B": "2", "C": "3", "D": "4", "E": "5"},
         }
         result = scorer.calculate(questao_5alt, [])
         assert result["detalhes"]["alternativas_validas"] == 25
@@ -105,16 +111,13 @@ class TestConfidenceScorer:
         # 4 valid alternatives -> 25 pts
         questao_4alt = {
             "enunciado": "Test",
-            "alternativas": {"A": "1", "B": "2", "C": "3", "D": "4"}
+            "alternativas": {"A": "1", "B": "2", "C": "3", "D": "4"},
         }
         result = scorer.calculate(questao_4alt, [])
         assert result["detalhes"]["alternativas_validas"] == 25
 
         # 3 alternatives -> 15 pts (partial)
-        questao_3alt = {
-            "enunciado": "Test",
-            "alternativas": {"A": "1", "B": "2", "C": "3"}
-        }
+        questao_3alt = {"enunciado": "Test", "alternativas": {"A": "1", "B": "2", "C": "3"}}
         result = scorer.calculate(questao_3alt, [])
         assert result["detalhes"]["alternativas_validas"] == 15
 
@@ -159,19 +162,12 @@ class TestConfidenceScorer:
         scorer = ConfidenceScorer()
 
         # Has numero and all fields -> 15 pts
-        questao_complete = {
-            "numero": 1,
-            "enunciado": "Test",
-            "alternativas": {"A": "1"}
-        }
+        questao_complete = {"numero": 1, "enunciado": "Test", "alternativas": {"A": "1"}}
         result = scorer.calculate(questao_complete, [])
         assert result["detalhes"]["formato_consistente"] == 15
 
         # Missing numero -> 10 pts
-        questao_no_numero = {
-            "enunciado": "Test",
-            "alternativas": {"A": "1"}
-        }
+        questao_no_numero = {"enunciado": "Test", "alternativas": {"A": "1"}}
         result = scorer.calculate(questao_no_numero, [])
         assert result["detalhes"]["formato_consistente"] == 10
 

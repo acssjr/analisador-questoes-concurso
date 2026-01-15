@@ -18,18 +18,6 @@ from src.core.config import get_settings
 from src.core.database import Base
 
 # Import all models to ensure they're registered with Base.metadata
-from src.models import (
-    Projeto,
-    Prova,
-    Questao,
-    Edital,
-    Classificacao,
-    Embedding,
-    Cluster,
-    ClusterQuestao,
-    Similaridade,
-    Relatorio,
-)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

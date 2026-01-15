@@ -1,8 +1,8 @@
 """
 Report generator - orchestrates report generation
 """
+
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 from loguru import logger
@@ -110,7 +110,7 @@ class ReportGenerator:
 
         for assunto, count in sorted_assuntos[:5]:  # Top 5 assuntos
             md += f"### 2.{sorted_assuntos.index((assunto, count)) + 1} {assunto}\n\n"
-            md += f"**Incidência:** {count} questões ({(count/len(questoes))*100:.1f}%)\n\n"
+            md += f"**Incidência:** {count} questões ({(count / len(questoes)) * 100:.1f}%)\n\n"
 
             # Find questions of this assunto
             assunto_questoes = [
@@ -160,6 +160,6 @@ class ReportGenerator:
             md += f"   - Tempo sugerido de estudo: {int(percentage * 0.5)} horas\n\n"
 
         md += "\n---\n\n"
-        md += f"*Relatório gerado automaticamente pelo Analisador de Questões v0.1.0*\n"
+        md += "*Relatório gerado automaticamente pelo Analisador de Questões v0.1.0*\n"
 
         return md

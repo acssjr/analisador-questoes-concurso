@@ -1,6 +1,7 @@
 """
 CLI application using Typer
 """
+
 import typer
 from rich.console import Console
 

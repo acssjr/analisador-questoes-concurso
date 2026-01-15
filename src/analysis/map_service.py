@@ -2,9 +2,11 @@
 Map Service - Phase 2 of the Deep Analysis Pipeline
 Processes chunks of questions using Llama 4 Scout via Groq
 """
+
+import json
 from dataclasses import dataclass
 from typing import Optional
-import json
+
 from loguru import logger
 
 from src.llm.llm_orchestrator import LLMOrchestrator
@@ -13,6 +15,7 @@ from src.llm.llm_orchestrator import LLMOrchestrator
 @dataclass
 class QuestionAnalysis:
     """Analysis result for a single question"""
+
     questao_id: str
     difficulty: str  # 'easy', 'medium', 'hard', 'very_hard'
     difficulty_reasoning: str
@@ -24,6 +27,7 @@ class QuestionAnalysis:
 @dataclass
 class ChunkDigest:
     """Digest result for a chunk of questions"""
+
     chunk_id: str
     summary: str  # 2-3 sentence summary of patterns in this chunk
     patterns_found: list[dict]  # {type, description, evidence_ids, confidence}
@@ -44,11 +48,7 @@ class MapService:
     def __init__(self, llm: Optional[LLMOrchestrator] = None):
         self.llm = llm or LLMOrchestrator()
 
-    def create_chunks(
-        self,
-        questoes: list[dict],
-        chunk_size: int = CHUNK_SIZE
-    ) -> list[list[dict]]:
+    def create_chunks(self, questoes: list[dict], chunk_size: int = CHUNK_SIZE) -> list[list[dict]]:
         """
         Split questions into chunks for parallel processing
 
@@ -61,7 +61,7 @@ class MapService:
         """
         chunks = []
         for i in range(0, len(questoes), chunk_size):
-            chunks.append(questoes[i:i + chunk_size])
+            chunks.append(questoes[i : i + chunk_size])
         logger.info(f"Created {len(chunks)} chunks from {len(questoes)} questions")
         return chunks
 
@@ -96,20 +96,19 @@ class MapService:
             disciplina=disciplina,
             banca=banca,
             questoes_json=questoes_json,
-            cluster_info=cluster_info
+            cluster_info=cluster_info,
         )
 
         try:
             # Call LLM with the analysis prompt
             response = self.llm.generate(
-                prompt,
-                temperature=0.3,
-                max_tokens=8000,
-                preferred_provider="groq"
+                prompt, temperature=0.3, max_tokens=8000, preferred_provider="groq"
             )
 
             # Extract text content from response dict
-            response_text = response.get("text", "") if isinstance(response, dict) else str(response)
+            response_text = (
+                response.get("text", "") if isinstance(response, dict) else str(response)
+            )
 
             # Parse the response
             return self._parse_response(chunk_id, response_text, questoes)
@@ -121,7 +120,7 @@ class MapService:
                 chunk_id=chunk_id,
                 summary=f"Erro na analise: {str(e)[:100]}",
                 patterns_found=[],
-                questions_analysis=[]
+                questions_analysis=[],
             )
 
     def _build_analysis_prompt(
@@ -206,12 +205,7 @@ Apos analise, gere JSON conforme schema.
 }}
 </output_schema>"""
 
-    def _parse_response(
-        self,
-        chunk_id: str,
-        response: str,
-        questoes: list[dict]
-    ) -> ChunkDigest:
+    def _parse_response(self, chunk_id: str, response: str, questoes: list[dict]) -> ChunkDigest:
         """Parse LLM response into ChunkDigest"""
         try:
             # Extract JSON from response (may be wrapped in markdown code blocks)
@@ -226,20 +220,22 @@ Apos analise, gere JSON conforme schema.
             # Build QuestionAnalysis objects
             analyses = []
             for qa in data.get("questions_analysis", []):
-                analyses.append(QuestionAnalysis(
-                    questao_id=qa.get("id", ""),
-                    difficulty=qa.get("difficulty", "medium"),
-                    difficulty_reasoning=qa.get("difficulty_reasoning", ""),
-                    bloom_level=qa.get("bloom_level", "understand"),
-                    has_trap=qa.get("has_trap", False),
-                    trap_description=qa.get("trap_description")
-                ))
+                analyses.append(
+                    QuestionAnalysis(
+                        questao_id=qa.get("id", ""),
+                        difficulty=qa.get("difficulty", "medium"),
+                        difficulty_reasoning=qa.get("difficulty_reasoning", ""),
+                        bloom_level=qa.get("bloom_level", "understand"),
+                        has_trap=qa.get("has_trap", False),
+                        trap_description=qa.get("trap_description"),
+                    )
+                )
 
             return ChunkDigest(
                 chunk_id=chunk_id,
                 summary=data.get("chunk_digest", ""),
                 patterns_found=data.get("patterns_found", []),
-                questions_analysis=analyses
+                questions_analysis=analyses,
             )
 
         except json.JSONDecodeError as e:
@@ -248,5 +244,5 @@ Apos analise, gere JSON conforme schema.
                 chunk_id=chunk_id,
                 summary="Erro ao parsear resposta JSON",
                 patterns_found=[],
-                questions_analysis=[]
+                questions_analysis=[],
             )

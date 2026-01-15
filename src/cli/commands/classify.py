@@ -1,6 +1,7 @@
 """
 Classify command - classify extracted questions
 """
+
 import json
 from pathlib import Path
 
@@ -73,7 +74,7 @@ def questions(
                 indent=2,
             )
 
-        console.print(f"\n[bold green]✓ Classification complete![/bold green]")
+        console.print("\n[bold green]✓ Classification complete![/bold green]")
         console.print(f"Saved to: [bold]{output}[/bold]")
 
     except Exception as e:

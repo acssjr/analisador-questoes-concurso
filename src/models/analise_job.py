@@ -1,14 +1,15 @@
 """
 AnaliseJob model - tracks deep analysis jobs per project/discipline
 """
+
 import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, JSON
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -20,11 +21,10 @@ class AnaliseJob(Base):
     Each analysis job corresponds to running the 4-phase pipeline
     for a specific discipline within a project.
     """
+
     __tablename__ = "analise_jobs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Link to projeto
     projeto_id: Mapped[uuid.UUID] = mapped_column(
@@ -97,9 +97,7 @@ class AnaliseJob(Base):
     started_at: Mapped[Optional[datetime]] = mapped_column()
     completed_at: Mapped[Optional[datetime]] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     # Relationships
     projeto: Mapped["Projeto"] = relationship("Projeto", backref="analise_jobs")

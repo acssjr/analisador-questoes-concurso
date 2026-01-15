@@ -1,8 +1,8 @@
 """
 Logging configuration using loguru
 """
+
 import sys
-from pathlib import Path
 
 from loguru import logger
 

@@ -1,6 +1,7 @@
 """
 LLM-based prova extractor - extracts questions from any PDF format using LLM
 """
+
 import json
 import re
 from pathlib import Path
@@ -32,14 +33,14 @@ def detect_questions_start_page(pdf_path: str | Path) -> int:
             text = doc[page_num].get_text().lower()
 
             # Look for question patterns
-            has_questao = bool(re.search(r'quest[aã]o\s*0?1\b', text))
-            has_alternativas = bool(re.search(r'\([a-e]\)', text))
+            has_questao = bool(re.search(r"quest[aã]o\s*0?1\b", text))
+            has_alternativas = bool(re.search(r"\([a-e]\)", text))
 
             # Skip pages that are clearly not questions
-            is_cover = 'leia atentamente' in text or 'instruções' in text
-            is_rascunho = 'rascunho' in text and len(text) < 500
+            is_cover = "leia atentamente" in text or "instruções" in text
+            is_rascunho = "rascunho" in text and len(text) < 500
 
-            if has_questao and has_alternativas and not is_rascunho:
+            if has_questao and has_alternativas and not is_rascunho and not is_cover:
                 logger.info(f"Questions detected starting at page {page_num + 1}")
                 doc.close()
                 return page_num
@@ -73,7 +74,9 @@ def extract_prova_text(pdf_path: str | Path, max_pages: int = 50) -> str:
             text += doc[page_num].get_text()
 
         doc.close()
-        logger.debug(f"Extracted {len(text)} chars from prova PDF ({min(max_pages, len(doc))} pages)")
+        logger.debug(
+            f"Extracted {len(text)} chars from prova PDF ({min(max_pages, len(doc))} pages)"
+        )
 
         return text
 
@@ -85,7 +88,7 @@ def extract_prova_text(pdf_path: str | Path, max_pages: int = 50) -> str:
 def extract_questoes_with_llm(
     pdf_path: str | Path,
     taxonomia: Optional[dict] = None,
-    batch_size: int = 3  # Reduced to avoid truncation
+    batch_size: int = 3,  # Reduced to avoid truncation
 ) -> dict:
     """
     Extract questions from prova PDF using LLM
@@ -110,7 +113,9 @@ def extract_questoes_with_llm(
 
         # Detect where questions actually start (skip cover/rascunho)
         start_page = detect_questions_start_page(pdf_path)
-        logger.info(f"Extracting questions from prova: {pdf_path} ({total_pages} pages, starting at page {start_page + 1})")
+        logger.info(
+            f"Extracting questions from prova: {pdf_path} ({total_pages} pages, starting at page {start_page + 1})"
+        )
 
         all_questoes = []
         metadados = {"banca": None, "cargo": None, "ano": None}
@@ -129,7 +134,7 @@ def extract_questoes_with_llm(
             for page_num in range(batch_start, batch_end):
                 page_text = doc[page_num].get_text()
                 # Skip essay pages
-                if 'REDAÇÃO' in page_text.upper() and 'dissertativo' in page_text.lower():
+                if "REDAÇÃO" in page_text.upper() and "dissertativo" in page_text.lower():
                     logger.info(f"Skipping essay section at page {page_num + 1}")
                     continue
                 batch_text += f"\n--- PÁGINA {page_num + 1} ---\n"
@@ -142,10 +147,7 @@ def extract_questoes_with_llm(
 
             # Extract questions from this batch
             batch_result = _extract_batch_with_llm(
-                batch_text,
-                batch_start + 1,
-                taxonomia,
-                is_first_batch=(batch_start == start_page)
+                batch_text, batch_start + 1, taxonomia, is_first_batch=(batch_start == start_page)
             )
 
             all_questoes.extend(batch_result.get("questoes", []))
@@ -162,10 +164,7 @@ def extract_questoes_with_llm(
 
         logger.info(f"Extracted {len(unique_questoes)} unique questions from prova")
 
-        return {
-            "metadados": metadados,
-            "questoes": unique_questoes
-        }
+        return {"metadados": metadados, "questoes": unique_questoes}
 
     except Exception as e:
         logger.error(f"Failed to extract questions with LLM: {e}")
@@ -177,28 +176,41 @@ def _extract_metadata_from_cover(cover_text: str) -> dict:
     metadados = {"banca": None, "cargo": None, "ano": None}
 
     # Common bancas
-    bancas = ["IDCAP", "FCC", "CESPE", "CEBRASPE", "VUNESP", "FGV", "CESGRANRIO",
-              "QUADRIX", "IBFC", "AOCP", "FUNDATEC", "IADES", "FUNDEP"]
+    bancas = [
+        "IDCAP",
+        "FCC",
+        "CESPE",
+        "CEBRASPE",
+        "VUNESP",
+        "FGV",
+        "CESGRANRIO",
+        "QUADRIX",
+        "IBFC",
+        "AOCP",
+        "FUNDATEC",
+        "IADES",
+        "FUNDEP",
+    ]
     for banca in bancas:
         if banca.upper() in cover_text.upper():
             metadados["banca"] = banca
             break
 
     # Extract year
-    year_match = re.search(r'(20\d{2})', cover_text)
+    year_match = re.search(r"(20\d{2})", cover_text)
     if year_match:
         metadados["ano"] = int(year_match.group(1))
 
     # Extract cargo (common patterns)
     cargo_patterns = [
-        r'(?:cargo|função)[:\s]*([^\n]+)',
-        r'técnico[^\n]*',
-        r'analista[^\n]*',
+        r"(?:cargo|função)[:\s]*([^\n]+)",
+        r"técnico[^\n]*",
+        r"analista[^\n]*",
     ]
     for pattern in cargo_patterns:
         match = re.search(pattern, cover_text, re.IGNORECASE)
         if match:
-            cargo = match.group(1) if '(' in pattern else match.group(0)
+            cargo = match.group(1) if "(" in pattern else match.group(0)
             metadados["cargo"] = cargo.strip()[:100]  # Limit length
             break
 
@@ -206,10 +218,7 @@ def _extract_metadata_from_cover(cover_text: str) -> dict:
 
 
 def _extract_batch_with_llm(
-    text: str,
-    start_page: int,
-    taxonomia: Optional[dict] = None,
-    is_first_batch: bool = False
+    text: str, start_page: int, taxonomia: Optional[dict] = None, is_first_batch: bool = False
 ) -> dict:
     """
     Extract questions from a batch of text using LLM
@@ -229,7 +238,7 @@ def _extract_batch_with_llm(
         disciplinas_list = [d["nome"] for d in taxonomia["disciplinas"]]
         taxonomia_hint = f"""
 DISCIPLINAS DO EDITAL (use para classificar as questões):
-{', '.join(disciplinas_list)}
+{", ".join(disciplinas_list)}
 """
 
     prompt = f"""Extraia TODAS as questões deste trecho de prova de concurso.
@@ -375,10 +384,7 @@ IMPORTANTE:
         return {"metadados": {}, "questoes": []}
 
 
-def classify_questoes_with_taxonomia(
-    questoes: list,
-    taxonomia: dict
-) -> list:
+def classify_questoes_with_taxonomia(questoes: list, taxonomia: dict) -> list:
     """
     Classify extracted questions using the edital's taxonomia
 
@@ -400,5 +406,7 @@ def classify_questoes_with_taxonomia(
     # Full classification will be implemented as a separate endpoint
     # to allow user control over when this expensive operation runs
 
-    logger.info(f"Classification with taxonomia: {len(questoes)} questions ready for classification")
+    logger.info(
+        f"Classification with taxonomia: {len(questoes)} questions ready for classification"
+    )
     return questoes

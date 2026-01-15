@@ -5,6 +5,7 @@ Phase 1: Safe strategies (0% quality loss)
 - Context pruning: removes formatting noise
 - Token estimation: helps with batching decisions
 """
+
 import re
 from typing import Optional
 
@@ -37,29 +38,29 @@ def prune_context(text: Optional[str]) -> str:
     # Remove question number prefixes FIRST (they often come before banca info)
     # Matches: "Questão 42:", "QUESTÃO 15 -", "Q.42:", "01)", "42 -"
     patterns = [
-        r'^Questão\s+\d+[.:]\s*',      # Questão 42: or Questão 42.
-        r'^QUESTÃO\s+\d+\s*[-–]\s*',   # QUESTÃO 15 -
-        r'^Q\.\s*\d+[.:]\s*',          # Q.42:
-        r'^\d+\)\s*',                   # 01)
-        r'^\d+\s*[-–]\s*',             # 42 -
+        r"^Questão\s+\d+[.:]\s*",  # Questão 42: or Questão 42.
+        r"^QUESTÃO\s+\d+\s*[-–]\s*",  # QUESTÃO 15 -
+        r"^Q\.\s*\d+[.:]\s*",  # Q.42:
+        r"^\d+\)\s*",  # 01)
+        r"^\d+\s*[-–]\s*",  # 42 -
     ]
 
     for pattern in patterns:
-        result = re.sub(pattern, '', result, flags=re.IGNORECASE)
+        result = re.sub(pattern, "", result, flags=re.IGNORECASE)
 
     # Remove banca/exam info in parentheses (now at the start after question number removed)
     # Matches: (CESPE 2023), (FCC - 2022), (VUNESP/2021), (Prova: CESPE/CEBRASPE - 2023)
     # Also matches: (TRF 3ª Região - Analista)
     result = re.sub(
-        r'^\s*\([^)]*(?:CESPE|FCC|VUNESP|CEBRASPE|FGV|ESAF|IBFC|CESGRANRIO|'
-        r'Prova|TRF|TRT|TRE|STF|STJ|MPU|MPF|Região|Analista|Técnico)[^)]*\)\s*',
-        '',
+        r"^\s*\([^)]*(?:CESPE|FCC|VUNESP|CEBRASPE|FGV|ESAF|IBFC|CESGRANRIO|"
+        r"Prova|TRF|TRT|TRE|STF|STJ|MPU|MPF|Região|Analista|Técnico)[^)]*\)\s*",
+        "",
         result,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     # Collapse multiple whitespace to single space
-    result = re.sub(r'\s+', ' ', result)
+    result = re.sub(r"\s+", " ", result)
 
     # Strip leading/trailing whitespace
     result = result.strip()

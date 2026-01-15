@@ -1,6 +1,7 @@
 """
 Configuration management using Pydantic Settings
 """
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal

@@ -1,8 +1,9 @@
 """Tests for Reduce Service"""
-import pytest
-from unittest.mock import MagicMock, patch
-from src.analysis.reduce_service import ReduceService, AnalysisReport, PatternFinding
+
+from unittest.mock import MagicMock
+
 from src.analysis.map_service import ChunkDigest, QuestionAnalysis
+from src.analysis.reduce_service import AnalysisReport, PatternFinding, ReduceService
 
 
 def test_reduce_service_initialization():
@@ -30,7 +31,7 @@ def test_format_digests():
             chunk_id="chunk_1",
             summary="Test summary",
             patterns_found=[{"type": "estilo", "description": "Test pattern"}],
-            questions_analysis=[]
+            questions_analysis=[],
         )
     ]
 
@@ -50,7 +51,7 @@ def test_format_digests_empty_patterns():
             chunk_id="chunk_1",
             summary="Summary without patterns",
             patterns_found=[],
-            questions_analysis=[]
+            questions_analysis=[],
         )
     ]
 
@@ -69,14 +70,14 @@ def test_format_digests_multiple():
             chunk_id="chunk_1",
             summary="First summary",
             patterns_found=[{"type": "temporal", "description": "Pattern 1"}],
-            questions_analysis=[]
+            questions_analysis=[],
         ),
         ChunkDigest(
             chunk_id="chunk_2",
             summary="Second summary",
             patterns_found=[{"type": "estilo", "description": "Pattern 2"}],
-            questions_analysis=[]
-        )
+            questions_analysis=[],
+        ),
     ]
 
     formatted = service._format_digests(digests)
@@ -178,13 +179,13 @@ def test_parse_synthesis_response_valid():
     """Test parsing valid JSON response"""
     service = ReduceService(llm=MagicMock())
 
-    response = '''```json
+    response = """```json
 {
     "patterns": [{"type": "temporal", "description": "Test", "evidence_ids": ["q1"], "confidence": "high"}],
     "report_text": "Full report here",
     "study_recommendations": ["Study topic X"]
 }
-```'''
+```"""
 
     result = service._parse_synthesis_response(response)
 
@@ -197,11 +198,11 @@ def test_parse_synthesis_response_raw_json():
     """Test parsing raw JSON without markdown blocks"""
     service = ReduceService(llm=MagicMock())
 
-    response = '''{
+    response = """{
     "patterns": [{"type": "estilo", "description": "Style pattern", "evidence_ids": [], "confidence": "medium"}],
     "report_text": "Report text",
     "study_recommendations": []
-}'''
+}"""
 
     result = service._parse_synthesis_response(response)
 
@@ -223,12 +224,12 @@ def test_parse_synthesis_response_partial():
     """Test handling partial JSON response"""
     service = ReduceService(llm=MagicMock())
 
-    response = '''```json
+    response = """```json
 {
     "patterns": [],
     "report_text": "Partial report"
 }
-```'''
+```"""
 
     result = service._parse_synthesis_response(response)
 
@@ -242,13 +243,13 @@ def test_synthesize_integration():
     """Test full synthesis flow"""
     mock_llm = MagicMock()
     mock_llm.generate.return_value = {
-        "text": '''```json
+        "text": """```json
 {
     "patterns": [{"type": "temporal", "description": "Evolucao de topicos", "evidence_ids": ["q1"], "confidence": "high"}],
     "report_text": "Analise completa",
     "study_recommendations": ["Priorizar gramatica"]
 }
-```'''
+```"""
     }
 
     service = ReduceService(llm=mock_llm, num_passes=2)
@@ -259,8 +260,14 @@ def test_synthesize_integration():
             summary="Test",
             patterns_found=[],
             questions_analysis=[
-                QuestionAnalysis(questao_id="q1", difficulty="medium", difficulty_reasoning="Test", bloom_level="understand", has_trap=False)
-            ]
+                QuestionAnalysis(
+                    questao_id="q1",
+                    difficulty="medium",
+                    difficulty_reasoning="Test",
+                    bloom_level="understand",
+                    has_trap=False,
+                )
+            ],
         )
     ]
 
@@ -270,7 +277,7 @@ def test_synthesize_integration():
         disciplina="Portugues",
         banca="CEBRASPE",
         anos=[2022, 2023],
-        total_questoes=50
+        total_questoes=50,
     )
 
     assert isinstance(result, AnalysisReport)
@@ -283,13 +290,13 @@ def test_synthesize_aggregates_recommendations():
     mock_llm = MagicMock()
     # Return same recommendation in both passes
     mock_llm.generate.return_value = {
-        "text": '''```json
+        "text": """```json
 {
     "patterns": [],
     "report_text": "Report",
     "study_recommendations": ["Priorizar gramatica", "Estudar verbos"]
 }
-```'''
+```"""
     }
 
     service = ReduceService(llm=mock_llm, num_passes=2)
@@ -300,7 +307,7 @@ def test_synthesize_aggregates_recommendations():
         disciplina="Portugues",
         banca="CEBRASPE",
         anos=[2023],
-        total_questoes=10
+        total_questoes=10,
     )
 
     # Should deduplicate identical recommendations
@@ -319,7 +326,7 @@ def test_synthesize_handles_pass_failures():
         if call_count[0] == 1:
             raise Exception("First pass failed")
         return {
-            "text": '''{"patterns": [], "report_text": "Success", "study_recommendations": []}'''
+            "text": """{"patterns": [], "report_text": "Success", "study_recommendations": []}"""
         }
 
     mock_llm.generate.side_effect = side_effect
@@ -332,7 +339,7 @@ def test_synthesize_handles_pass_failures():
         disciplina="Portugues",
         banca="CEBRASPE",
         anos=[2023],
-        total_questoes=10
+        total_questoes=10,
     )
 
     # Should still return a result
@@ -350,11 +357,35 @@ def test_build_final_report_difficulty_aggregation():
             summary="Test",
             patterns_found=[],
             questions_analysis=[
-                QuestionAnalysis(questao_id="q1", difficulty="easy", difficulty_reasoning="", bloom_level="remember", has_trap=False),
-                QuestionAnalysis(questao_id="q2", difficulty="medium", difficulty_reasoning="", bloom_level="understand", has_trap=False),
-                QuestionAnalysis(questao_id="q3", difficulty="medium", difficulty_reasoning="", bloom_level="understand", has_trap=False),
-                QuestionAnalysis(questao_id="q4", difficulty="hard", difficulty_reasoning="", bloom_level="analyze", has_trap=False),
-            ]
+                QuestionAnalysis(
+                    questao_id="q1",
+                    difficulty="easy",
+                    difficulty_reasoning="",
+                    bloom_level="remember",
+                    has_trap=False,
+                ),
+                QuestionAnalysis(
+                    questao_id="q2",
+                    difficulty="medium",
+                    difficulty_reasoning="",
+                    bloom_level="understand",
+                    has_trap=False,
+                ),
+                QuestionAnalysis(
+                    questao_id="q3",
+                    difficulty="medium",
+                    difficulty_reasoning="",
+                    bloom_level="understand",
+                    has_trap=False,
+                ),
+                QuestionAnalysis(
+                    questao_id="q4",
+                    difficulty="hard",
+                    difficulty_reasoning="",
+                    bloom_level="analyze",
+                    has_trap=False,
+                ),
+            ],
         )
     ]
 
@@ -364,7 +395,7 @@ def test_build_final_report_difficulty_aggregation():
         all_recommendations=["Rec 1"],
         disciplina="Portugues",
         total_questoes=4,
-        chunk_digests=digests
+        chunk_digests=digests,
     )
 
     assert result.difficulty_analysis["easy"] == 1
@@ -382,11 +413,38 @@ def test_build_final_report_trap_aggregation():
             summary="Test",
             patterns_found=[],
             questions_analysis=[
-                QuestionAnalysis(questao_id="q1", difficulty="medium", difficulty_reasoning="", bloom_level="understand", has_trap=True, trap_description="Negacao dupla"),
-                QuestionAnalysis(questao_id="q2", difficulty="medium", difficulty_reasoning="", bloom_level="understand", has_trap=True, trap_description="Negacao dupla"),
-                QuestionAnalysis(questao_id="q3", difficulty="medium", difficulty_reasoning="", bloom_level="understand", has_trap=True, trap_description="Exceto"),
-                QuestionAnalysis(questao_id="q4", difficulty="medium", difficulty_reasoning="", bloom_level="understand", has_trap=False),
-            ]
+                QuestionAnalysis(
+                    questao_id="q1",
+                    difficulty="medium",
+                    difficulty_reasoning="",
+                    bloom_level="understand",
+                    has_trap=True,
+                    trap_description="Negacao dupla",
+                ),
+                QuestionAnalysis(
+                    questao_id="q2",
+                    difficulty="medium",
+                    difficulty_reasoning="",
+                    bloom_level="understand",
+                    has_trap=True,
+                    trap_description="Negacao dupla",
+                ),
+                QuestionAnalysis(
+                    questao_id="q3",
+                    difficulty="medium",
+                    difficulty_reasoning="",
+                    bloom_level="understand",
+                    has_trap=True,
+                    trap_description="Exceto",
+                ),
+                QuestionAnalysis(
+                    questao_id="q4",
+                    difficulty="medium",
+                    difficulty_reasoning="",
+                    bloom_level="understand",
+                    has_trap=False,
+                ),
+            ],
         )
     ]
 
@@ -396,7 +454,7 @@ def test_build_final_report_trap_aggregation():
         all_recommendations=[],
         disciplina="Portugues",
         total_questoes=4,
-        chunk_digests=digests
+        chunk_digests=digests,
     )
 
     # Trap descriptions are truncated to 30 chars
@@ -409,9 +467,27 @@ def test_build_final_report_pattern_categorization():
     service = ReduceService(llm=MagicMock())
 
     patterns = [
-        PatternFinding(pattern_type="temporal", description="Time pattern", evidence_ids=["q1"], confidence="high", votes=3),
-        PatternFinding(pattern_type="similaridade", description="Similar pattern", evidence_ids=["q2"], confidence="medium", votes=2),
-        PatternFinding(pattern_type="dificuldade", description="Difficulty pattern", evidence_ids=["q3"], confidence="low", votes=1),
+        PatternFinding(
+            pattern_type="temporal",
+            description="Time pattern",
+            evidence_ids=["q1"],
+            confidence="high",
+            votes=3,
+        ),
+        PatternFinding(
+            pattern_type="similaridade",
+            description="Similar pattern",
+            evidence_ids=["q2"],
+            confidence="medium",
+            votes=2,
+        ),
+        PatternFinding(
+            pattern_type="dificuldade",
+            description="Difficulty pattern",
+            evidence_ids=["q3"],
+            confidence="low",
+            votes=1,
+        ),
     ]
 
     result = service._build_final_report(
@@ -420,7 +496,7 @@ def test_build_final_report_pattern_categorization():
         all_recommendations=["Rec"],
         disciplina="Portugues",
         total_questoes=10,
-        chunk_digests=[]
+        chunk_digests=[],
     )
 
     assert len(result.temporal_patterns) == 1
@@ -441,7 +517,7 @@ def test_build_final_report_raw_text_limit():
         all_recommendations=[],
         disciplina="Portugues",
         total_questoes=10,
-        chunk_digests=[]
+        chunk_digests=[],
     )
 
     assert len(result.raw_text) <= 10000
@@ -454,7 +530,7 @@ def test_pattern_finding_dataclass():
         description="Topics evolved over time",
         evidence_ids=["q1", "q2"],
         confidence="high",
-        votes=4
+        votes=4,
     )
 
     assert pattern.pattern_type == "temporal"
@@ -474,7 +550,7 @@ def test_analysis_report_dataclass():
         difficulty_analysis={"easy": 20, "medium": 50, "hard": 30},
         trap_analysis={"Negacao dupla": 15},
         study_recommendations=["Focus on grammar"],
-        raw_text="Full analysis text"
+        raw_text="Full analysis text",
     )
 
     assert report.disciplina == "Portugues"
@@ -499,7 +575,7 @@ def test_run_synthesis_pass_uses_anthropic():
         banca="CEBRASPE",
         anos=[2023],
         total_questoes=10,
-        pass_num=0
+        pass_num=0,
     )
 
     # Verify anthropic is preferred provider
@@ -518,7 +594,7 @@ def test_default_recommendations_when_empty():
         all_recommendations=[],
         disciplina="Portugues",
         total_questoes=10,
-        chunk_digests=[]
+        chunk_digests=[],
     )
 
     assert result.study_recommendations == ["Aguardando analise completa"]

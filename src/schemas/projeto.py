@@ -1,6 +1,7 @@
 """
 Projeto Pydantic schemas
 """
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -18,11 +19,13 @@ class ProjetoBase(BaseModel):
 
 class ProjetoCreate(ProjetoBase):
     """Schema for creating a Projeto"""
+
     pass
 
 
 class ProjetoRead(ProjetoBase):
     """Schema for reading a Projeto"""
+
     id: UUID
     status: str
     total_provas: int
@@ -39,6 +42,7 @@ class ProjetoRead(ProjetoBase):
 
 class ProjetoReadWithEdital(ProjetoRead):
     """Schema for reading a Projeto with its Edital"""
+
     edital_id: Optional[UUID] = None
     edital_nome: Optional[str] = None
     has_taxonomia: bool = False
@@ -49,6 +53,7 @@ class ProjetoReadWithEdital(ProjetoRead):
 
 class ProjetoUpdate(BaseModel):
     """Schema for updating a Projeto"""
+
     nome: Optional[str] = None
     descricao: Optional[str] = None
     banca: Optional[str] = None
@@ -60,6 +65,7 @@ class ProjetoUpdate(BaseModel):
 
 class ProjetoStats(BaseModel):
     """Estatísticas detalhadas do projeto"""
+
     total_provas: int
     total_questoes: int
     total_questoes_validas: int
@@ -72,5 +78,6 @@ class ProjetoStats(BaseModel):
 
 class ProjetoListResponse(BaseModel):
     """Response for listing projects"""
+
     projetos: list[ProjetoReadWithEdital]
     total: int

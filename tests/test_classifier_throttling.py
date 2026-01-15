@@ -1,12 +1,11 @@
 """
 Tests for classifier batch throttling
 """
+
 import sys
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 # Add src to path
 src_path = Path(__file__).parent.parent / "src"
@@ -64,7 +63,7 @@ class TestClassifierThrottling:
             for i in range(1, len(call_times)):
                 delay = call_times[i] - call_times[i - 1]
                 assert delay >= min_delay, (
-                    f"Delay between call {i} and {i+1} was {delay:.3f}s, "
+                    f"Delay between call {i} and {i + 1} was {delay:.3f}s, "
                     f"expected at least {min_delay}s"
                 )
 

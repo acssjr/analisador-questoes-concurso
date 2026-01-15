@@ -1,14 +1,12 @@
 """
 Question classifier using LLM
 """
+
 import json
 import time
 from typing import Optional
 
 from loguru import logger
-
-# Throttling configuration for batch operations
-BATCH_DELAY_SECONDS = 0.5  # Delay between API calls to avoid rate limits
 
 from src.core.exceptions import ClassificationError, LLMResponseError
 from src.llm.llm_orchestrator import LLMOrchestrator
@@ -16,7 +14,10 @@ from src.llm.prompts.classificacao import (
     SYSTEM_PROMPT_CLASSIFICACAO,
     build_classification_prompt,
 )
-from src.optimization.token_utils import prune_questao, estimate_tokens
+from src.optimization.token_utils import estimate_tokens, prune_questao
+
+# Throttling configuration for batch operations
+BATCH_DELAY_SECONDS = 0.5  # Delay between API calls to avoid rate limits
 
 # Output control: limit response tokens (classification JSON needs ~200-300 tokens max)
 MAX_OUTPUT_TOKENS = 512
@@ -54,7 +55,9 @@ class QuestionClassifier:
             tokens_before = estimate_tokens(questao.get("enunciado", ""))
             tokens_after = estimate_tokens(questao_otimizada.get("enunciado", ""))
             if tokens_before > tokens_after:
-                logger.debug(f"Token optimization: {tokens_before} → {tokens_after} tokens (-{tokens_before - tokens_after})")
+                logger.debug(
+                    f"Token optimization: {tokens_before} → {tokens_after} tokens (-{tokens_before - tokens_after})"
+                )
 
             # Build prompt with optimized question
             prompt = build_classification_prompt(questao_otimizada, edital_taxonomia)
@@ -171,9 +174,7 @@ class QuestionClassifier:
 
             logger.info(f"Classifying question {i + 1}/{len(questoes)}")
             try:
-                classification = self.classify_question(
-                    questao, edital_taxonomia, temperature
-                )
+                classification = self.classify_question(questao, edital_taxonomia, temperature)
                 classification["questao_numero"] = questao.get("numero")
                 results.append(classification)
             except Exception as e:

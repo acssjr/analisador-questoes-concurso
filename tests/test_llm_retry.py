@@ -1,6 +1,7 @@
 """
 Tests for LLM retry logic with exponential backoff
 """
+
 import time
 from unittest.mock import MagicMock, patch
 
@@ -85,7 +86,7 @@ class TestGroqClientRetry:
         # Act & Assert
         client = GroqClient(api_key="test-key")
 
-        with pytest.raises(LLMRateLimitError) as exc_info:
+        with pytest.raises(LLMRateLimitError):
             client.generate(prompt="Test prompt")
 
         # Should have tried multiple times before failing
@@ -113,6 +114,7 @@ class TestGroqClientRetry:
         client = GroqClient(api_key="test-key")
 
         from src.core.exceptions import LLMAPIError
+
         with pytest.raises(LLMAPIError):
             client.generate(prompt="Test prompt")
 

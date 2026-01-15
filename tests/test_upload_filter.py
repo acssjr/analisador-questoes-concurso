@@ -1,14 +1,15 @@
 """
 Tests for question filtering by edital disciplines
 """
+
 import pytest
 
 from src.api.routes.upload import (
-    normalize_disciplina,
-    get_edital_disciplinas,
+    DISCIPLINA_ALIASES,
     disciplina_matches_edital,
     filter_questoes_by_edital,
-    DISCIPLINA_ALIASES,
+    get_edital_disciplinas,
+    normalize_disciplina,
 )
 
 
@@ -108,7 +109,10 @@ class TestDisciplinaMatchesEdital:
     def test_reverse_alias_match(self):
         """Test that edital alias also matches questão"""
         edital_disciplinas = ["afo"]  # Alias for "administração financeira e orçamentária"
-        assert disciplina_matches_edital("Administração Financeira e Orçamentária", edital_disciplinas) is True
+        assert (
+            disciplina_matches_edital("Administração Financeira e Orçamentária", edital_disciplinas)
+            is True
+        )
 
 
 class TestFilterQuestoesByEdital:
