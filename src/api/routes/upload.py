@@ -115,6 +115,7 @@ CANONICAL_DISCIPLINAS = {
     "portugues": "Língua Portuguesa",
     "matematica": "Matemática",
     "raciocinio logico": "Raciocínio Lógico",
+    "logica": "Raciocínio Lógico",
     "raciocinio logico-matematico": "Raciocínio Lógico-Matemático",
     "matematica e raciocinio logico": "Matemática e Raciocínio Lógico",
     "informatica": "Informática",

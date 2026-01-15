@@ -1,8 +1,8 @@
 ---
-date: 2026-01-14T21:07:00Z
+date: 2026-01-15T03:08:00Z
 session_name: analisador-questoes-concurso
 branch: main
-status: completed
+status: active
 outcome: SUCCEEDED
 ---
 
@@ -10,43 +10,47 @@ outcome: SUCCEEDED
 
 ## Ledger
 <!-- This section is extracted by SessionStart hook for quick resume -->
-**Updated:** 2026-01-14T21:07:00Z
-**Goal:** Build exam question analyzer with LLM-based extraction, PostgreSQL+pgvector storage, and full upload workflow
+**Updated:** 2026-01-15T03:08:00Z
+**Goal:** Build exam question analyzer with LLM-based extraction, PostgreSQL+pgvector storage, taxonomy classification, and full upload workflow
 **Branch:** main
-**Test:** docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c "SELECT COUNT(*) FROM questoes;"
+**Test:** cd frontend && npm test -- --run && cd .. && pytest tests/ -v
 
 ### Now
-[->] Re-upload UNEB 2024 PDF to verify all 60 questions extracted
+[->] Commit changes and push to trigger new granular CI workflow
 
-### This Session (2026-01-14 18:00-21:07) - SUCCEEDED
-- [x] Fixed discipline duplication (canonicalization at save time)
-- [x] Fixed discipline ordering (ORDER BY MIN(numero) instead of sorted())
-- [x] Fixed two-column PDF detection (left-then-right merge)
-- [x] Renamed EditalWorkflowModal → ProjetoWorkflowModal
-- [x] Updated tests for normalized discipline names
-- [x] Committed and pushed (6fc139b, 324fdcc)
+### This Session (2026-01-15 00:00-03:00) - SUCCEEDED
+- [x] Debugged PDF extraction - identified missing questions issue
+- [x] Added "logica" → "Raciocínio Lógico" canonicalization mapping
+- [x] Re-uploaded UNEB PDF - now extracts all 60 questions (was 53)
+- [x] Split CI workflow into 7 granular jobs (lint, typecheck, test, build)
+- [x] Updated ruleset with 5 required checks (excluding type checks)
 
 ### Previous Sessions
+- **Session 9**: Document type validation, GitHub Actions CI, Rulesets config
+- **Session 8**: Encoding fix, classifier integration, taxonomy tree, classification tags
+- **Session 7**: Extraction bug fixes (canonicalization, ordering, two-column PDFs)
 - **Session 6**: Phase 4 Análise Profunda complete, upload modal bug fixed
 - **Session 5**: Upload persistence, page overlap, auto-repair
 - **Session 4**: PostgreSQL + pgvector setup
 - **Session 3**: Phase 3 Upload UI components
 
 ### Next
-- [ ] Re-upload UNEB 2024 PDF to verify all 60 questions extracted
-- [ ] End-to-end testing of complete flow
-- [ ] Production deployment
+- [ ] Commit and push changes (upload.py, ci.yml, ruleset-main.json)
+- [ ] Verify new CI jobs appear in GitHub Actions
+- [ ] Import updated ruleset in GitHub Settings → Rules → Rulesets
+- [ ] Add GROQ_API_KEY and ANTHROPIC_API_KEY to GitHub Secrets
+- [ ] Consider post-processing to merge similar disciplines
 
 ### Decisions
-- discipline_canonicalization: Canonicalize at save time, not display time
-- two_column_detection: 40%/45% threshold for column boundary detection
-- discipline_ordering: SQL ORDER BY MIN(numero) preserves exam order
-- canonical_accents: Keep proper Portuguese accents in canonical names
+- granular_ci_jobs: Split Backend CI/Frontend CI into 7 jobs for specific GitHub status checks
+- required_checks_5: Backend Lint, Backend Test, Frontend Lint/Test/Build required; type checks optional
+- logica_mapping: Map "Lógica" to "Raciocínio Lógico" in canonicalization
 
 ### Open Questions
-- CONFIRMED: Discipline canonicalization works (database migrated)
-- CONFIRMED: Two-column detection algorithm works
-- UNCONFIRMED: UNEB PDF extracts all 60 questions (needs re-upload)
+- CONFIRMED: Extraction correctly extracts all 60 questions from UNEB PDF
+- CONFIRMED: Canonicalization converts "Lógica" to "Raciocínio Lógico"
+- UNCONFIRMED: New CI jobs work on GitHub (needs push)
+- KNOWN_ISSUE: LLM extracts inconsistent discipline names within same section
 
 ---
 
@@ -58,28 +62,40 @@ outcome: SUCCEEDED
 - LLM: Groq (Llama 4 Scout) primary, Anthropic fallback
 - Database: PostgreSQL 16 + pgvector 0.8.1
 
-### Recent Commits
-- `324fdcc` - refactor(frontend): rename EditalWorkflow to ProjetoWorkflow
-- `6fc139b` - fix(extraction): canonicalize disciplines and detect two-column PDFs
-- `82336b4` - fix(tests): fix Modal overflow and Home stats async assertions
-- `d756d89` - docs: update ledger and handoff with extraction improvements
-
 ### Key Files Modified This Session
-- `src/api/routes/upload.py` - canonicalize_disciplina(), CANONICAL_DISCIPLINAS
-- `src/api/routes/projetos.py` - discipline ordering query
-- `src/extraction/llm_parser.py` - _detect_columns(), _reconstruct_text_from_blocks()
-- `tests/test_upload_filter.py` - normalized test expectations
+- `src/api/routes/upload.py:118` - Added "logica" → "Raciocínio Lógico" mapping
+- `.github/workflows/ci.yml` - Split into 7 granular jobs
+- `.github/ruleset-main.json` - Updated with 5 required status checks
 
-### Extraction Bug Fixes Summary
+### CI Jobs (New Structure)
+| Job | Required |
+|-----|----------|
+| Backend Lint | ✓ |
+| Backend Type Check | ✗ |
+| Backend Test (pytest) | ✓ |
+| Frontend Lint (ESLint) | ✓ |
+| Frontend Type Check (TypeScript) | ✗ |
+| Frontend Test (Vitest) | ✓ |
+| Frontend Build | ✓ |
 
-1. **Discipline Duplication**
-   - Root cause: Accented vs non-accented stored separately
-   - Fix: `canonicalize_disciplina()` maps to canonical form at save time
+### Session 10 Findings
 
-2. **Discipline Order**
-   - Root cause: `sorted()` returned alphabetical
-   - Fix: `ORDER BY MIN(numero)` preserves exam order
+1. **Extraction Issue Root Cause**
+   - Prova uploaded before fixes only had 53 questions
+   - Re-upload with current code extracts all 60 questions
+   - Chunked extraction with overlap works correctly
 
-3. **Missing Questions**
-   - Root cause: Two-column PDF text interleaved by y-coordinate
-   - Fix: Detect columns, merge left first, then right
+2. **Discipline Inconsistency**
+   - LLM infers discipline from question content, not section headers
+   - Same section can have "Matemática", "Matemática e Raciocínio Lógico", "Lógica"
+   - Canonicalization helps but doesn't fully solve (different canonical forms)
+
+3. **CI Granularity**
+   - Monolithic jobs (Backend CI, Frontend CI) not useful for required checks
+   - Split into 7 jobs allows specific check requirements
+   - Type checks run but don't block merge (existing type debt)
+
+### Previous Session (Session 9) Summary
+- Document type validation (edital/conteúdo/prova)
+- GitHub Actions CI workflow created
+- GitHub Rulesets configuration template
