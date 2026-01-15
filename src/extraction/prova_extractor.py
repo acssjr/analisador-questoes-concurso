@@ -50,9 +50,7 @@ def detect_questions_start_page(pdf_path: str | Path) -> int:
         for page_num in range(min(10, len(doc2))):
             text = doc2[page_num].get_text().lower()
             # Look for "QUESTÃO 01" or "01." pattern with alternatives
-            if re.search(r"(quest[aã]o\s*0?1\b|^0?1\.)", text) and re.search(
-                r"\([a-e]\)", text
-            ):
+            if re.search(r"(quest[aã]o\s*0?1\b|^0?1\.)", text) and re.search(r"\([a-e]\)", text):
                 logger.info(f"Questions detected (second pass) at page {page_num + 1}")
                 doc2.close()
                 return page_num
