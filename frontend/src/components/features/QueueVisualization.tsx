@@ -6,6 +6,7 @@ import {
   IconSpinner,
   IconRefresh,
   IconPause,
+  IconTrash,
 } from '../ui/Icons';
 import { AnimatedProgress } from '../ui/AnimatedProgress';
 
@@ -34,6 +35,7 @@ export interface QueueVisualizationProps {
   items: QueueItem[];
   onRetry?: (id: string) => void;
   onCancel?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 // Helper to get detailed processing status text based on progress percentage
@@ -149,9 +151,10 @@ interface QueueItemRowProps {
   item: QueueItem;
   onRetry?: (id: string) => void;
   onCancel?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
-function QueueItemRow({ item, onRetry, onCancel }: QueueItemRowProps) {
+function QueueItemRow({ item, onRetry, onCancel, onDelete }: QueueItemRowProps) {
   const config = getStatusConfig(item);
   const progress = item.progress ?? (item.queue_status === 'completed' ? 100 : 0);
   const statusText = typeof config.text === 'function' ? config.text(item) : config.text;
@@ -162,6 +165,11 @@ function QueueItemRow({ item, onRetry, onCancel }: QueueItemRowProps) {
       item.queue_status === 'validating' ||
       item.queue_status === 'processing') &&
     onCancel;
+  const canDelete =
+    (item.queue_status === 'completed' ||
+      item.queue_status === 'failed' ||
+      item.queue_status === 'partial') &&
+    onDelete;
 
   // Determine progress value for AnimatedProgress
   // undefined = indeterminate (spinning), number = determinate
@@ -204,7 +212,7 @@ function QueueItemRow({ item, onRetry, onCancel }: QueueItemRowProps) {
       </div>
 
       {/* Action buttons */}
-      <div className="w-16 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="w-20 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {canRetry && (
           <button
             onClick={() => onRetry(item.id)}
@@ -227,12 +235,23 @@ function QueueItemRow({ item, onRetry, onCancel }: QueueItemRowProps) {
             <IconX size={14} />
           </button>
         )}
+        {canDelete && (
+          <button
+            onClick={() => onDelete(item.id)}
+            className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+            title="Excluir prova e questões"
+            aria-label={`Excluir ${item.nome}`}
+            data-testid={`delete-${item.id}`}
+          >
+            <IconTrash size={14} />
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-export function QueueVisualization({ items, onRetry, onCancel }: QueueVisualizationProps) {
+export function QueueVisualization({ items, onRetry, onCancel, onDelete }: QueueVisualizationProps) {
   if (items.length === 0) {
     return (
       <div
@@ -255,6 +274,7 @@ export function QueueVisualization({ items, onRetry, onCancel }: QueueVisualizat
           item={item}
           onRetry={onRetry}
           onCancel={onCancel}
+          onDelete={onDelete}
         />
       ))}
     </div>
