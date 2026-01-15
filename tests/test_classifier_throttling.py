@@ -45,9 +45,36 @@ class TestClassifierThrottling:
             classifier = classifier_module.QuestionClassifier()
 
             questoes = [
-                {"numero": 1, "enunciado": "Questão 1", "alternativas": ["A", "B", "C", "D"]},
-                {"numero": 2, "enunciado": "Questão 2", "alternativas": ["A", "B", "C", "D"]},
-                {"numero": 3, "enunciado": "Questão 3", "alternativas": ["A", "B", "C", "D"]},
+                {
+                    "numero": 1,
+                    "enunciado": "Questão 1",
+                    "alternativas": {
+                        "A": "Opção A",
+                        "B": "Opção B",
+                        "C": "Opção C",
+                        "D": "Opção D",
+                    },
+                },
+                {
+                    "numero": 2,
+                    "enunciado": "Questão 2",
+                    "alternativas": {
+                        "A": "Opção A",
+                        "B": "Opção B",
+                        "C": "Opção C",
+                        "D": "Opção D",
+                    },
+                },
+                {
+                    "numero": 3,
+                    "enunciado": "Questão 3",
+                    "alternativas": {
+                        "A": "Opção A",
+                        "B": "Opção B",
+                        "C": "Opção C",
+                        "D": "Opção D",
+                    },
+                },
             ]
 
             # Act
@@ -83,7 +110,11 @@ class TestClassifierThrottling:
         with patch.object(classifier_module, "LLMOrchestrator", return_value=mock_llm):
             classifier = classifier_module.QuestionClassifier()
 
-            questao = {"numero": 1, "enunciado": "Questão 1", "alternativas": ["A", "B", "C", "D"]}
+            questao = {
+                "numero": 1,
+                "enunciado": "Questão 1",
+                "alternativas": {"A": "Opção A", "B": "Opção B", "C": "Opção C", "D": "Opção D"},
+            }
 
             # Act - time single classification
             start = time.time()
