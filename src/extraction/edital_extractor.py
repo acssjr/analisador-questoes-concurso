@@ -3,7 +3,6 @@ Edital extraction logic - extracts metadata and taxonomy from exam notices
 """
 
 import json
-import re
 from enum import Enum
 from pathlib import Path
 from typing import Optional

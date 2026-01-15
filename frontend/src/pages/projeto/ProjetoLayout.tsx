@@ -73,7 +73,7 @@ export default function ProjetoLayout() {
     );
   }
 
-  if (!projeto) {
+  if (!projeto || !id) {
     return (
       <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
         <div className="text-center">

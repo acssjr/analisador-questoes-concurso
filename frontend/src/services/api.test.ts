@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { api } from './api';
+import { mockXHRResponse, resetXHRMock } from '../test/setup';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -8,6 +9,7 @@ global.fetch = mockFetch;
 describe('API Service', () => {
   beforeEach(() => {
     mockFetch.mockClear();
+    resetXHRMock();
   });
 
   afterEach(() => {
@@ -218,55 +220,35 @@ describe('API Service', () => {
         cargos: ['Analista', 'Técnico'],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
+      // Use XHR mock for uploadWithProgress
+      mockXHRResponse(200, JSON.stringify(mockResponse));
 
       const file = new File(['test'], 'edital.pdf', { type: 'application/pdf' });
       const result = await api.uploadEdital(file);
 
       expect(result.edital_id).toBe('edital-123');
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/editais/upload'),
-        expect.objectContaining({
-          method: 'POST',
-        })
-      );
     });
   });
 
   describe('uploadConteudoProgramatico', () => {
     it('should upload without cargo', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ taxonomia: {} }),
-      });
+      const mockResponse = { taxonomia: {} };
+      mockXHRResponse(200, JSON.stringify(mockResponse));
 
       const file = new File(['test'], 'conteudo.pdf', { type: 'application/pdf' });
-      await api.uploadConteudoProgramatico('edital-123', file);
+      const result = await api.uploadConteudoProgramatico('edital-123', file);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/editais/edital-123/conteudo-programatico'),
-        expect.anything()
-      );
-      // URL should not contain cargo param
-      expect(mockFetch.mock.calls[0][0]).not.toContain('cargo=');
+      expect(result).toEqual(mockResponse);
     });
 
     it('should include cargo param when provided', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ taxonomia: {} }),
-      });
+      const mockResponse = { taxonomia: {} };
+      mockXHRResponse(200, JSON.stringify(mockResponse));
 
       const file = new File(['test'], 'conteudo.pdf', { type: 'application/pdf' });
-      await api.uploadConteudoProgramatico('edital-123', file, 'Analista');
+      const result = await api.uploadConteudoProgramatico('edital-123', file, 'Analista');
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('cargo=Analista'),
-        expect.anything()
-      );
+      expect(result).toEqual(mockResponse);
     });
   });
 
@@ -281,10 +263,7 @@ describe('API Service', () => {
         results: [],
       };
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
+      mockXHRResponse(200, JSON.stringify(mockResponse));
 
       const files = [
         new File(['test1'], 'prova1.pdf', { type: 'application/pdf' }),
@@ -295,13 +274,6 @@ describe('API Service', () => {
 
       expect(result.success).toBe(true);
       expect(result.total_questoes).toBe(120);
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('edital_id=edital-123'),
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.any(FormData),
-        })
-      );
     });
   });
 

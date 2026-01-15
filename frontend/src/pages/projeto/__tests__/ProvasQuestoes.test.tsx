@@ -18,6 +18,7 @@ vi.mock('../../../services/api', () => ({
     retryProvaProcessing: vi.fn(),
     cancelProvaProcessing: vi.fn(),
     getProjetoQuestoes: vi.fn(),
+    getProjetoTaxonomiaIncidencia: vi.fn(),
   },
 }));
 
@@ -67,6 +68,12 @@ describe('ProvasQuestoes', () => {
       questoes: [],
       total: 0,
       disciplinas: [],
+    });
+
+    // Default: empty taxonomy
+    (api.getProjetoTaxonomiaIncidencia as ReturnType<typeof vi.fn>).mockResolvedValue({
+      taxonomia: [],
+      total_questoes: 0,
     });
   });
 

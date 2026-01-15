@@ -675,7 +675,7 @@ export function ProjetoWorkflowModal({
   >(null);
 
   const [selectedCargo, setSelectedCargo] = useState<string | null>(null);
-  const [projetoId, setProjetoId] = useState<string | null>(null);
+  const [createdProjetoId, setCreatedProjetoId] = useState<string | null>(null);
 
   // Store actions
   const setActiveEdital = useAppStore((state) => state.setActiveEdital);
@@ -805,7 +805,7 @@ export function ProjetoWorkflowModal({
         setUploadProgress(undefined);
       }
     },
-    [projetoId]
+    [createdProjetoId]
   );
 
   const handleDrop = useCallback(
@@ -881,7 +881,7 @@ export function ProjetoWorkflowModal({
         return;
       }
 
-      // Create the project now so that provas uploads go to this project
+      // Create project when transitioning from step 1 to 2
       setUploadStatus('processing');
       setUploadMessage('Criando projeto...');
 
@@ -892,20 +892,20 @@ export function ProjetoWorkflowModal({
           cargo: selectedCargo || (extractedEdital.cargos?.length === 1 ? extractedEdital.cargos[0] : undefined),
           ano: extractedEdital.ano,
         });
+        setCreatedProjetoId(projeto.id);
 
-        // Link the edital to the project
         await api.vincularEdital(projeto.id, extractedEdital.edital_id);
-
-        setProjetoId(projeto.id);
-        setCurrentStep(2);
-        setUploadStatus('idle');
-        setUploadMessage('');
       } catch (err) {
         console.error('Erro ao criar projeto:', err);
         setUploadStatus('error');
-        setError('Erro ao criar projeto. Por favor, tente novamente.');
+        setError('Erro ao criar projeto. Tente novamente.');
         setUploadMessage('');
+        return;
       }
+
+      setCurrentStep(2);
+      setUploadStatus('idle');
+      setUploadMessage('');
     } else if (currentStep === 2) {
       setCurrentStep(3);
       setUploadStatus('idle');
@@ -914,7 +914,7 @@ export function ProjetoWorkflowModal({
   };
 
   const handleFinish = async () => {
-    if (!extractedEdital || !extractionResults || !projetoId) return;
+    if (!extractedEdital || !extractionResults || !createdProjetoId) return;
 
     const questoesExtraidas: Questao[] = (extractionResults || [])
       .filter((r) => r.success && r.questoes)
@@ -940,8 +940,6 @@ export function ProjetoWorkflowModal({
     const totalProvas = extractionResults.filter((r) => r.success).length;
 
     // Project was already created in handleNext (step 1 -> step 2 transition)
-    // No need to create another project here
-
     const editalAtivo: Edital = {
       id: extractedEdital.edital_id,
       nome: extractedEdital.nome,
@@ -974,8 +972,18 @@ export function ProjetoWorkflowModal({
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (uploadStatus !== 'uploading' && uploadStatus !== 'processing') {
+      // Cleanup orphaned project if user cancels before finishing
+      if (createdProjetoId && currentStep < 3) {
+        try {
+          await api.deleteProjeto(createdProjetoId);
+          console.log('Cleaned up orphaned project:', createdProjetoId);
+        } catch (err) {
+          console.error('Failed to cleanup orphaned project:', err);
+        }
+      }
+
       setCurrentStep(1);
       setEditalFile(null);
       setConteudoProgramaticoFile(null);
@@ -984,7 +992,7 @@ export function ProjetoWorkflowModal({
       setExtractedTaxonomy(null);
       setExtractionResults(null);
       setSelectedCargo(null);
-      setProjetoId(null);
+      setCreatedProjetoId(null);
       setUploadStatus('idle');
       setUploadMessage('');
       setCurrentFileName('');

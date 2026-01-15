@@ -357,7 +357,7 @@ export function Dashboard() {
           <div className="space-y-1 -mx-2">
             {incidencia.map((node, idx) => (
               <TreeNode
-                key={`${node.nome}-${idx}`}
+                key={`root-${idx}`}
                 node={node}
                 onSelectQuestoes={handleSelectQuestoes}
               />
