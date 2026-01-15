@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-14T21:07:00Z
+**Last Updated**: 2026-01-15T17:55:00Z
 
 ---
 
@@ -39,12 +39,25 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
   - [x] **Upload Modal Bug Fix** (commit 2fe9dad)
     - Fixed API contract mismatch (sync vs async response)
 
-- Now: [->] Re-upload PDFs to test two-column fix
+- Now: [->] User verify 60 questions extracted with unified disciplines
 
 - Next:
-  - [ ] Re-upload UNEB 2024 PDF to verify all 60 questions extracted
+  - [ ] Verify extraction: 60 questions (Q26 included)
+  - [ ] Verify unified disciplines: "Matemática e Raciocínio Lógico" (10), "Legislação e Administração Pública" (20)
+  - [ ] Commit all Session 11 fixes
   - [ ] End-to-end testing of complete flow
   - [ ] Production deployment
+
+### Fixes Applied (Session 8)
+- [x] Real upload progress with XMLHttpRequest (Option A)
+- [x] Fixed duplicate project creation - now creates project at step 1→2 transition
+- [x] Fixed discipline counts showing 0 - `_find_count_case_insensitive` now accumulates
+- [x] Fixed extraction truncation - reduced pages_per_chunk from 5 to 3
+- [x] Added Redação/Discursiva filter in extraction
+- [x] **Extraction verified**: 60 questions extracted from UNEB 2024 PDF ✅
+- [x] **ProvasQuestoes UI fix**: Replaced TaxonomyTree with simple discipline list
+  - VisaoGeral: Shows edital taxonomy with incidence (unchanged)
+  - ProvasQuestoes: Shows simple discipline list from extracted questions (fixed)
 
 ---
 
@@ -60,6 +73,10 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 | Discipline canonicalization | Normalize accents then map to canonical form (e.g., "informatica" → "Informática") | 2026-01-14 |
 | Two-column PDF detection | Detect column boundary using block x-positions, merge left then right | 2026-01-14 |
 | Discipline order by exam | ORDER BY MIN(numero) instead of alphabetical sort | 2026-01-14 |
+| Substring discipline matching | "Legislação" matches "LEGISLAÇÃO BÁSICA APLICADA À ADMINISTRAÇÃO PÚBLICA" via substring | 2026-01-15 |
+| Legislation discipline unification | "Administração Pública" + "Legislação Básica..." → "Legislação e Administração Pública" | 2026-01-15 |
+| Column continuation detection | Right column TOP before first "Questão" is continuation from left column bottom | 2026-01-15 |
+| Word spacing threshold | Reduced gap threshold from 3 to 0.5 pixels for proper word separation | 2026-01-15 |
 
 ---
 
@@ -68,7 +85,7 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 - **CONFIRMED**: Upload API is synchronous (fixed frontend to match)
 - **CONFIRMED**: Discipline canonicalization fixes duplicates (database migration applied)
 - **CONFIRMED**: Two-column detection algorithm works (left-then-right merge)
-- **UNCONFIRMED**: UNEB 2024 PDF extracts all 60 questions (needs re-upload to verify)
+- **CONFIRMED**: UNEB 2024 PDF extracts all 60 questions (verified via CLI test)
 
 ---
 
@@ -89,7 +106,9 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 
 **Frontend:**
 - `frontend/src/pages/projeto/AnaliseProfunda.tsx` - Full analysis UI
-- `frontend/src/components/features/UploadModal.tsx` - Fixed upload
+- `frontend/src/pages/projeto/ProvasQuestoes.tsx` - Simple discipline list + questions
+- `frontend/src/pages/projeto/VisaoGeral.tsx` - Edital taxonomy with incidence
+- `frontend/src/components/features/ProjetoWorkflowModal.tsx` - Fixed workflow
 
 ### Recent Commits
 
@@ -118,6 +137,165 @@ cd frontend && npm run dev
 ---
 
 ## Session Log
+
+### 2026-01-15 (Session 11) - Extraction & Discipline Unification Fixes
+
+- **Problems Reported**:
+  1. 59/60 questions extracted (Q26 missing)
+  2. "Matemática" split into 2 disciplines (should be 1)
+  3. "Legislação" split into 2 disciplines (should be 1)
+  4. JSON parsing error on conteúdo programático upload
+
+- **Root Cause Analysis (Systematic Debugging)**:
+  1. **Q26 Missing**: Column continuation issue - Q26 spans left column bottom + right column top
+     - Options (C), (D), (E) were at right column TOP (y=41-107)
+     - Question text + (A), (B) were at left column BOTTOM (y=635-768)
+     - Algorithm processed columns separately, losing context
+  2. **Discipline Split**: CANONICAL_DISCIPLINAS didn't unify all variations
+  3. **JSON Error**: LLM returned JSON with invalid control characters (newlines inside strings)
+
+- **Fixes Applied**:
+  1. **Column Continuation Detection** (`llm_parser.py:196-230`)
+     - Detect if right column TOP has content before first "Questão"
+     - Move continuation spans to end of left column processing
+     - Combine: left_text + continuation + right_text
+
+  2. **Word Spacing Fix** (`llm_parser.py:110-120`)
+     - Reduced gap threshold from 3 to 0.5 pixels
+     - Added punctuation-aware spacing logic
+
+  3. **Discipline Canonicalization** (`upload.py:148-154`)
+     - All math variants → "Matemática e Raciocínio Lógico"
+     - All legislation variants → "Legislação e Administração Pública"
+
+  4. **JSON Sanitization** (`edital_extractor.py:18-79`)
+     - Added `_sanitize_json_string()` function
+     - Escapes control characters inside JSON string values
+
+- **Verification**:
+  - CLI test: **60 questions extracted** (including Q26) ✅
+  - Disciplines properly unified in test
+
+- **Backend Management Issue**:
+  - Multiple stale backend processes were responding on port 8002
+  - Old code was being executed instead of updated code
+  - Solution: Kill all processes, restart fresh backend
+
+- **Current State**:
+  - Backend: http://127.0.0.1:8002 (PID 27480, started 17:48:40)
+  - Frontend: http://localhost:5180
+  - Database: Clean (0 projects)
+  - **PENDING**: User needs to upload PDF to verify fixes in production
+
+---
+
+### 2026-01-15 (Session 10) - Discipline Filter Debugging
+
+- **Problem**: Discipline filter returning 0 questions via API, but direct SQL returned 30
+
+- **Systematic Debugging**:
+  1. Verified API code was correct (ILIKE filter)
+  2. Tested direct SQL: `SELECT COUNT(*) FROM questoes WHERE disciplina ILIKE '%Língua Portuguesa%'` → 30
+  3. Tested API: 0 results
+  4. **Root cause**: Multiple stale Python processes on port 8000 with outdated code
+
+- **Process Investigation**:
+  - `netstat -ano | findstr :8000` showed multiple PIDs
+  - Old uvicorn processes were responding instead of new server
+  - `taskkill /F /PID <pid>` failed to fully clear port
+
+- **Solution**:
+  - Started fresh backend on port 8002 (`uvicorn src.api.main:app --reload --port 8002`)
+  - Created `frontend/.env` with `VITE_API_URL=http://localhost:8002/api`
+  - Restarted frontend dev server
+
+- **Verification**:
+  ```
+  curl "http://127.0.0.1:8002/api/projetos/.../questoes/?limit=3&disciplina=Língua%20Portuguesa"
+  → Total: 20, Questões: 3 ✅
+  ```
+
+- **Additional Fixes Applied**:
+  - [x] VARCHAR truncation: increased column sizes from 200 to 500 (classificacoes, questao)
+  - [x] 422 error: reduced frontend limit from 1000 to 500 in ProvasQuestoes.tsx
+
+- **Current State**:
+  - Backend: http://127.0.0.1:8002 (PID 28956)
+  - Frontend: http://localhost:5179 (PID 9800)
+  - Filter working correctly
+
+---
+
+### 2026-01-15 (Session 9) - Extraction Debugging
+
+- **Problem reported**: User uploaded PDF, got only 40 questions (should be 60)
+- **UI issue**: "Provas & Questões" tab not showing discipline list or questions
+
+- **Systematic Debugging (Phase 1)**:
+  1. Checked database: 40 questions stored with disciplines (LP, Mat, Info, Redação)
+  2. Checked API: Returns 40 questions correctly
+  3. Ran CLI extraction test: **60 questions extracted successfully**
+  4. **Root cause identified**: Server was running OLD CODE before restart
+
+- **Investigation Details**:
+  - PDF has 16 pages with questions 1-60
+  - Questions 1-40 on pages 3-9, Questions 41-60 on pages 9-12
+  - Discipline filter tested: All 6 disciplines match edital correctly
+  - "Legislação" and "Administração Pública" → match via substring to "LEGISLAÇÃO BÁSICA APLICADA À ADMINISTRAÇÃO PÚBLICA"
+
+- **Actions Taken**:
+  1. Restarted backend server (uvicorn --reload)
+  2. Verified extraction: 60 questions with correct discipline breakdown
+  3. Frontend build verified: No TypeScript errors
+
+- **Extraction Result After Fix**:
+  ```
+  Língua Portuguesa: 20
+  Legislação Básica aplicada à Administração Pública: 15
+  Informática: 10
+  Matemática e Raciocínio Lógico: 6
+  Administração Pública: 5
+  Matemática: 3
+  Lógica: 1
+  Total: 60 ✓
+  ```
+
+- **Status**: Server restarted, extraction verified. User needs to:
+  1. Hard refresh browser (Ctrl+Shift+R)
+  2. Delete old prova/project
+  3. Re-upload PDF
+
+---
+
+### 2026-01-15 (Session 8) - UI Fixes & Extraction Verification
+
+- **Continued from compacted context** - Session had extraction/UI fixes in progress
+
+- **Extraction Verification**:
+  - Tested UNEB 2024 PDF via CLI: **60 questions extracted** ✅
+  - All 5 alternatives (A-E) present in each question
+  - Disciplines: Língua Portuguesa (20), Mat/Raciocínio (5+4+1), Informática (10), Legislação (15+5)
+  - No Redação questions (correctly filtered)
+
+- **Database Cleanup**:
+  - Deleted 2 duplicate projects from previous bug
+  - User recreated project with correct workflow
+
+- **ProvasQuestoes UI Fix**:
+  - **Problem**: Tab was showing full edital taxonomy tree (with all subtopics)
+  - **Expected**: Simple discipline list from extracted questions
+  - **Fix**: Replaced `TaxonomyTree` component with `DisciplinaListItem` list
+  - **Result**: Shows flat list of disciplines (from questions) + question panel
+
+- **Tab Distinction**:
+  | Tab | Content | Source |
+  |-----|---------|--------|
+  | Visão Geral | Edital taxonomy tree with incidence | `getProjetoTaxonomiaIncidencia` |
+  | Provas & Questões | Simple discipline list + questions | `getProjetoQuestoes` |
+
+- **Status**: Build passes, awaiting user testing of corrected UI
+
+---
 
 ### 2026-01-14 (Session 7) - Extraction Bug Fixes
 
