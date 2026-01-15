@@ -8,6 +8,17 @@ import {
   IconAlertTriangle,
 } from '../ui/Icons';
 
+export interface ClassificacaoItem {
+  disciplina: string;
+  assunto: string | null;
+  topico: string | null;
+  subtopico: string | null;
+  item_edital_path: string | null;
+  confianca_disciplina: number | null;
+  confianca_assunto: number | null;
+  confianca_topico: number | null;
+}
+
 export interface QuestaoItem {
   id: string;
   numero: number;
@@ -22,6 +33,7 @@ export interface QuestaoItem {
   status_extracao: string | null;
   prova_nome: string | null;
   prova_ano: number | null;
+  classificacao?: ClassificacaoItem | null;
 }
 
 export interface QuestionPanelProps {
@@ -36,6 +48,105 @@ interface QuestionCardProps {
   questao: QuestaoItem;
   isExpanded: boolean;
   onToggle: () => void;
+}
+
+// Color schemes for classification tags by level
+const tagColors = {
+  disciplina: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  assunto: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  topico: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+  subtopico: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+};
+
+interface ClassificationTagProps {
+  label: string;
+  level: keyof typeof tagColors;
+  title?: string;
+}
+
+function ClassificationTag({ label, level, title }: ClassificationTagProps) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center px-2 py-0.5 text-xs rounded border',
+        tagColors[level]
+      )}
+      title={title}
+    >
+      {label}
+    </span>
+  );
+}
+
+interface ClassificationTagsProps {
+  classificacao: ClassificacaoItem | null | undefined;
+  compact?: boolean;
+}
+
+function ClassificationTags({ classificacao, compact = false }: ClassificationTagsProps) {
+  if (!classificacao) return null;
+
+  // Build tags array from classification hierarchy
+  const tags: Array<{ label: string; level: keyof typeof tagColors; title?: string }> = [];
+
+  if (classificacao.disciplina) {
+    tags.push({
+      label: classificacao.disciplina,
+      level: 'disciplina',
+      title: classificacao.confianca_disciplina
+        ? `Confianca: ${Math.round(classificacao.confianca_disciplina * 100)}%`
+        : undefined,
+    });
+  }
+
+  if (classificacao.assunto) {
+    tags.push({
+      label: classificacao.assunto,
+      level: 'assunto',
+      title: classificacao.confianca_assunto
+        ? `Confianca: ${Math.round(classificacao.confianca_assunto * 100)}%`
+        : undefined,
+    });
+  }
+
+  if (classificacao.topico) {
+    tags.push({
+      label: classificacao.topico,
+      level: 'topico',
+      title: classificacao.confianca_topico
+        ? `Confianca: ${Math.round(classificacao.confianca_topico * 100)}%`
+        : undefined,
+    });
+  }
+
+  if (classificacao.subtopico && !compact) {
+    tags.push({
+      label: classificacao.subtopico,
+      level: 'subtopico',
+    });
+  }
+
+  if (tags.length === 0) return null;
+
+  // In compact mode, show only first 2 tags with overflow indicator
+  const displayTags = compact ? tags.slice(0, 2) : tags;
+  const hasMore = compact && tags.length > 2;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {displayTags.map((tag, index) => (
+        <ClassificationTag
+          key={`${tag.level}-${index}`}
+          label={tag.label}
+          level={tag.level}
+          title={tag.title}
+        />
+      ))}
+      {hasMore && (
+        <span className="text-xs text-gray-500">+{tags.length - 2}</span>
+      )}
+    </div>
+  );
 }
 
 function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
@@ -75,6 +186,12 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
             {questao.prova_nome && <span>{questao.prova_nome}</span>}
             {questao.prova_ano && <span>({questao.prova_ano})</span>}
           </div>
+          {/* Compact classification tags in header */}
+          {questao.classificacao && (
+            <div className="mt-1.5">
+              <ClassificationTags classificacao={questao.classificacao} compact />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -135,6 +252,22 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
             </div>
           )}
 
+          {/* Classification tags (full view) */}
+          {questao.classificacao && (
+            <div className="mt-4 pt-3 border-t border-gray-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-500 font-medium">Classificacao:</span>
+              </div>
+              <ClassificationTags classificacao={questao.classificacao} />
+              {questao.classificacao.item_edital_path && (
+                <div className="mt-2 text-xs text-gray-500">
+                  <span className="font-medium">Caminho edital:</span>{' '}
+                  <span className="text-gray-400">{questao.classificacao.item_edital_path}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Metadata footer */}
           <div className="mt-4 pt-3 border-t border-gray-700 flex items-center gap-4 text-xs">
             {questao.confianca_score !== null && (
@@ -145,7 +278,7 @@ function QuestionCard({ questao, isExpanded, onToggle }: QuestionCardProps) {
                 </span>
               </div>
             )}
-            {questao.assunto_pci && (
+            {questao.assunto_pci && !questao.classificacao && (
               <div className="flex items-center gap-1">
                 <span className="text-gray-500">Assunto:</span>
                 <span className="text-gray-400">{questao.assunto_pci}</span>

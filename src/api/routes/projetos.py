@@ -14,6 +14,7 @@ from src.models.projeto import Projeto
 from src.models.edital import Edital
 from src.models.prova import Prova
 from src.models.questao import Questao
+from src.models.classificacao import Classificacao
 from src.schemas.projeto import (
     ProjetoCreate,
     ProjetoRead,
@@ -372,9 +373,10 @@ async def get_projeto_questoes(
                     "disciplinas": [],
                 }
 
-            # Build questao query
+            # Build questao query with eager loading of classificacoes
             q_stmt = (
                 select(Questao)
+                .options(selectinload(Questao.classificacoes))
                 .where(Questao.prova_id.in_(prova_ids))
             )
 
@@ -414,11 +416,28 @@ async def get_projeto_questoes(
             result = await db.execute(q_stmt)
             questoes = result.scalars().all()
 
-            # Build response with prova info
+            # Build response with prova info and classification
             questoes_response = []
             for q in questoes:
                 # Get prova info
                 prova = next((p for p in projeto.provas if p.id == q.prova_id), None)
+
+                # Get primary classification (first one, if any)
+                classificacao = None
+                if q.classificacoes:
+                    # Use the first classification (most recent or primary)
+                    c = q.classificacoes[0]
+                    classificacao = {
+                        "disciplina": c.disciplina,
+                        "assunto": c.assunto,
+                        "topico": c.topico,
+                        "subtopico": c.subtopico,
+                        "item_edital_path": c.item_edital_path,
+                        "confianca_disciplina": c.confianca_disciplina,
+                        "confianca_assunto": c.confianca_assunto,
+                        "confianca_topico": c.confianca_topico,
+                    }
+
                 questoes_response.append({
                     "id": str(q.id),
                     "numero": q.numero,
@@ -433,6 +452,7 @@ async def get_projeto_questoes(
                     "status_extracao": q.status_extracao,
                     "prova_nome": prova.nome if prova else None,
                     "prova_ano": prova.ano if prova else None,
+                    "classificacao": classificacao,
                 })
 
             return {

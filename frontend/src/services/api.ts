@@ -293,6 +293,16 @@ export const api = {
       status_extracao: string | null;
       prova_nome: string | null;
       prova_ano: number | null;
+      classificacao: {
+        disciplina: string;
+        assunto: string | null;
+        topico: string | null;
+        subtopico: string | null;
+        item_edital_path: string | null;
+        confianca_disciplina: number | null;
+        confianca_assunto: number | null;
+        confianca_topico: number | null;
+      } | null;
     }>;
     total: number;
     disciplinas: string[];

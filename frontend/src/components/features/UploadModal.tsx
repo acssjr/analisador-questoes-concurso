@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button, PulsingProgressBar } from '../ui';
-import { api } from '../../services/api';
 
 interface UploadModalProps {
   isOpen: boolean;
