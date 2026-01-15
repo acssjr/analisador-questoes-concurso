@@ -10,11 +10,28 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { api } from '../../services/api';
 
 interface ProjetoContext {
-  projeto: { id: string };
+  projeto: { id: string; has_taxonomia?: boolean };
 }
 
 // Polling interval in milliseconds
 const QUEUE_POLL_INTERVAL = 3000;
+
+// Helper to convert API incidence nodes to TaxonomyNode format
+interface IncidenciaNode {
+  id: string;
+  nome: string;
+  count: number;
+  children?: IncidenciaNode[];
+}
+
+function convertIncidenciaToTaxonomyNodes(incidencia: IncidenciaNode[]): TaxonomyNode[] {
+  return incidencia.map((node) => ({
+    id: node.id,
+    nome: node.nome,
+    count: node.count,
+    children: node.children ? convertIncidenciaToTaxonomyNodes(node.children) : undefined,
+  }));
+}
 
 export default function ProvasQuestoes() {
   const { projeto } = useOutletContext<ProjetoContext>();
@@ -27,7 +44,9 @@ export default function ProvasQuestoes() {
 
   // Taxonomy and questions state
   const [taxonomyNodes, setTaxonomyNodes] = useState<TaxonomyNode[]>([]);
-  const [selectedDisciplina, setSelectedDisciplina] = useState<string | null>(null);
+  const [hasTaxonomia, setHasTaxonomia] = useState(false);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [selectedNodeName, setSelectedNodeName] = useState<string | null>(null);
   const [questoes, setQuestoes] = useState<QuestaoItem[]>([]);
   const [totalQuestoes, setTotalQuestoes] = useState(0);
   const [isLoadingQuestoes, setIsLoadingQuestoes] = useState(false);
@@ -57,32 +76,60 @@ export default function ProvasQuestoes() {
     }
   }, [projeto.id]);
 
-  // Fetch taxonomy (disciplinas with counts)
+  // Fetch taxonomy with incidence counts
   const fetchTaxonomy = useCallback(async () => {
     try {
-      const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
-      const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
-        id: `disciplina-${index}`,
-        nome: disciplina || 'Sem disciplina',
-        count: 0, // Will be updated when we have per-disciplina counts
-      }));
-      setTaxonomyNodes(nodes);
-      setTotalQuestoes(response.total);
+      // First try to get the full taxonomy with incidence from the edital
+      const taxonomiaResponse = await api.getProjetoTaxonomiaIncidencia(projeto.id);
+
+      if (taxonomiaResponse.has_taxonomia && taxonomiaResponse.incidencia.length > 0) {
+        // Use the edital's taxonomy structure with counts
+        const nodes = convertIncidenciaToTaxonomyNodes(
+          taxonomiaResponse.incidencia as IncidenciaNode[]
+        );
+        setTaxonomyNodes(nodes);
+        setHasTaxonomia(true);
+        setTotalQuestoes(taxonomiaResponse.total_questoes);
+      } else {
+        // Fall back to simple disciplina list from questions
+        const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
+        const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
+          id: `disciplina-${index}`,
+          nome: disciplina || 'Sem disciplina',
+          count: 0, // Will be updated when we have per-disciplina counts
+        }));
+        setTaxonomyNodes(nodes);
+        setHasTaxonomia(false);
+        setTotalQuestoes(response.total);
+      }
     } catch (error) {
       console.error('Error fetching taxonomy:', error);
+      // Try fallback
+      try {
+        const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
+        const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
+          id: `disciplina-${index}`,
+          nome: disciplina || 'Sem disciplina',
+          count: 0,
+        }));
+        setTaxonomyNodes(nodes);
+        setHasTaxonomia(false);
+        setTotalQuestoes(response.total);
+      } catch (fallbackError) {
+        console.error('Error fetching fallback taxonomy:', fallbackError);
+      }
     }
   }, [projeto.id]);
 
-  // Fetch questions for selected disciplina
-  const fetchQuestoes = useCallback(async (disciplina: string) => {
+  // Fetch questions for selected node (disciplina or topic)
+  const fetchQuestoes = useCallback(async (nodeName: string) => {
     setIsLoadingQuestoes(true);
     try {
       const response = await api.getProjetoQuestoes(projeto.id, {
-        disciplina: disciplina === 'Sem disciplina' ? '' : disciplina,
+        disciplina: nodeName === 'Sem disciplina' ? '' : nodeName,
         limit: 100,
       });
       setQuestoes(response.questoes);
-      setTotalQuestoes(response.total);
     } catch (error) {
       console.error('Error fetching questoes:', error);
       addNotification({
@@ -96,8 +143,9 @@ export default function ProvasQuestoes() {
   }, [projeto.id, addNotification]);
 
   // Handle taxonomy node selection
-  const handleNodeSelect = useCallback((_nodeId: string, nodeName: string) => {
-    setSelectedDisciplina(nodeName);
+  const handleNodeSelect = useCallback((nodeId: string, nodeName: string) => {
+    setSelectedNode(nodeId);
+    setSelectedNodeName(nodeName);
     fetchQuestoes(nodeName);
   }, [fetchQuestoes]);
 
@@ -293,16 +341,16 @@ export default function ProvasQuestoes() {
       )}
 
       {/* Taxonomy Tree and Questions Panel */}
-      {totalQuestoes > 0 && (
+      {(totalQuestoes > 0 || hasTaxonomia) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Taxonomy Tree - Left Column */}
           <div className="lg:col-span-1">
             <h3 className="text-md font-medium text-white mb-4">
-              Disciplinas ({totalQuestoes} questoes)
+              {hasTaxonomia ? 'Taxonomia do Edital' : 'Disciplinas'} ({totalQuestoes} questoes)
             </h3>
             <TaxonomyTree
               nodes={taxonomyNodes}
-              selectedNode={taxonomyNodes.find(n => n.nome === selectedDisciplina)?.id || null}
+              selectedNode={selectedNode}
               onNodeSelect={handleNodeSelect}
             />
           </div>
@@ -311,13 +359,13 @@ export default function ProvasQuestoes() {
           <div className="lg:col-span-2">
             <h3 className="text-md font-medium text-white mb-4">
               Questoes
-              {selectedDisciplina && (
-                <span className="text-gray-500 font-normal ml-2">- {selectedDisciplina}</span>
+              {selectedNodeName && (
+                <span className="text-gray-500 font-normal ml-2">- {selectedNodeName}</span>
               )}
             </h3>
             <QuestionPanel
               questoes={questoes}
-              selectedDisciplina={selectedDisciplina}
+              selectedDisciplina={selectedNodeName}
               isLoading={isLoadingQuestoes}
               total={totalQuestoes}
             />

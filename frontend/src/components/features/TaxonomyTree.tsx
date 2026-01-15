@@ -72,7 +72,8 @@ function TreeNode({
           'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors',
           'hover:bg-gray-800/50',
           isSelected && 'bg-blue-500/20 text-blue-400',
-          !isSelected && 'text-gray-300'
+          !isSelected && node.count > 0 && 'text-gray-300',
+          !isSelected && node.count === 0 && 'text-gray-500'
         )}
         style={{ paddingLeft: `${depth * 16 + 12}px` }}
       >
@@ -98,16 +99,18 @@ function TreeNode({
         <span className="flex-1 truncate text-sm">{node.nome}</span>
 
         {/* Question count badge */}
-        {node.count > 0 && (
-          <span
-            className={cn(
-              'px-2 py-0.5 rounded-full text-xs font-medium',
-              isSelected ? 'bg-blue-500/30 text-blue-300' : 'bg-gray-700 text-gray-400'
-            )}
-          >
-            {node.count}
-          </span>
-        )}
+        <span
+          className={cn(
+            'px-2 py-0.5 rounded-full text-xs font-medium',
+            node.count > 0
+              ? isSelected
+                ? 'bg-blue-500/30 text-blue-300'
+                : 'bg-gray-700 text-gray-400'
+              : 'bg-gray-800/50 text-gray-600'
+          )}
+        >
+          {node.count}
+        </span>
       </div>
 
       {/* Children */}

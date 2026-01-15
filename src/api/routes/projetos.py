@@ -446,3 +446,251 @@ async def get_projeto_questoes(
     except Exception as e:
         logger.error(f"Failed to get projeto questoes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{projeto_id}/taxonomia-incidencia")
+async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
+    """
+    Get the edital taxonomy tree with incidence counts for each node.
+    Returns the hierarchical taxonomy from the edital with question counts at each level.
+    """
+    try:
+        async for db in get_db():
+            # Get projeto with edital
+            proj_stmt = (
+                select(Projeto)
+                .options(selectinload(Projeto.edital), selectinload(Projeto.provas))
+                .where(Projeto.id == projeto_id)
+            )
+            proj_result = await db.execute(proj_stmt)
+            projeto = proj_result.scalar_one_or_none()
+
+            if not projeto:
+                raise HTTPException(status_code=404, detail="Projeto not found")
+
+            if not projeto.edital:
+                return {
+                    "has_taxonomia": False,
+                    "taxonomia": None,
+                    "incidencia": [],
+                }
+
+            taxonomia = projeto.edital.taxonomia
+            if not taxonomia or not taxonomia.get("disciplinas"):
+                return {
+                    "has_taxonomia": False,
+                    "taxonomia": taxonomia,
+                    "incidencia": [],
+                }
+
+            # Get all questions for this projeto
+            prova_ids = [p.id for p in (projeto.provas or [])]
+
+            if not prova_ids:
+                # No provas yet, return taxonomy with zero counts
+                incidencia = _build_incidencia_tree(taxonomia, {})
+                return {
+                    "has_taxonomia": True,
+                    "taxonomia": taxonomia,
+                    "incidencia": incidencia,
+                    "total_questoes": 0,
+                }
+
+            # Count questions by disciplina
+            disc_stmt = (
+                select(Questao.disciplina, func.count(Questao.id).label("count"))
+                .where(Questao.prova_id.in_(prova_ids))
+                .where(Questao.disciplina.isnot(None))
+                .group_by(Questao.disciplina)
+            )
+            disc_result = await db.execute(disc_stmt)
+            disciplina_counts = {row[0]: row[1] for row in disc_result.all()}
+
+            # Count questions by assunto_pci (topic)
+            topic_stmt = (
+                select(Questao.assunto_pci, func.count(Questao.id).label("count"))
+                .where(Questao.prova_id.in_(prova_ids))
+                .where(Questao.assunto_pci.isnot(None))
+                .group_by(Questao.assunto_pci)
+            )
+            topic_result = await db.execute(topic_stmt)
+            topic_counts = {row[0]: row[1] for row in topic_result.all()}
+
+            # Get total questions
+            total_stmt = (
+                select(func.count(Questao.id))
+                .where(Questao.prova_id.in_(prova_ids))
+            )
+            total_result = await db.execute(total_stmt)
+            total_questoes = total_result.scalar() or 0
+
+            # Build incidencia tree with counts
+            incidencia = _build_incidencia_tree(
+                taxonomia,
+                disciplina_counts,
+                topic_counts
+            )
+
+            return {
+                "has_taxonomia": True,
+                "taxonomia": taxonomia,
+                "incidencia": incidencia,
+                "total_questoes": total_questoes,
+                "disciplina_counts": disciplina_counts,
+                "topic_counts": topic_counts,
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get projeto taxonomia incidencia: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _normalize_for_matching(text: str) -> str:
+    """Normalize text for case-insensitive matching."""
+    import unicodedata
+    # Remove accents and convert to lowercase
+    normalized = unicodedata.normalize('NFD', text)
+    without_accents = ''.join(c for c in normalized if unicodedata.category(c) != 'Mn')
+    return without_accents.lower().strip()
+
+
+def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
+    """Find count using case-insensitive matching."""
+    if counts is None:
+        return 0
+    # Try exact match first
+    if name in counts:
+        return counts[name]
+
+    # Try case-insensitive match
+    name_normalized = _normalize_for_matching(name)
+    for key, value in counts.items():
+        if _normalize_for_matching(key) == name_normalized:
+            return value
+
+    return 0
+
+
+def _build_incidencia_tree(
+    taxonomia: dict,
+    disciplina_counts: dict,
+    topic_counts: dict | None = None
+) -> list:
+    """
+    Build an incidencia tree from the taxonomia structure with question counts.
+
+    The taxonomia structure uses recursive ItemConteudo:
+    {
+        "disciplinas": [
+            {
+                "nome": "Língua Portuguesa",
+                "itens": [
+                    {"id": "1", "texto": "Compreensão", "filhos": [...]},
+                    ...
+                ]
+            }
+        ]
+    }
+
+    Returns a list of incidencia nodes:
+    [
+        {
+            "id": "disciplina-0",
+            "nome": "Língua Portuguesa",
+            "count": 15,
+            "children": [
+                {"id": "1", "nome": "Compreensão", "count": 5, "children": [...]},
+                ...
+            ]
+        }
+    ]
+    """
+    if topic_counts is None:
+        topic_counts = {}
+
+    incidencia = []
+
+    for idx, disciplina in enumerate(taxonomia.get("disciplinas", [])):
+        disc_nome = disciplina.get("nome", "Sem nome")
+        disc_count = _find_count_case_insensitive(disc_nome, disciplina_counts)
+
+        # Build children from itens (new format) or assuntos (legacy)
+        children = []
+        itens = disciplina.get("itens", [])
+        if itens:
+            children = _build_item_children(itens, topic_counts, disc_nome)
+        else:
+            # Legacy format with assuntos
+            assuntos = disciplina.get("assuntos", [])
+            for assunto in assuntos:
+                assunto_nome = assunto.get("nome", "")
+                assunto_count = _find_count_case_insensitive(assunto_nome, topic_counts)
+
+                topico_children = []
+                for topico in assunto.get("topicos", []):
+                    topico_nome = topico.get("nome", "")
+                    topico_count = _find_count_case_insensitive(topico_nome, topic_counts)
+
+                    subtopico_children = []
+                    for subtopico in topico.get("subtopicos", []):
+                        subtopico_nome = subtopico if isinstance(subtopico, str) else subtopico.get("nome", "")
+                        subtopico_count = _find_count_case_insensitive(subtopico_nome, topic_counts)
+                        subtopico_children.append({
+                            "id": f"subtopico-{len(subtopico_children)}",
+                            "nome": subtopico_nome,
+                            "count": subtopico_count,
+                            "children": [],
+                        })
+
+                    topico_children.append({
+                        "id": f"topico-{len(topico_children)}",
+                        "nome": topico_nome,
+                        "count": topico_count,
+                        "children": subtopico_children,
+                    })
+
+                children.append({
+                    "id": f"assunto-{len(children)}",
+                    "nome": assunto_nome,
+                    "count": assunto_count,
+                    "children": topico_children,
+                })
+
+        incidencia.append({
+            "id": f"disciplina-{idx}",
+            "nome": disc_nome,
+            "count": disc_count,
+            "children": children,
+        })
+
+    return incidencia
+
+
+def _build_item_children(itens: list, topic_counts: dict | None, parent_path: str = "") -> list:
+    """
+    Recursively build children from ItemConteudo format.
+    """
+    children = []
+
+    for item in itens:
+        item_id = item.get("id") or f"item-{len(children)}"
+        item_texto = item.get("texto", "")
+        item_count = _find_count_case_insensitive(item_texto, topic_counts)
+
+        # Build full path for matching
+        full_path = f"{parent_path} > {item_texto}" if parent_path else item_texto
+
+        # Recursively process children (filhos)
+        filhos = item.get("filhos", [])
+        item_children = _build_item_children(filhos, topic_counts, full_path) if filhos else []
+
+        children.append({
+            "id": item_id,
+            "nome": item_texto,
+            "count": item_count,
+            "children": item_children,
+        })
+
+    return children

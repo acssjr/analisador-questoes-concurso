@@ -350,6 +350,41 @@ export const api = {
   },
 
   /**
+   * Get taxonomy tree with incidence counts for a project
+   */
+  async getProjetoTaxonomiaIncidencia(projetoId: string): Promise<{
+    has_taxonomia: boolean;
+    taxonomia: {
+      disciplinas: Array<{
+        nome: string;
+        itens?: Array<{
+          id: string | null;
+          texto: string;
+          filhos: unknown[];
+        }>;
+        assuntos?: Array<{
+          nome: string;
+          topicos?: Array<{
+            nome: string;
+            subtopicos?: string[];
+          }>;
+        }>;
+      }>;
+    } | null;
+    incidencia: Array<{
+      id: string;
+      nome: string;
+      count: number;
+      children: unknown[];
+    }>;
+    total_questoes: number;
+    disciplina_counts?: Record<string, number>;
+    topic_counts?: Record<string, number>;
+  }> {
+    return fetchApi(`/projetos/${projetoId}/taxonomia-incidencia`);
+  },
+
+  /**
    * Cancel a running analysis job
    */
   async cancelAnaliseJob(
