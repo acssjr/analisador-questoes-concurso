@@ -240,31 +240,32 @@ from src.llm.llm_orchestrator import LLMOrchestrator
 
 
 # System prompt for question extraction
-EXTRACTION_SYSTEM_PROMPT = """Voce e um especialista em extrair questoes de provas de concurso de PDFs brasileiros.
+EXTRACTION_SYSTEM_PROMPT = """Você é um especialista em extrair questões de provas de concurso de PDFs brasileiros.
 
-Sua tarefa e analisar o texto extraido de um PDF de prova e identificar TODAS as questoes.
+Sua tarefa é analisar o texto extraído de um PDF de prova e identificar TODAS as questões.
 
 REGRAS IMPORTANTES:
-1. Cada questao tem: numero, enunciado, 5 alternativas (A-E), e gabarito (resposta correta)
-2. O gabarito pode aparecer como "(Correta: X)" proximo ao numero da questao ou no final
-3. Identifique a DISCIPLINA de cada questao baseado nos cabecalhos de secao (ex: "Lingua Portuguesa", "Matematica", etc)
-4. Se uma questao estiver marcada como ANULADA, marque anulada=true
-5. Extraia o enunciado COMPLETO, incluindo textos base quando aplicavel
-6. NAO invente questoes - extraia apenas o que esta no texto
-7. Mantenha a formatacao original do enunciado e alternativas
+1. Cada questão tem: número, enunciado, 5 alternativas (A-E), e gabarito (resposta correta)
+2. O gabarito pode aparecer como "(Correta: X)" próximo ao número da questão ou no final
+3. Identifique a DISCIPLINA de cada questão baseado nos cabeçalhos de seção (ex: "Língua Portuguesa", "Matemática", etc)
+4. Se uma questão estiver marcada como ANULADA, marque anulada=true
+5. Extraia o enunciado COMPLETO, incluindo textos base quando aplicável
+6. NÃO invente questões - extraia apenas o que está no texto
+7. Mantenha a formatação original do enunciado e alternativas
+8. SEMPRE preserve os acentos e caracteres especiais do português (á, é, í, ó, ú, ã, õ, ç, etc.)
 
-ATENCAO - QUESTOES ENTRE PAGINAS:
-- Questoes podem COMECAR em uma pagina e TERMINAR em outra
-- Se voce ver "Questao X" seguido de rodape/numero de pagina, o ENUNCIADO e ALTERNATIVAS estarao na pagina seguinte
-- O texto no INICIO de uma pagina (antes de "Questao Y") geralmente pertence a questao anterior
-- Sempre associe o conteudo que aparece ANTES do proximo "Questao N" a questao anterior
+ATENÇÃO - QUESTÕES ENTRE PÁGINAS:
+- Questões podem COMEÇAR em uma página e TERMINAR em outra
+- Se você ver "Questão X" seguido de rodapé/número de página, o ENUNCIADO e ALTERNATIVAS estarão na página seguinte
+- O texto no INÍCIO de uma página (antes de "Questão Y") geralmente pertence à questão anterior
+- Sempre associe o conteúdo que aparece ANTES do próximo "Questão N" à questão anterior
 
-FORMATO DE SAIDA (JSON):
+FORMATO DE SAÍDA (JSON):
 {
   "questoes": [
     {
       "numero": 1,
-      "disciplina": "Lingua Portuguesa",
+      "disciplina": "Língua Portuguesa",
       "enunciado": "Texto completo do enunciado...",
       "alternativas": {
         "A": "Texto da alternativa A",
@@ -278,10 +279,10 @@ FORMATO DE SAIDA (JSON):
     }
   ],
   "total_questoes": 60,
-  "disciplinas_encontradas": ["Lingua Portuguesa", "Matematica", "Conhecimentos Especificos"]
+  "disciplinas_encontradas": ["Língua Portuguesa", "Matemática", "Conhecimentos Específicos"]
 }
 
-IMPORTANTE: Retorne APENAS o JSON, sem explicacoes ou texto adicional."""
+IMPORTANTE: Retorne APENAS o JSON, sem explicações ou texto adicional."""
 
 
 def extract_questions_with_llm(
@@ -691,20 +692,21 @@ def _repair_incomplete_questions(
                         logger.debug(f"Regex repair incomplete for {numero}, falling back to LLM")
 
         # Fall back to LLM repair
-        repair_prompt = f"""Encontre e extraia a questao {numero} do texto abaixo.
+        repair_prompt = f"""Encontre e extraia a questão {numero} do texto abaixo.
 
-ATENCAO: A questao pode estar DIVIDIDA entre paginas - o numero "Questao {numero}" pode estar no fim de uma pagina,
-e o enunciado/alternativas no INICIO da pagina seguinte.
+ATENÇÃO: A questão pode estar DIVIDIDA entre páginas - o número "Questão {numero}" pode estar no fim de uma página,
+e o enunciado/alternativas no INÍCIO da página seguinte.
 
-Procure pelo numero da questao e extraia TODO o conteudo ate a proxima questao:
-- Enunciado COMPLETO (pode estar na pagina seguinte ao numero)
+Procure pelo número da questão e extraia TODO o conteúdo até a próxima questão:
+- Enunciado COMPLETO (pode estar na página seguinte ao número)
 - TODAS as 5 alternativas (A, B, C, D, E)
 - Gabarito (resposta correta) - geralmente aparece como "(Correta: X)"
+- PRESERVE todos os acentos e caracteres especiais do português (á, é, í, ó, ú, ã, õ, ç)
 
 TEXTO DO PDF:
 {all_text}
 
-Retorne APENAS um JSON com a questao completa:
+Retorne APENAS um JSON com a questão completa:
 {{
   "numero": {numero},
   "disciplina": "...",
@@ -716,7 +718,7 @@ Retorne APENAS um JSON com a questao completa:
         try:
             result = llm.generate(
                 prompt=repair_prompt,
-                system_prompt="Voce e um especialista em extrair questoes de provas. Retorne APENAS JSON valido.",
+                system_prompt="Você é um especialista em extrair questões de provas. Retorne APENAS JSON válido. Preserve os acentos do português.",
                 temperature=0.1,
                 max_tokens=2000,
             )

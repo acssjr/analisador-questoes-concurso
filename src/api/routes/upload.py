@@ -69,6 +69,30 @@ DISCIPLINA_ALIASES = {
 }
 
 
+def fix_mojibake(text: str) -> str:
+    """
+    Fix double UTF-8 encoding (mojibake) in text.
+
+    Common mojibake patterns:
+    - "Ã¡" → "á" (UTF-8 interpreted as Latin-1, then encoded as UTF-8 again)
+    - "Ã©" → "é"
+    - "Ãº" → "ú"
+    - etc.
+    """
+    if not text:
+        return text
+
+    # Try to fix double-encoded UTF-8
+    try:
+        # If the text contains mojibake, it was UTF-8 bytes interpreted as Latin-1
+        # We can fix it by encoding to Latin-1 and decoding as UTF-8
+        fixed = text.encode('latin-1').decode('utf-8')
+        return fixed
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        # Not mojibake, return original
+        return text
+
+
 def remove_accents(text: str) -> str:
     """Remove accents from text for comparison"""
     nfkd = unicodedata.normalize('NFKD', text)
@@ -125,10 +149,15 @@ def canonicalize_disciplina(nome: str) -> str:
     Maps variations like "Lingua Portuguesa", "língua portuguesa", "LINGUA PORTUGUESA"
     all to "Língua Portuguesa".
 
+    Also fixes mojibake (double UTF-8 encoding) like "LÃ­ngua" → "Língua".
+
     For unknown disciplines, applies title case.
     """
     if not nome:
         return ""
+
+    # First, try to fix any mojibake
+    nome = fix_mojibake(nome)
 
     normalized = normalize_disciplina(nome)
 
