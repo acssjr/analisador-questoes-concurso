@@ -275,6 +275,16 @@ export const api = {
     });
   },
 
+  async deleteProva(provaId: string): Promise<{
+    success: boolean;
+    message: string;
+    questoes_deleted: number;
+  }> {
+    return fetchApi(`/provas/${provaId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async getProjetoQuestoes(
     projetoId: string,
     options?: { disciplina?: string; topico?: string; limit?: number; offset?: number }

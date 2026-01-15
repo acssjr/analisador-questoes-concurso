@@ -379,16 +379,23 @@ async def get_projeto_questoes(
                 .where(Questao.prova_id.in_(prova_ids))
             )
 
-            # Apply filters
+            # Apply filters with flexible matching
+            # "Legislação" should match "Legislação Básica Aplicada À..."
+            first_word = None
             if disciplina:
-                q_stmt = q_stmt.where(Questao.disciplina == disciplina)
+                # Use LIKE for partial matching - normalize to first significant word
+                disciplina_normalized = _normalize_for_matching(disciplina)
+                first_word = disciplina_normalized.split()[0] if disciplina_normalized else ""
+                # Match any discipline that starts with the same first word (case-insensitive)
+                q_stmt = q_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
             if topico:
                 q_stmt = q_stmt.where(Questao.assunto_pci == topico)
 
             # Count total before pagination
             count_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
-            if disciplina:
-                count_stmt = count_stmt.where(Questao.disciplina == disciplina)
+            if disciplina and first_word:
+                # Use same flexible matching as query
+                count_stmt = count_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
             if topico:
                 count_stmt = count_stmt.where(Questao.assunto_pci == topico)
 
@@ -569,7 +576,14 @@ def _normalize_for_matching(text: str) -> str:
 
 
 def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
-    """Find count using case-insensitive matching."""
+    """Find count using case-insensitive and flexible matching.
+
+    Matches discipline names flexibly:
+    - "LEGISLAÇÃO BÁSICA APLICADA À ADMIN..." matches "Legislação"
+    - "LÍNGUA PORTUGUESA" matches "Língua Portuguesa"
+
+    Uses first-word prefix matching when exact match fails.
+    """
     if counts is None:
         return 0
     # Try exact match first
@@ -581,6 +595,19 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
     for key, value in counts.items():
         if _normalize_for_matching(key) == name_normalized:
             return value
+
+    # Try first-word prefix matching
+    # This handles "Legislação" matching "LEGISLAÇÃO BÁSICA APLICADA À..."
+    first_word = name_normalized.split()[0] if name_normalized else ""
+    if first_word:
+        total = 0
+        for key, value in counts.items():
+            key_normalized = _normalize_for_matching(key)
+            key_first = key_normalized.split()[0] if key_normalized else ""
+            if key_first == first_word:
+                total += value
+        if total > 0:
+            return total
 
     return 0
 

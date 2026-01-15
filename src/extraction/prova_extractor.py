@@ -18,10 +18,8 @@ def detect_questions_start_page(pdf_path: str | Path) -> int:
     """
     Detect which page the questions start on by looking for patterns.
 
-    Typically:
-    - Page 1: Cover page with instructions
-    - Page 2: Scratch paper (RASCUNHO)
-    - Page 3+: Questions start
+    This function is more lenient to avoid skipping questions that appear
+    on pages that also contain instructions.
 
     Returns:
         int: 0-indexed page number where questions start
@@ -36,22 +34,35 @@ def detect_questions_start_page(pdf_path: str | Path) -> int:
             has_questao = bool(re.search(r"quest[aã]o\s*0?1\b", text))
             has_alternativas = bool(re.search(r"\([a-e]\)", text))
 
-            # Skip pages that are clearly not questions
-            is_cover = "leia atentamente" in text or "instruções" in text
+            # Only skip pages that are JUST rascunho (scratch paper)
+            # Don't skip pages with instructions if they also have questions
             is_rascunho = "rascunho" in text and len(text) < 500
 
-            if has_questao and has_alternativas and not is_rascunho and not is_cover:
+            # If page has questions and alternatives, start from here
+            # Even if it has "instruções" - some provas have both
+            if has_questao and has_alternativas and not is_rascunho:
                 logger.info(f"Questions detected starting at page {page_num + 1}")
                 doc.close()
                 return page_num
 
-        doc.close()
-        # Default: start from page 3 (index 2) for typical prova format
-        return 2
+        # Second pass: look for any page with question number pattern
+        doc2 = fitz.open(pdf_path)
+        for page_num in range(min(10, len(doc2))):
+            text = doc2[page_num].get_text().lower()
+            # Look for "QUESTÃO 01" or "01." pattern with alternatives
+            if re.search(r"(quest[aã]o\s*0?1\b|^0?1\.)", text) and re.search(r"\([a-e]\)", text):
+                logger.info(f"Questions detected (second pass) at page {page_num + 1}")
+                doc2.close()
+                return page_num
+
+        doc2.close()
+        # Default: start from page 1 (index 0) to avoid missing questions
+        logger.warning("Could not detect question start, starting from page 1")
+        return 0
 
     except Exception as e:
-        logger.warning(f"Error detecting start page: {e}, defaulting to page 3")
-        return 2
+        logger.warning(f"Error detecting start page: {e}, defaulting to page 1")
+        return 0
 
 
 def extract_prova_text(pdf_path: str | Path, max_pages: int = 50) -> str:

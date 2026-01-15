@@ -303,6 +303,28 @@ export default function ProvasQuestoes() {
     }
   }, [queueItems, handleCancel]);
 
+  // Handle delete action - deletes prova and all its questions
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      const result = await api.deleteProva(id);
+      addNotification({
+        type: 'success',
+        title: 'Prova excluída',
+        message: result.message,
+      });
+
+      // Refresh queue and taxonomy
+      await fetchQueueStatus();
+      await fetchTaxonomy();
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Erro ao excluir',
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+      });
+    }
+  }, [addNotification, fetchQueueStatus, fetchTaxonomy]);
+
   return (
     <div className="space-y-6" data-projeto-id={projeto.id}>
       <div className="flex items-center justify-between">
@@ -336,6 +358,7 @@ export default function ProvasQuestoes() {
             items={queueItems}
             onRetry={handleRetry}
             onCancel={handleCancel}
+            onDelete={handleDelete}
           />
         </div>
       )}
