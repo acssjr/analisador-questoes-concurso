@@ -2,6 +2,7 @@
 Edital extraction logic - extracts metadata and taxonomy from exam notices
 """
 import json
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
@@ -10,6 +11,147 @@ from loguru import logger
 
 from src.core.exceptions import ExtractionError
 from src.llm.llm_orchestrator import LLMOrchestrator
+
+
+class DocumentType(Enum):
+    """Types of documents that can be uploaded"""
+    EDITAL = "edital"
+    CONTEUDO_PROGRAMATICO = "conteudo_programatico"
+    PROVA = "prova"
+    DESCONHECIDO = "desconhecido"
+
+
+class WrongDocumentTypeError(ExtractionError):
+    """Raised when user uploads the wrong type of document"""
+    def __init__(self, expected: DocumentType, detected: DocumentType, message: str):
+        self.expected = expected
+        self.detected = detected
+        super().__init__(message)
+
+
+def detect_document_type(text: str) -> tuple[DocumentType, float, str]:
+    """
+    Detect the type of document based on its content using LLM.
+
+    Args:
+        text: Extracted text from the PDF (first few pages)
+
+    Returns:
+        tuple: (DocumentType, confidence 0-1, explanation)
+    """
+    prompt = f"""Analise o texto abaixo e classifique o tipo de documento.
+
+TEXTO (primeiras páginas):
+{text[:8000]}
+
+TIPOS POSSÍVEIS:
+1. EDITAL - Documento oficial do concurso com: requisitos, datas, inscrições, regras gerais, informações do órgão
+2. CONTEUDO_PROGRAMATICO - Lista de tópicos/matérias a serem estudadas, organizada por disciplinas (ex: "1. Língua Portuguesa: 1.1 Interpretação de texto...")
+3. PROVA - Documento com questões de múltipla escolha, enunciados, alternativas (A, B, C, D, E), gabaritos
+
+SINAIS DE CADA TIPO:
+- EDITAL: "Das inscrições", "Do cargo", "Das vagas", "cronograma", "edital nº", valores de inscrição
+- CONTEUDO_PROGRAMATICO: listas numeradas de tópicos, "Conhecimentos Básicos", "Conhecimentos Específicos", disciplinas como "Língua Portuguesa", "Direito Constitucional"
+- PROVA: "Questão 01", "Questão 02", alternativas "(A)", "(B)", "(C)", "(D)", "(E)", "Marque a alternativa", enunciados longos seguidos de opções
+
+ATENÇÃO:
+- Se o documento tiver QUESTÕES com ALTERNATIVAS, é uma PROVA (mesmo que mencione disciplinas)
+- Se tiver lista de TÓPICOS sem questões, é CONTEUDO_PROGRAMATICO
+- Se tiver informações administrativas do concurso, é EDITAL
+
+Responda em JSON:
+{{
+  "tipo": "EDITAL" | "CONTEUDO_PROGRAMATICO" | "PROVA" | "DESCONHECIDO",
+  "confianca": 0.0 a 1.0,
+  "explicacao": "breve explicação do porquê desta classificação",
+  "sinais_detectados": ["sinal1", "sinal2", ...]
+}}
+"""
+
+    try:
+        llm = LLMOrchestrator()
+        response = llm.generate(
+            prompt=prompt,
+            system_prompt="Você é um classificador de documentos de concursos públicos. Seja preciso e analítico.",
+            temperature=0.1,
+            max_tokens=512,
+        )
+
+        content = response["content"].strip()
+
+        # Remove markdown code blocks if present
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+
+        result = json.loads(content.strip())
+
+        tipo_str = result.get("tipo", "DESCONHECIDO").upper()
+        tipo_map = {
+            "EDITAL": DocumentType.EDITAL,
+            "CONTEUDO_PROGRAMATICO": DocumentType.CONTEUDO_PROGRAMATICO,
+            "PROVA": DocumentType.PROVA,
+            "DESCONHECIDO": DocumentType.DESCONHECIDO,
+        }
+
+        doc_type = tipo_map.get(tipo_str, DocumentType.DESCONHECIDO)
+        confidence = float(result.get("confianca", 0.5))
+        explanation = result.get("explicacao", "")
+
+        logger.info(f"Document type detected: {doc_type.value} (confidence: {confidence:.2f})")
+
+        return doc_type, confidence, explanation
+
+    except Exception as e:
+        logger.warning(f"Document type detection failed: {e}")
+        return DocumentType.DESCONHECIDO, 0.0, str(e)
+
+
+def validate_document_type(
+    text: str,
+    expected: DocumentType,
+    step_name: str
+) -> None:
+    """
+    Validate that the uploaded document matches the expected type.
+
+    Args:
+        text: Extracted text from PDF
+        expected: Expected document type for this upload step
+        step_name: Human-readable name of the upload step (for error messages)
+
+    Raises:
+        WrongDocumentTypeError: If document type doesn't match expected
+    """
+    detected, confidence, explanation = detect_document_type(text)
+
+    # If we can't detect with confidence, let it through
+    if detected == DocumentType.DESCONHECIDO or confidence < 0.6:
+        logger.warning(f"Could not confidently detect document type (confidence: {confidence:.2f})")
+        return
+
+    # Check if detected type matches expected
+    if detected != expected:
+        type_names = {
+            DocumentType.EDITAL: "um edital",
+            DocumentType.CONTEUDO_PROGRAMATICO: "um conteúdo programático",
+            DocumentType.PROVA: "uma prova com questões",
+            DocumentType.DESCONHECIDO: "um documento desconhecido",
+        }
+
+        expected_name = type_names.get(expected, str(expected))
+        detected_name = type_names.get(detected, str(detected))
+
+        error_msg = (
+            f"Tipo de documento incorreto para '{step_name}'. "
+            f"Esperado: {expected_name}. "
+            f"Detectado: {detected_name} (confiança: {confidence:.0%}). "
+            f"Motivo: {explanation}"
+        )
+
+        logger.error(error_msg)
+        raise WrongDocumentTypeError(expected, detected, error_msg)
 
 
 def extract_edital_text(pdf_path: str | Path, max_pages: int = 10) -> str:
@@ -41,12 +183,13 @@ def extract_edital_text(pdf_path: str | Path, max_pages: int = 10) -> str:
         raise ExtractionError(f"Edital text extraction failed: {e}")
 
 
-def extract_edital_metadata(pdf_path: str | Path) -> dict:
+def extract_edital_metadata(pdf_path: str | Path, skip_validation: bool = False) -> dict:
     """
     Extract metadata from edital using LLM
 
     Args:
         pdf_path: Path to edital PDF
+        skip_validation: Skip document type validation (default False)
 
     Returns:
         dict: {
@@ -56,10 +199,17 @@ def extract_edital_metadata(pdf_path: str | Path) -> dict:
             "ano": int,
             "disciplinas": list[str]
         }
+
+    Raises:
+        WrongDocumentTypeError: If uploaded file is not an edital
     """
     try:
         # Extract text
         text = extract_edital_text(pdf_path, max_pages=15)
+
+        # Validate document type
+        if not skip_validation:
+            validate_document_type(text, DocumentType.EDITAL, "Upload do Edital")
 
         # Build LLM prompt
         prompt = f"""Analise este edital de concurso público e extraia as seguintes informações:
@@ -140,7 +290,11 @@ Exemplo de resposta:
         raise ExtractionError(f"Edital metadata extraction failed: {e}")
 
 
-def extract_conteudo_programatico(pdf_path: str | Path, cargo: Optional[str] = None) -> dict:
+def extract_conteudo_programatico(
+    pdf_path: str | Path,
+    cargo: Optional[str] = None,
+    skip_validation: bool = False
+) -> dict:
     """
     Extract hierarchical taxonomy from conteúdo programático PDF
 
@@ -150,6 +304,7 @@ def extract_conteudo_programatico(pdf_path: str | Path, cargo: Optional[str] = N
     Args:
         pdf_path: Path to conteúdo programático PDF
         cargo: Optional cargo name to filter content for specific cargo
+        skip_validation: Skip document type validation (default False)
 
     Returns:
         dict: Taxonomia hierárquica adaptativa
@@ -175,10 +330,17 @@ def extract_conteudo_programatico(pdf_path: str | Path, cargo: Optional[str] = N
                 }
             ]
         }
+
+    Raises:
+        WrongDocumentTypeError: If uploaded file contains exam questions instead of syllabus
     """
     try:
         # Extract full text (conteúdo programático can be long)
         text = extract_edital_text(pdf_path, max_pages=50)
+
+        # Validate document type - reject if it's a prova (exam with questions)
+        if not skip_validation:
+            validate_document_type(text, DocumentType.CONTEUDO_PROGRAMATICO, "Upload do Conteúdo Programático")
 
         # Build cargo-specific instruction
         cargo_instruction = ""

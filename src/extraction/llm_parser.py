@@ -13,6 +13,11 @@ import fitz  # PyMuPDF
 from loguru import logger
 
 from src.core.exceptions import ExtractionError
+from src.extraction.edital_extractor import (
+    DocumentType,
+    validate_document_type,
+    extract_edital_text,
+)
 
 
 def _extract_page_text_robust(page: fitz.Page) -> str:
@@ -289,6 +294,7 @@ def extract_questions_with_llm(
     pdf_path: str | Path,
     llm: Optional[LLMOrchestrator] = None,
     max_pages: Optional[int] = None,
+    skip_validation: bool = False,
 ) -> dict:
     """
     Extract questions from PDF using LLM.
@@ -297,16 +303,23 @@ def extract_questions_with_llm(
         pdf_path: Path to PDF file
         llm: LLM orchestrator instance (creates one if not provided)
         max_pages: Maximum pages to process (None = all)
+        skip_validation: Skip document type validation (default False)
 
     Returns:
         dict with metadados and questoes
 
     Raises:
         ExtractionError: If extraction fails
+        WrongDocumentTypeError: If uploaded file is not an exam with questions
     """
     try:
         pdf_path = Path(pdf_path)
         logger.info(f"Extracting questions with LLM from: {pdf_path}")
+
+        # Validate document type - must be a prova (exam with questions)
+        if not skip_validation:
+            preview_text = extract_edital_text(pdf_path, max_pages=5)
+            validate_document_type(preview_text, DocumentType.PROVA, "Upload de Provas")
 
         # Initialize LLM if not provided
         if llm is None:
@@ -768,6 +781,7 @@ def extract_questions_chunked(
     llm: Optional[LLMOrchestrator] = None,
     pages_per_chunk: int = 5,
     overlap_pages: int = 2,
+    skip_validation: bool = False,
 ) -> dict:
     """
     Extract questions from large PDFs by processing in chunks with overlap.
@@ -780,13 +794,22 @@ def extract_questions_chunked(
         llm: LLM orchestrator instance
         pages_per_chunk: Pages to process per LLM call
         overlap_pages: Number of pages to overlap between chunks (prevents split questions)
+        skip_validation: Skip document type validation (default False)
 
     Returns:
         dict with metadados and questoes
+
+    Raises:
+        WrongDocumentTypeError: If uploaded file is not an exam with questions
     """
     try:
         pdf_path = Path(pdf_path)
         logger.info(f"Extracting questions in chunks from: {pdf_path}")
+
+        # Validate document type - must be a prova (exam with questions)
+        if not skip_validation:
+            preview_text = extract_edital_text(pdf_path, max_pages=5)
+            validate_document_type(preview_text, DocumentType.PROVA, "Upload de Provas")
 
         if llm is None:
             llm = LLMOrchestrator()

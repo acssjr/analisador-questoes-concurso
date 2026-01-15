@@ -14,6 +14,7 @@ from sqlalchemy import select
 from src.classification.classifier import QuestionClassifier
 from src.core.config import get_settings
 from src.core.database import get_db, AsyncSessionLocal
+from src.extraction.edital_extractor import WrongDocumentTypeError
 from src.extraction.pci_parser import parse_pci_pdf
 from src.extraction.pdf_detector import detect_pdf_format
 from src.extraction.llm_parser import extract_questions_with_llm, extract_questions_chunked
@@ -392,6 +393,9 @@ async def upload_pdf(
                             extraction_result = extract_questions_chunked(file_path, llm)
                             questoes_extraidas = extraction_result["questoes"]
                             logger.info(f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}")
+                        except WrongDocumentTypeError:
+                            # Re-raise document type errors - don't try fallback
+                            raise
                         except Exception as llm_error:
                             # Fallback to regex parser
                             logger.warning(f"LLM extraction failed, falling back to regex: {llm_error}")
@@ -689,6 +693,9 @@ async def upload_pdf(
 
             return response
 
+    except WrongDocumentTypeError as e:
+        logger.warning(f"Wrong document type for provas upload: {e}")
+        return {"success": False, "error": str(e), "error_type": "wrong_document_type"}
     except Exception as e:
         logger.error(f"Upload failed: {e}")
         return {"success": False, "error": str(e)}

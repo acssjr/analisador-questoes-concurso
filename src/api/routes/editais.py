@@ -15,6 +15,7 @@ from src.core.database import get_db
 from src.extraction.edital_extractor import (
     extract_conteudo_programatico,
     extract_edital_metadata,
+    WrongDocumentTypeError,
 )
 from src.models.edital import Edital
 from src.schemas.edital import (
@@ -117,6 +118,9 @@ async def upload_edital(file: UploadFile = File(...)):
 
     except HTTPException:
         raise
+    except WrongDocumentTypeError as e:
+        logger.warning(f"Wrong document type for edital upload: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Edital upload failed: {e}")
         raise HTTPException(status_code=500, detail=f"Edital upload failed: {str(e)}")
@@ -197,6 +201,9 @@ async def upload_conteudo_programatico(
 
     except HTTPException:
         raise
+    except WrongDocumentTypeError as e:
+        logger.warning(f"Wrong document type for conteúdo programático upload: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Conteúdo programático upload failed: {e}")
         raise HTTPException(
