@@ -1,6 +1,7 @@
 """
 Report command - generate detailed reports
 """
+
 import json
 from pathlib import Path
 
@@ -34,17 +35,11 @@ def generate(
         classificacoes = data.get("classificacoes", [])
 
         # Filter by disciplina
-        questoes_filtradas = [
-            q for q in questoes if q.get("disciplina") == disciplina
-        ]
-        classificacoes_filtradas = [
-            c for c in classificacoes if c.get("disciplina") == disciplina
-        ]
+        questoes_filtradas = [q for q in questoes if q.get("disciplina") == disciplina]
+        classificacoes_filtradas = [c for c in classificacoes if c.get("disciplina") == disciplina]
 
         if not questoes_filtradas:
-            console.print(
-                f"[bold red]No questions found for disciplina:[/bold red] {disciplina}"
-            )
+            console.print(f"[bold red]No questions found for disciplina:[/bold red] {disciplina}")
             raise typer.Exit(1)
 
         console.print(
@@ -70,7 +65,7 @@ def generate(
             similaridades=similaridades,
         )
 
-        console.print(f"[bold green]✓ Report generated![/bold green]")
+        console.print("[bold green]✓ Report generated![/bold green]")
         console.print(f"Saved to: [bold]{report_path}[/bold]")
 
         # Show preview

@@ -1,6 +1,7 @@
 """
 Extract command - extract questions from PDFs
 """
+
 import json
 from pathlib import Path
 
@@ -44,13 +45,11 @@ def pdf(
         if format_type == "PCI":
             result = parse_pci_pdf(pdf_path)
         else:
-            console.print(
-                f"[bold red]Error:[/bold red] Format {format_type} not supported yet"
-            )
+            console.print(f"[bold red]Error:[/bold red] Format {format_type} not supported yet")
             raise typer.Exit(1)
 
         # Show summary
-        console.print(f"\n[bold green]✓ Extraction complete![/bold green]")
+        console.print("\n[bold green]✓ Extraction complete![/bold green]")
         console.print(f"Total questions: {len(result['questoes'])}")
         console.print(f"Banca: {result['metadados'].get('banca', 'N/A')}")
         console.print(f"Cargo: {result['metadados'].get('cargo', 'N/A')}")
@@ -84,9 +83,7 @@ def pdf(
 @app.command()
 def batch(
     input_dir: Path = typer.Argument(..., help="Directory with PDF files"),
-    output_dir: Path = typer.Option(
-        "data/processed/questoes_extraidas", help="Output directory"
-    ),
+    output_dir: Path = typer.Option("data/processed/questoes_extraidas", help="Output directory"),
 ):
     """
     Extract questions from multiple PDFs
@@ -113,14 +110,12 @@ def batch(
                 with open(output, "w", encoding="utf-8") as f:
                     json.dump(result, f, ensure_ascii=False, indent=2)
 
-                console.print(
-                    f"✓ {pdf_path.name}: {len(result['questoes'])} questions extracted"
-                )
+                console.print(f"✓ {pdf_path.name}: {len(result['questoes'])} questions extracted")
 
             except Exception as e:
                 console.print(f"✗ {pdf_path.name}: [red]{e}[/red]")
 
-        console.print(f"\n[bold green]✓ Batch extraction complete![/bold green]")
+        console.print("\n[bold green]✓ Batch extraction complete![/bold green]")
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")

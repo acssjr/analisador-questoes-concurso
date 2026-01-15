@@ -1,12 +1,12 @@
 """
 Analise Pydantic schemas for the deep analysis API
 """
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
-
 
 # =============================================================================
 # Request Schemas
@@ -15,14 +15,13 @@ from pydantic import BaseModel, Field
 
 class AnaliseIniciarRequest(BaseModel):
     """Request body for starting an analysis job"""
+
     disciplina: Optional[str] = Field(
-        None,
-        description="Discipline to analyze. If None, analyzes all disciplines"
+        None, description="Discipline to analyze. If None, analyzes all disciplines"
     )
     skip_phases: Optional[list[int]] = Field(
         None,
-        description="List of phase numbers to skip (1-4). "
-                    "E.g., [1] skips Phase 1 (Vetorizacao)"
+        description="List of phase numbers to skip (1-4). E.g., [1] skips Phase 1 (Vetorizacao)",
     )
 
 
@@ -33,7 +32,10 @@ class AnaliseIniciarRequest(BaseModel):
 
 class PatternFindingSchema(BaseModel):
     """A pattern finding from the analysis"""
-    pattern_type: str = Field(..., description="Type: temporal, similaridade, dificuldade, estilo, pegadinha")
+
+    pattern_type: str = Field(
+        ..., description="Type: temporal, similaridade, dificuldade, estilo, pegadinha"
+    )
     description: str
     evidence_ids: list[str] = Field(default_factory=list)
     confidence: str = Field(..., description="Confidence: high, medium, low")
@@ -42,6 +44,7 @@ class PatternFindingSchema(BaseModel):
 
 class VerificationResultSchema(BaseModel):
     """Result of verifying a single claim"""
+
     claim: str
     verification_question: str
     evidence_ids: list[str]
@@ -53,6 +56,7 @@ class VerificationResultSchema(BaseModel):
 
 class AnalysisReportSchema(BaseModel):
     """Analysis report from Phase 3 (Reduce)"""
+
     disciplina: str
     total_questoes: int
     temporal_patterns: list[PatternFindingSchema] = Field(default_factory=list)
@@ -65,6 +69,7 @@ class AnalysisReportSchema(BaseModel):
 
 class VerifiedReportSchema(BaseModel):
     """Verified report from Phase 4 (CoVe)"""
+
     original_claims: int
     verified_claims: int
     rejected_claims: int
@@ -74,6 +79,7 @@ class VerifiedReportSchema(BaseModel):
 
 class ClusterResultSchema(BaseModel):
     """Clustering result from Phase 1"""
+
     n_clusters: int
     cluster_sizes: dict[str, int]
     silhouette_score: Optional[float] = None
@@ -81,6 +87,7 @@ class ClusterResultSchema(BaseModel):
 
 class AnaliseIniciarResponse(BaseModel):
     """Response after starting an analysis job"""
+
     job_id: UUID
     projeto_id: UUID
     disciplina: str
@@ -90,6 +97,7 @@ class AnaliseIniciarResponse(BaseModel):
 
 class AnaliseStatusResponse(BaseModel):
     """Response for analysis job status"""
+
     job_id: UUID
     projeto_id: UUID
     disciplina: str
@@ -106,6 +114,7 @@ class AnaliseStatusResponse(BaseModel):
 
 class AnaliseResultadoResponse(BaseModel):
     """Complete analysis results for a project"""
+
     projeto_id: UUID
     disciplinas: list[str] = Field(default_factory=list)
     total_jobs: int = 0
@@ -115,6 +124,7 @@ class AnaliseResultadoResponse(BaseModel):
 
 class AnaliseResultadoDisciplinaResponse(BaseModel):
     """Analysis results for a specific discipline"""
+
     job_id: UUID
     disciplina: str
     status: str
@@ -145,6 +155,7 @@ class AnaliseResultadoDisciplinaResponse(BaseModel):
 
 class AnaliseJobListResponse(BaseModel):
     """Response for listing analysis jobs"""
+
     jobs: list[AnaliseStatusResponse]
     total: int
 
@@ -156,8 +167,11 @@ class AnaliseJobListResponse(BaseModel):
 
 class AnaliseResumoResponse(BaseModel):
     """Summary of analysis for a project (for dashboard)"""
+
     projeto_id: UUID
-    status: str = Field(..., description="Overall status: pending, running, partial, completed, failed")
+    status: str = Field(
+        ..., description="Overall status: pending, running, partial, completed, failed"
+    )
     disciplinas_analisadas: int = 0
     disciplinas_total: int = 0
     questoes_analisadas: int = 0

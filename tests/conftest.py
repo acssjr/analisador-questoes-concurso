@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures
 """
+
 import asyncio
 from typing import AsyncGenerator, Generator
 from unittest.mock import MagicMock, patch
@@ -11,7 +12,9 @@ import pytest
 try:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
+
     from src.core.database import Base
+
     HAS_SQLALCHEMY = True
 except ImportError:
     HAS_SQLALCHEMY = False

@@ -1,6 +1,7 @@
 """
 Analyze command - analyze patterns and similarity
 """
+
 import json
 from pathlib import Path
 
@@ -70,8 +71,7 @@ def similarity(
                     "threshold": threshold,
                     "total_pairs": len(similar_pairs),
                     "pairs": [
-                        {"q1": q1, "q2": q2, "similarity": score}
-                        for q1, q2, score in similar_pairs
+                        {"q1": q1, "q2": q2, "similarity": score} for q1, q2, score in similar_pairs
                     ],
                 },
                 f,

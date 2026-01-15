@@ -1,6 +1,7 @@
 """
 Image extraction from PDFs
 """
+
 from pathlib import Path
 from typing import Optional
 

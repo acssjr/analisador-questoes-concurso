@@ -1,7 +1,8 @@
 """Tests for Map Service"""
-import pytest
-from unittest.mock import MagicMock, patch
-from src.analysis.map_service import MapService, ChunkDigest, QuestionAnalysis
+
+from unittest.mock import MagicMock
+
+from src.analysis.map_service import ChunkDigest, MapService, QuestionAnalysis
 
 
 def test_create_chunks_basic():
@@ -58,7 +59,7 @@ def test_build_analysis_prompt():
         disciplina="Portugues",
         banca="CEBRASPE",
         questoes_json='[{"id": "q1"}]',
-        cluster_info={"cluster_0": ["q1"]}
+        cluster_info={"cluster_0": ["q1"]},
     )
 
     assert "Disciplina: Portugues" in prompt
@@ -73,10 +74,7 @@ def test_build_analysis_prompt_without_cluster():
     service = MapService(llm=MagicMock())
 
     prompt = service._build_analysis_prompt(
-        disciplina="Matematica",
-        banca="FGV",
-        questoes_json='[{"id": "q1"}]',
-        cluster_info=None
+        disciplina="Matematica", banca="FGV", questoes_json='[{"id": "q1"}]', cluster_info=None
     )
 
     assert "Disciplina: Matematica" in prompt
@@ -91,7 +89,7 @@ def test_parse_response_success():
     """Test parsing valid JSON response"""
     service = MapService(llm=MagicMock())
 
-    response = '''```json
+    response = """```json
 {
     "chunk_digest": "Test summary",
     "patterns_found": [{"type": "estilo", "description": "Test pattern", "evidence_ids": ["q1"], "confidence": "high"}],
@@ -99,7 +97,7 @@ def test_parse_response_success():
         {"id": "q1", "difficulty": "medium", "difficulty_reasoning": "Test", "bloom_level": "understand", "has_trap": false}
     ]
 }
-```'''
+```"""
 
     result = service._parse_response("chunk_1", response, [])
 
@@ -114,7 +112,7 @@ def test_parse_response_with_trap():
     """Test parsing response with trap detection"""
     service = MapService(llm=MagicMock())
 
-    response = '''```json
+    response = """```json
 {
     "chunk_digest": "Questoes com pegadinhas",
     "patterns_found": [],
@@ -122,7 +120,7 @@ def test_parse_response_with_trap():
         {"id": "q1", "difficulty": "hard", "difficulty_reasoning": "Complexo", "bloom_level": "analyze", "has_trap": true, "trap_description": "Negacao dupla"}
     ]
 }
-```'''
+```"""
 
     result = service._parse_response("chunk_1", response, [])
 
@@ -134,11 +132,11 @@ def test_parse_response_raw_json():
     """Test parsing raw JSON without markdown blocks"""
     service = MapService(llm=MagicMock())
 
-    response = '''{
+    response = """{
     "chunk_digest": "Test summary",
     "patterns_found": [],
     "questions_analysis": []
-}'''
+}"""
 
     result = service._parse_response("chunk_1", response, [])
 
@@ -160,11 +158,11 @@ def test_parse_response_empty_fields():
     """Test parsing response with missing fields"""
     service = MapService(llm=MagicMock())
 
-    response = '''```json
+    response = """```json
 {
     "chunk_digest": "Partial response"
 }
-```'''
+```"""
 
     result = service._parse_response("chunk_1", response, [])
 
@@ -177,7 +175,7 @@ def test_analyze_chunk_integration():
     """Test full analyze_chunk flow"""
     mock_llm = MagicMock()
     mock_llm.generate.return_value = {
-        "text": '''```json
+        "text": """```json
 {
     "chunk_digest": "Padroes encontrados",
     "patterns_found": [],
@@ -185,8 +183,8 @@ def test_analyze_chunk_integration():
         {"id": "q1", "difficulty": "hard", "difficulty_reasoning": "Complexo", "bloom_level": "analyze", "has_trap": true, "trap_description": "Pegadinha no exceto"}
     ]
 }
-```''',
-        "provider": "groq"
+```""",
+        "provider": "groq",
     }
 
     service = MapService(llm=mock_llm)
@@ -195,7 +193,7 @@ def test_analyze_chunk_integration():
         chunk_id="chunk_1",
         questoes=[{"id": "q1", "enunciado": "Test", "alternativas": {"A": "a"}}],
         disciplina="Portugues",
-        banca="CEBRASPE"
+        banca="CEBRASPE",
     )
 
     assert result.chunk_id == "chunk_1"
@@ -207,14 +205,14 @@ def test_analyze_chunk_with_cluster_info():
     """Test analyze_chunk with cluster information"""
     mock_llm = MagicMock()
     mock_llm.generate.return_value = {
-        "text": '''```json
+        "text": """```json
 {
     "chunk_digest": "Cluster analysis",
     "patterns_found": [{"type": "similaridade", "description": "Questoes similares", "evidence_ids": ["q1", "q2"], "confidence": "high"}],
     "questions_analysis": []
 }
-```''',
-        "provider": "groq"
+```""",
+        "provider": "groq",
     }
 
     service = MapService(llm=mock_llm)
@@ -224,7 +222,7 @@ def test_analyze_chunk_with_cluster_info():
         questoes=[{"id": "q1"}, {"id": "q2"}],
         disciplina="Direito",
         banca="FCC",
-        cluster_info={"cluster_0": ["q1", "q2"]}
+        cluster_info={"cluster_0": ["q1", "q2"]},
     )
 
     assert len(result.patterns_found) == 1
@@ -239,10 +237,7 @@ def test_analyze_chunk_handles_error():
     service = MapService(llm=mock_llm)
 
     result = service.analyze_chunk(
-        chunk_id="chunk_1",
-        questoes=[{"id": "q1"}],
-        disciplina="Portugues",
-        banca="CEBRASPE"
+        chunk_id="chunk_1", questoes=[{"id": "q1"}], disciplina="Portugues", banca="CEBRASPE"
     )
 
     assert result.chunk_id == "chunk_1"
@@ -259,7 +254,7 @@ def test_question_analysis_dataclass():
         difficulty_reasoning="Complex reasoning required",
         bloom_level="analyze",
         has_trap=True,
-        trap_description="Hidden negation"
+        trap_description="Hidden negation",
     )
 
     assert qa.questao_id == "q1"
@@ -275,14 +270,14 @@ def test_chunk_digest_dataclass():
         difficulty="medium",
         difficulty_reasoning="Test",
         bloom_level="understand",
-        has_trap=False
+        has_trap=False,
     )
 
     digest = ChunkDigest(
         chunk_id="chunk_1",
         summary="Test summary",
         patterns_found=[{"type": "estilo", "description": "Pattern"}],
-        questions_analysis=[qa]
+        questions_analysis=[qa],
     )
 
     assert digest.chunk_id == "chunk_1"

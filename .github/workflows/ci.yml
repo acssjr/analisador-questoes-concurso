@@ -7,10 +7,54 @@ on:
     branches: [main]
 
 jobs:
-  backend:
-    name: Backend CI
+  # ===== Backend Jobs =====
+  backend-lint:
+    name: Backend Lint
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Lint with ruff
+        run: uv run ruff check src/ tests/
+
+      - name: Format check with ruff
+        run: uv run ruff format --check src/ tests/
+
+  backend-typecheck:
+    name: Backend Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Type check with pyright
+        run: uv run pyright src/
+        continue-on-error: true  # Don't fail on type errors (existing type debt)
+
+  backend-test:
+    name: Backend Test (pytest)
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -38,27 +82,18 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync
-
-      - name: Lint with ruff
-        run: uv run ruff check src/ tests/
-
-      - name: Format check with ruff
-        run: uv run ruff format --check src/ tests/
-
-      - name: Type check with pyright
-        run: uv run pyright src/
-        continue-on-error: true  # Don't fail on type errors initially
+        run: uv sync --extra dev
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
+          DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/test_db
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: uv run pytest tests/ -v --tb=short
 
-  frontend:
-    name: Frontend CI
+  # ===== Frontend Jobs =====
+  frontend-lint:
+    name: Frontend Lint (ESLint)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -80,11 +115,71 @@ jobs:
       - name: Lint with ESLint
         run: npm run lint
 
+  frontend-typecheck:
+    name: Frontend Type Check (TypeScript)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Type check with TypeScript
         run: npx tsc --noEmit
 
+  frontend-test:
+    name: Frontend Test (Vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run tests
         run: npm test -- --run
+
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build
         run: npm run build

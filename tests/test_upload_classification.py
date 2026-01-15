@@ -1,11 +1,11 @@
 """
 Tests for question classification integration in upload flow
 """
+
 import uuid
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 # Test the integration of classifier with upload
 

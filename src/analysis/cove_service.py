@@ -3,9 +3,11 @@ CoVe Service - Phase 4 of the Deep Analysis Pipeline
 Chain-of-Verification for validating analysis claims
 Based on Dhuliawala et al. (arXiv 2309.11495)
 """
+
+import json
 from dataclasses import dataclass
 from typing import Optional
-import json
+
 from loguru import logger
 
 from src.llm.llm_orchestrator import LLMOrchestrator
@@ -14,6 +16,7 @@ from src.llm.llm_orchestrator import LLMOrchestrator
 @dataclass
 class VerificationResult:
     """Result of verifying a single claim"""
+
     claim: str
     verification_question: str
     evidence_ids: list[str]  # Question IDs used as evidence
@@ -26,6 +29,7 @@ class VerificationResult:
 @dataclass
 class VerifiedReport:
     """Report after Chain-of-Verification"""
+
     original_claims: int
     verified_claims: int
     rejected_claims: int
@@ -49,10 +53,7 @@ class CoVeService:
         self.llm = llm or LLMOrchestrator()
 
     def verify_report(
-        self,
-        report_text: str,
-        questoes: list[dict],
-        max_claims: int = 20
+        self, report_text: str, questoes: list[dict], max_claims: int = 20
     ) -> VerifiedReport:
         """
         Verify claims in an analysis report
@@ -86,10 +87,7 @@ class CoVeService:
                 rejected_count += 1
 
         # Step 3: Generate cleaned report
-        cleaned_report = self._generate_cleaned_report(
-            report_text,
-            verification_results
-        )
+        cleaned_report = self._generate_cleaned_report(report_text, verification_results)
 
         logger.info(f"Verification complete: {verified_count} verified, {rejected_count} rejected")
 
@@ -98,7 +96,7 @@ class CoVeService:
             verified_claims=verified_count,
             rejected_claims=rejected_count,
             verification_results=verification_results,
-            cleaned_report=cleaned_report
+            cleaned_report=cleaned_report,
         )
 
     def _extract_claims(self, report_text: str, max_claims: int) -> list[str]:
@@ -119,10 +117,7 @@ Retorne um JSON com lista de claims:
 </output_format>"""
 
         response = self.llm.generate(
-            prompt,
-            temperature=0.1,
-            max_tokens=2000,
-            preferred_provider="anthropic"
+            prompt, temperature=0.1, max_tokens=2000, preferred_provider="anthropic"
         )
 
         # Extract text content from response dict
@@ -142,16 +137,10 @@ Retorne um JSON com lista de claims:
         verification_question = self._generate_verification_question(claim)
 
         # Step 2: Find relevant evidence
-        evidence_ids, evidence_summary = self._find_evidence(
-            verification_question,
-            questoes
-        )
+        evidence_ids, evidence_summary = self._find_evidence(verification_question, questoes)
 
         # Step 3: Validate claim against evidence
-        is_verified, confidence, notes = self._validate_claim(
-            claim,
-            evidence_summary
-        )
+        is_verified, confidence, notes = self._validate_claim(claim, evidence_summary)
 
         return VerificationResult(
             claim=claim,
@@ -160,7 +149,7 @@ Retorne um JSON com lista de claims:
             evidence_summary=evidence_summary,
             is_verified=is_verified,
             confidence=confidence,
-            notes=notes
+            notes=notes,
         )
 
     def _generate_verification_question(self, claim: str) -> str:
@@ -180,10 +169,7 @@ Retorne apenas a pergunta de verificacao, sem explicacoes.
 </output_format>"""
 
         response = self.llm.generate(
-            prompt,
-            temperature=0.1,
-            max_tokens=200,
-            preferred_provider="anthropic"
+            prompt, temperature=0.1, max_tokens=200, preferred_provider="anthropic"
         )
 
         # Extract text content from response dict
@@ -192,9 +178,7 @@ Retorne apenas a pergunta de verificacao, sem explicacoes.
         return response_text.strip()
 
     def _find_evidence(
-        self,
-        verification_question: str,
-        questoes: list[dict]
+        self, verification_question: str, questoes: list[dict]
     ) -> tuple[list[str], str]:
         """Find evidence in original questions"""
 
@@ -227,10 +211,7 @@ Retorne JSON:
 </output_format>"""
 
         response = self.llm.generate(
-            prompt,
-            temperature=0.1,
-            max_tokens=500,
-            preferred_provider="anthropic"
+            prompt, temperature=0.1, max_tokens=500, preferred_provider="anthropic"
         )
 
         # Extract text content from response dict
@@ -238,18 +219,11 @@ Retorne JSON:
 
         try:
             data = self._parse_json_response(response_text)
-            return (
-                data.get("evidence_ids", []),
-                data.get("summary", "Sem evidencias encontradas")
-            )
+            return (data.get("evidence_ids", []), data.get("summary", "Sem evidencias encontradas"))
         except Exception:
             return [], "Falha ao buscar evidencias"
 
-    def _validate_claim(
-        self,
-        claim: str,
-        evidence_summary: str
-    ) -> tuple[bool, str, Optional[str]]:
+    def _validate_claim(self, claim: str, evidence_summary: str) -> tuple[bool, str, Optional[str]]:
         """Validate if evidence supports the claim"""
 
         prompt = f"""<task>
@@ -275,10 +249,7 @@ Retorne JSON:
 </output_format>"""
 
         response = self.llm.generate(
-            prompt,
-            temperature=0.1,
-            max_tokens=300,
-            preferred_provider="anthropic"
+            prompt, temperature=0.1, max_tokens=300, preferred_provider="anthropic"
         )
 
         # Extract text content from response dict
@@ -289,22 +260,18 @@ Retorne JSON:
             return (
                 data.get("is_verified", False),
                 data.get("confidence", "low"),
-                data.get("notes")
+                data.get("notes"),
             )
         except Exception:
             return False, "low", "Falha na validacao"
 
     def _generate_cleaned_report(
-        self,
-        original_report: str,
-        verification_results: list[VerificationResult]
+        self, original_report: str, verification_results: list[VerificationResult]
     ) -> str:
         """Generate report with unverified claims flagged"""
 
         # Find rejected claims
-        rejected_claims = [
-            r.claim for r in verification_results if not r.is_verified
-        ]
+        rejected_claims = [r.claim for r in verification_results if not r.is_verified]
 
         if not rejected_claims:
             return original_report

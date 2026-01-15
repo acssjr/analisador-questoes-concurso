@@ -1,6 +1,7 @@
 """
 PDF format detector - detects PCI vs generic format
 """
+
 import re
 from pathlib import Path
 from typing import Literal
@@ -9,7 +10,6 @@ import fitz  # PyMuPDF
 from loguru import logger
 
 from src.core.exceptions import PDFFormatError
-
 
 PDFFormat = Literal["PCI", "PROVA_GENERICA", "GABARITO"]
 
@@ -48,18 +48,18 @@ def detect_pdf_format(pdf_path: str | Path) -> PDFFormat:
         # Check if has question content (enunciados longos, alternativas)
         # More flexible detection for various PDF formats
         has_question_content = bool(
-            re.search(r"\([A-E]\)\s*.{15,}", sample_text) or  # (A) texto...
-            re.search(r"[A-E]\)\s*.{15,}", sample_text) or    # A) texto...
-            re.search(r"[A-E]\.\s+.{15,}", sample_text) or    # A. texto...
-            re.search(r"[A-E]\s*[-–]\s*.{15,}", sample_text) or  # A - texto... or A – texto...
-            re.search(r"(?i)Quest[aã]o\s+\d+", sample_text)  # "Questão 01" header
+            re.search(r"\([A-E]\)\s*.{15,}", sample_text)  # (A) texto...
+            or re.search(r"[A-E]\)\s*.{15,}", sample_text)  # A) texto...
+            or re.search(r"[A-E]\.\s+.{15,}", sample_text)  # A. texto...
+            or re.search(r"[A-E]\s*[-–]\s*.{15,}", sample_text)  # A - texto... or A – texto...
+            or re.search(r"(?i)Quest[aã]o\s+\d+", sample_text)  # "Questão 01" header
         )
 
         pci_matches = sum(1 for p in pci_patterns if re.search(p, sample_text))
 
         # Se tem questões formatadas E respostas, é PCI
         if pci_matches >= 2 or (pci_matches >= 1 and has_question_content):
-            logger.info(f"Detected PCI Concursos format (prova com respostas)")
+            logger.info("Detected PCI Concursos format (prova com respostas)")
             return "PCI"
 
         # Check for gabarito-only patterns (apenas respostas, sem questões completas)
@@ -69,15 +69,17 @@ def detect_pdf_format(pdf_path: str | Path) -> PDFFormat:
             r"(?i)Quest[aã]o\s+\d+:\s*[A-E]\s*$",  # "Questão 5: C" em linha isolada
         ]
 
-        gabarito_matches = sum(1 for p in gabarito_patterns if re.search(p, sample_text, re.MULTILINE))
+        gabarito_matches = sum(
+            1 for p in gabarito_patterns if re.search(p, sample_text, re.MULTILINE)
+        )
 
         # Gabarito verdadeiro: tem respostas mas NÃO tem questões completas
         if gabarito_matches >= 1 and not has_question_content:
-            logger.info(f"Detected Gabarito format (apenas respostas)")
+            logger.info("Detected Gabarito format (apenas respostas)")
             return "GABARITO"
 
         # Default: generic prova format
-        logger.info(f"Detected generic prova format")
+        logger.info("Detected generic prova format")
         return "PROVA_GENERICA"
 
     except Exception as e:

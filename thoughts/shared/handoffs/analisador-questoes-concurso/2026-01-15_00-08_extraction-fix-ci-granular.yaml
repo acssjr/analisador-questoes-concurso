@@ -1,0 +1,62 @@
+---
+session: analisador-questoes
+date: 2026-01-15
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Fix PDF extraction (60 questions) and granular CI checks
+now: Commit changes and push to trigger new CI workflow
+
+test: |
+  cd frontend && npm test -- --run
+  pytest tests/ -v
+
+done_this_session:
+  - task: Debugged missing questions in UNEB PDF extraction
+    files: [src/extraction/llm_parser.py]
+  - task: Added "logica" -> "Raciocínio Lógico" canonicalization mapping
+    files: [src/api/routes/upload.py:118]
+  - task: Re-uploaded UNEB PDF - now extracts all 60 questions (was 53)
+    files: []
+  - task: Split CI workflow into 7 granular jobs for specific status checks
+    files: [.github/workflows/ci.yml]
+  - task: Updated ruleset with 5 required checks (excluding type checks)
+    files: [.github/ruleset-main.json]
+
+blockers: []
+
+questions:
+  - LLM still extracts inconsistent discipline names within same section (Matemática vs Matemática e Raciocínio Lógico)
+
+decisions:
+  - granular_ci_jobs: Split monolithic Backend CI/Frontend CI into 7 separate jobs for specific GitHub status checks
+  - required_checks_5: Only lint, test, build are required; type checks run but don't block merge
+  - logica_mapping: Map "Lógica" to "Raciocínio Lógico" as default canonicalization
+
+findings:
+  - extraction_works: Chunked extraction with overlap correctly extracts all 60 questions
+  - discipline_inconsistency: LLM infers disciplines from question content instead of section headers when processing chunks
+  - old_prova_bad_data: Prova uploaded before fixes had only 53 questions; re-upload fixed it
+
+worked:
+  - extract_questions_chunked with pages_per_chunk=5, overlap_pages=2
+  - Canonicalization with accent removal for discipline matching
+  - Separate CI jobs for granular GitHub checks
+
+failed:
+  - LLM prompt asking to use section headers - still infers from content in some chunks
+
+next:
+  - Commit all changes (upload.py, ci.yml, ruleset-main.json)
+  - Push and verify new CI jobs appear in GitHub
+  - Import updated ruleset in GitHub Settings → Rules → Rulesets
+  - Consider post-processing to merge similar disciplines (Matemática variants)
+
+files:
+  created:
+    - thoughts/shared/handoffs/analisador-questoes-concurso/2026-01-15_00-08_extraction-fix-ci-granular.yaml
+  modified:
+    - src/api/routes/upload.py
+    - .github/workflows/ci.yml
+    - .github/ruleset-main.json

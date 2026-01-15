@@ -676,9 +676,10 @@ export function ProjetoWorkflowModal({
   const setQuestoes = useAppStore((state) => state.setQuestoes);
   const setIncidencia = useAppStore((state) => state.setIncidencia);
 
-  // Auto-select cargo if only one
+  // Auto-select cargo if only one - legitimate derived state update
   useEffect(() => {
     if (extractedEdital?.cargos?.length === 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedCargo(extractedEdital.cargos[0]);
     }
   }, [extractedEdital]);

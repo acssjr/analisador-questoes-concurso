@@ -2,18 +2,17 @@
 """
 Tests for the queue status endpoint in provas routes.
 """
-import uuid
 
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from src.api.main import app
 from src.core.database import Base, get_db
-# Import all models to ensure they are registered with Base.metadata
-from src.models import Prova, Projeto, Questao, Edital, Classificacao  # noqa: F401
 
+# Import all models to ensure they are registered with Base.metadata
+from src.models import Classificacao, Edital, Projeto, Prova, Questao  # noqa: F401
 
 # Test database URL (in-memory SQLite)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -91,7 +90,7 @@ async def test_get_queue_status_with_projeto_id(test_db):
         # Using a random UUID - should return empty list, not error
         response = await ac.get(
             "/api/provas/queue-status",
-            params={"projeto_id": "00000000-0000-0000-0000-000000000000"}
+            params={"projeto_id": "00000000-0000-0000-0000-000000000000"},
         )
 
         # Should accept the parameter without error
@@ -104,8 +103,6 @@ async def test_get_queue_status_with_projeto_id(test_db):
 @pytest.mark.asyncio
 async def test_get_queue_status_with_prova_data(test_db):
     """Should return prova queue data with correct fields"""
-    from src.models.prova import Prova
-
     # Create a test prova
     async with test_db() as session:
         prova = Prova(

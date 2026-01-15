@@ -1,21 +1,20 @@
 """
 Editais routes - for edital upload, conteúdo programático, and management
 """
+
 import uuid
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from loguru import logger
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import get_settings
 from src.core.database import get_db
 from src.extraction.edital_extractor import (
+    WrongDocumentTypeError,
     extract_conteudo_programatico,
     extract_edital_metadata,
-    WrongDocumentTypeError,
 )
 from src.models.edital import Edital
 from src.schemas.edital import (
@@ -74,16 +73,18 @@ async def upload_edital(file: UploadFile = File(...)):
             ano = metadata.get("ano")
 
             # Search for existing edital with same nome, banca, ano
-            existing_stmt = select(Edital).where(
-                Edital.nome == nome,
-                Edital.banca == banca,
-                Edital.ano == ano
-            ).limit(1)
+            existing_stmt = (
+                select(Edital)
+                .where(Edital.nome == nome, Edital.banca == banca, Edital.ano == ano)
+                .limit(1)
+            )
             existing_result = await db.execute(existing_stmt)
             existing_edital = existing_result.scalars().first()
 
             if existing_edital:
-                logger.info(f"Found existing edital: {existing_edital.id}, reusing instead of creating duplicate")
+                logger.info(
+                    f"Found existing edital: {existing_edital.id}, reusing instead of creating duplicate"
+                )
                 # Delete the uploaded file since we're reusing existing
                 file_path.unlink(missing_ok=True)
                 edital = existing_edital
@@ -105,7 +106,9 @@ async def upload_edital(file: UploadFile = File(...)):
 
             # Get cargos list from metadata
             cargos = metadata.get("cargos") or []
-            logger.info(f"[DEBUG] About to create response with disciplinas={disciplinas}, cargos={cargos}")
+            logger.info(
+                f"[DEBUG] About to create response with disciplinas={disciplinas}, cargos={cargos}"
+            )
             return EditalUploadResponse(
                 success=True,
                 edital_id=edital.id,
@@ -128,9 +131,7 @@ async def upload_edital(file: UploadFile = File(...)):
 
 @router.post("/{edital_id}/conteudo-programatico", response_model=ConteudoProgramaticoResponse)
 async def upload_conteudo_programatico(
-    edital_id: uuid.UUID,
-    file: UploadFile = File(...),
-    cargo: Optional[str] = None
+    edital_id: uuid.UUID, file: UploadFile = File(...), cargo: Optional[str] = None
 ):
     """
     Upload and extract conteúdo programático taxonomy

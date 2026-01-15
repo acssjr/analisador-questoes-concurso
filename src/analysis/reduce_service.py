@@ -2,20 +2,22 @@
 Reduce Service - Phase 3 of the Deep Analysis Pipeline
 Synthesizes patterns from chunk digests using Claude Multi-Pass
 """
-from collections import Counter
-from dataclasses import dataclass, field
-from typing import Optional
+
 import json
+from collections import Counter
+from dataclasses import dataclass
+from typing import Optional
 
 from loguru import logger
 
+from src.analysis.map_service import ChunkDigest
 from src.llm.llm_orchestrator import LLMOrchestrator
-from src.analysis.map_service import ChunkDigest, QuestionAnalysis
 
 
 @dataclass
 class PatternFinding:
     """A pattern found across multiple passes"""
+
     pattern_type: str  # 'temporal', 'similaridade', 'dificuldade', 'estilo', 'pegadinha'
     description: str
     evidence_ids: list[str]
@@ -26,6 +28,7 @@ class PatternFinding:
 @dataclass
 class AnalysisReport:
     """Final synthesized analysis report"""
+
     disciplina: str
     total_questoes: int
     temporal_patterns: list[PatternFinding]
@@ -54,7 +57,7 @@ class ReduceService:
         self,
         llm: Optional[LLMOrchestrator] = None,
         num_passes: int = DEFAULT_NUM_PASSES,
-        temperature: float = 0.7
+        temperature: float = 0.7,
     ):
         self.llm = llm or LLMOrchestrator()
         self.num_passes = num_passes
@@ -67,7 +70,7 @@ class ReduceService:
         disciplina: str,
         banca: str,
         anos: list[int],
-        total_questoes: int
+        total_questoes: int,
     ) -> AnalysisReport:
         """
         Synthesize analysis from chunk digests using Multi-Pass
@@ -104,7 +107,7 @@ class ReduceService:
                     banca=banca,
                     anos=anos,
                     total_questoes=total_questoes,
-                    pass_num=pass_num
+                    pass_num=pass_num,
                 )
 
                 all_patterns.extend(result.get("patterns", []))
@@ -124,19 +127,22 @@ class ReduceService:
             all_recommendations=all_recommendations,
             disciplina=disciplina,
             total_questoes=total_questoes,
-            chunk_digests=chunk_digests
+            chunk_digests=chunk_digests,
         )
 
     def _format_digests(self, chunk_digests: list[ChunkDigest]) -> str:
         """Format chunk digests for prompt"""
         summaries = []
         for digest in chunk_digests:
-            patterns_text = "; ".join([
-                f"{p['type']}: {p['description']}"
-                for p in digest.patterns_found
-            ]) if digest.patterns_found else "Nenhum padrao identificado"
+            patterns_text = (
+                "; ".join([f"{p['type']}: {p['description']}" for p in digest.patterns_found])
+                if digest.patterns_found
+                else "Nenhum padrao identificado"
+            )
 
-            summaries.append(f"- Chunk {digest.chunk_id}: {digest.summary} | Padroes: {patterns_text}")
+            summaries.append(
+                f"- Chunk {digest.chunk_id}: {digest.summary} | Padroes: {patterns_text}"
+            )
 
         return "\n".join(summaries)
 
@@ -148,7 +154,7 @@ class ReduceService:
         banca: str,
         anos: list[int],
         total_questoes: int,
-        pass_num: int
+        pass_num: int,
     ) -> dict:
         """Run a single synthesis pass"""
 
@@ -170,7 +176,7 @@ Passe {pass_num + 1}: Busque padroes que podem ter sido ignorados em passes ante
 <metadata>
 Total de questoes: {total_questoes}
 Disciplina: {disciplina}
-Anos cobertos: {', '.join(map(str, sorted(anos)))}
+Anos cobertos: {", ".join(map(str, sorted(anos)))}
 Banca: {banca}
 </metadata>
 </input>
@@ -211,10 +217,7 @@ Responda em JSON:
 </task>"""
 
         response = self.llm.generate(
-            prompt,
-            temperature=self.temperature,
-            max_tokens=4000,
-            preferred_provider="anthropic"
+            prompt, temperature=self.temperature, max_tokens=4000, preferred_provider="anthropic"
         )
 
         # Extract text content from response dict
@@ -252,7 +255,7 @@ Responda em JSON:
                     "pattern_type": p.get("type", "unknown"),
                     "description": p.get("description", ""),
                     "evidence_ids": set(),
-                    "votes": 0
+                    "votes": 0,
                 }
 
             pattern_groups[key]["votes"] += 1
@@ -268,13 +271,15 @@ Responda em JSON:
             elif data["votes"] >= self.VOTING_THRESHOLD_MEDIUM:
                 confidence = "medium"
 
-            findings.append(PatternFinding(
-                pattern_type=data["pattern_type"],
-                description=data["description"],
-                evidence_ids=list(data["evidence_ids"]),
-                confidence=confidence,
-                votes=data["votes"]
-            ))
+            findings.append(
+                PatternFinding(
+                    pattern_type=data["pattern_type"],
+                    description=data["description"],
+                    evidence_ids=list(data["evidence_ids"]),
+                    confidence=confidence,
+                    votes=data["votes"],
+                )
+            )
 
         # Sort by votes descending
         findings.sort(key=lambda x: x.votes, reverse=True)
@@ -289,7 +294,7 @@ Responda em JSON:
         all_recommendations: list[str],
         disciplina: str,
         total_questoes: int,
-        chunk_digests: list[ChunkDigest]
+        chunk_digests: list[ChunkDigest],
     ) -> AnalysisReport:
         """Build the final AnalysisReport"""
 
@@ -321,5 +326,5 @@ Responda em JSON:
             difficulty_analysis=dict(difficulty_counts),
             trap_analysis=dict(trap_counts),
             study_recommendations=unique_recommendations or ["Aguardando analise completa"],
-            raw_text=combined_report[:10000]  # Limit size
+            raw_text=combined_report[:10000],  # Limit size
         )

@@ -1,6 +1,7 @@
 """
 Sistema routes - system stats, quota tracking, health checks
 """
+
 from fastapi import APIRouter
 from loguru import logger
 
@@ -89,7 +90,6 @@ async def health_check():
     System health check with component status.
     """
     from src.core.config import get_settings
-    from src.llm.llm_orchestrator import LLMOrchestrator
 
     settings = get_settings()
 
@@ -129,9 +129,9 @@ async def get_system_stats():
     from sqlalchemy import func, select
 
     from src.core.database import get_db
+    from src.models.classificacao import Classificacao
     from src.models.edital import Edital
     from src.models.questao import Questao
-    from src.models.classificacao import Classificacao
 
     try:
         stats = {

@@ -1,6 +1,7 @@
 """
 Groq API client (fast and free LLM)
 """
+
 import time
 from typing import Optional
 
@@ -64,7 +65,9 @@ class GroqClient:
 
         for attempt in range(MAX_RETRIES):
             try:
-                logger.debug(f"Calling Groq API with model: {self.model} (attempt {attempt + 1}/{MAX_RETRIES})")
+                logger.debug(
+                    f"Calling Groq API with model: {self.model} (attempt {attempt + 1}/{MAX_RETRIES})"
+                )
 
                 response = self.client.chat.completions.create(
                     model=self.model,
@@ -97,14 +100,16 @@ class GroqClient:
                 if "rate_limit" in error_msg.lower():
                     last_error = e
                     if attempt < MAX_RETRIES - 1:
-                        delay = BASE_DELAY * (2 ** attempt)
+                        delay = BASE_DELAY * (2**attempt)
                         logger.warning(
                             f"Groq rate limit hit, retrying in {delay}s (attempt {attempt + 1}/{MAX_RETRIES})"
                         )
                         time.sleep(delay)
                         continue
                     else:
-                        logger.error(f"Groq rate limit exceeded after {MAX_RETRIES} attempts: {error_msg}")
+                        logger.error(
+                            f"Groq rate limit exceeded after {MAX_RETRIES} attempts: {error_msg}"
+                        )
                         raise LLMRateLimitError(f"Groq rate limit: {error_msg}")
                 else:
                     # Non-rate-limit errors: fail immediately

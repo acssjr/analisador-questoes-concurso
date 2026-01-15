@@ -9,21 +9,23 @@ processing pipeline:
 3. Scores questions using ConfidenceScorer
 4. Returns a ProcessingResult with final status
 """
+
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 from loguru import logger
 
-from src.extraction.pdf_validator import PDFValidator, ValidationResult
 from src.extraction.confidence_scorer import ConfidenceScorer
 from src.extraction.llm_parser import extract_questions_chunked
+from src.extraction.pdf_validator import PDFValidator
 from src.llm.llm_orchestrator import LLMOrchestrator
 
 
 @dataclass
 class ProcessingResult:
     """Result of processing a prova"""
+
     success: bool
     status: str  # final status: completed, partial, failed, retry
     questoes_count: int = 0
@@ -47,7 +49,7 @@ class QueueProcessor:
     - Retry with fallback on rate limits
     """
 
-    STATES = ['pending', 'validating', 'processing', 'completed', 'partial', 'failed', 'retry']
+    STATES = ["pending", "validating", "processing", "completed", "partial", "failed", "retry"]
 
     def __init__(self):
         self.validator = PDFValidator()
@@ -55,9 +57,7 @@ class QueueProcessor:
         self.llm: Optional[LLMOrchestrator] = None
 
     def process_prova(
-        self,
-        prova,
-        edital_disciplinas: Optional[List[str]] = None
+        self, prova, edital_disciplinas: Optional[List[str]] = None
     ) -> ProcessingResult:
         """
         Process a single prova through the pipeline.
@@ -74,9 +74,9 @@ class QueueProcessor:
         if not file_path:
             return ProcessingResult(
                 success=False,
-                status='failed',
-                error_code='NO_FILE',
-                error_message='Prova nao tem arquivo associado'
+                status="failed",
+                error_code="NO_FILE",
+                error_message="Prova nao tem arquivo associado",
             )
 
         # State: validating
@@ -86,14 +86,16 @@ class QueueProcessor:
         if not validation.is_valid:
             return ProcessingResult(
                 success=False,
-                status='failed',
+                status="failed",
                 error_code=validation.error_code,
                 error_message=validation.error_message,
-                checkpoint='validation_failed'
+                checkpoint="validation_failed",
             )
 
         # Checkpoint: validated
-        logger.info(f"[{prova.id}] Validated: {validation.page_count} pages, {validation.text_length} chars")
+        logger.info(
+            f"[{prova.id}] Validated: {validation.page_count} pages, {validation.text_length} chars"
+        )
 
         # State: processing
         try:
@@ -103,21 +105,17 @@ class QueueProcessor:
 
             # Extract questions
             logger.info(f"[{prova.id}] Extracting questions with LLM")
-            extraction_result = extract_questions_chunked(
-                file_path,
-                self.llm,
-                pages_per_chunk=4
-            )
+            extraction_result = extract_questions_chunked(file_path, self.llm, pages_per_chunk=4)
 
             questoes = extraction_result.get("questoes", [])
 
             if not questoes:
                 return ProcessingResult(
                     success=False,
-                    status='failed',
-                    error_code='NO_QUESTIONS',
-                    error_message='Nenhuma questao extraida do PDF',
-                    checkpoint='extraction_failed'
+                    status="failed",
+                    error_code="NO_QUESTIONS",
+                    error_message="Nenhuma questao extraida do PDF",
+                    checkpoint="extraction_failed",
                 )
 
             # Checkpoint: questions extracted
@@ -144,20 +142,20 @@ class QueueProcessor:
 
             # Determine final status
             if revisao_count == 0:
-                status = 'completed'
+                status = "completed"
             elif revisao_count < len(scored_questoes):
-                status = 'partial'
+                status = "partial"
             else:
-                status = 'failed'  # All questions need review
+                status = "failed"  # All questions need review
 
             return ProcessingResult(
-                success=status in ['completed', 'partial'],
+                success=status in ["completed", "partial"],
                 status=status,
                 questoes_count=len(scored_questoes),
                 questoes_revisao=revisao_count,
                 confianca_media=confianca_media,
-                checkpoint='completed',
-                questoes=scored_questoes
+                checkpoint="completed",
+                questoes=scored_questoes,
             )
 
         except Exception as e:
@@ -168,16 +166,16 @@ class QueueProcessor:
             if "rate" in error_str or "429" in error_str or "limit" in error_str:
                 return ProcessingResult(
                     success=False,
-                    status='retry',
-                    error_code='RATE_LIMIT',
-                    error_message='Rate limit atingido. Retry automatico em breve.',
-                    checkpoint='rate_limited'
+                    status="retry",
+                    error_code="RATE_LIMIT",
+                    error_message="Rate limit atingido. Retry automatico em breve.",
+                    checkpoint="rate_limited",
                 )
 
             return ProcessingResult(
                 success=False,
-                status='failed',
-                error_code='PROCESSING_ERROR',
+                status="failed",
+                error_code="PROCESSING_ERROR",
                 error_message=str(e)[:500],
-                checkpoint='processing_failed'
+                checkpoint="processing_failed",
             )

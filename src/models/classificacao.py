@@ -1,14 +1,15 @@
 """
 Classificacao model (classificação hierárquica de questões)
 """
+
 import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Float, ForeignKey, String, Text, JSON
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -16,9 +17,7 @@ from src.core.database import Base
 class Classificacao(Base):
     __tablename__ = "classificacoes"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     questao_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("questoes.id", ondelete="CASCADE"), nullable=False
     )

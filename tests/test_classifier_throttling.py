@@ -1,12 +1,11 @@
 """
 Tests for classifier batch throttling
 """
+
 import sys
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 # Add src to path
 src_path = Path(__file__).parent.parent / "src"
@@ -46,9 +45,36 @@ class TestClassifierThrottling:
             classifier = classifier_module.QuestionClassifier()
 
             questoes = [
-                {"numero": 1, "enunciado": "Questão 1", "alternativas": ["A", "B", "C", "D"]},
-                {"numero": 2, "enunciado": "Questão 2", "alternativas": ["A", "B", "C", "D"]},
-                {"numero": 3, "enunciado": "Questão 3", "alternativas": ["A", "B", "C", "D"]},
+                {
+                    "numero": 1,
+                    "enunciado": "Questão 1",
+                    "alternativas": {
+                        "A": "Opção A",
+                        "B": "Opção B",
+                        "C": "Opção C",
+                        "D": "Opção D",
+                    },
+                },
+                {
+                    "numero": 2,
+                    "enunciado": "Questão 2",
+                    "alternativas": {
+                        "A": "Opção A",
+                        "B": "Opção B",
+                        "C": "Opção C",
+                        "D": "Opção D",
+                    },
+                },
+                {
+                    "numero": 3,
+                    "enunciado": "Questão 3",
+                    "alternativas": {
+                        "A": "Opção A",
+                        "B": "Opção B",
+                        "C": "Opção C",
+                        "D": "Opção D",
+                    },
+                },
             ]
 
             # Act
@@ -64,7 +90,7 @@ class TestClassifierThrottling:
             for i in range(1, len(call_times)):
                 delay = call_times[i] - call_times[i - 1]
                 assert delay >= min_delay, (
-                    f"Delay between call {i} and {i+1} was {delay:.3f}s, "
+                    f"Delay between call {i} and {i + 1} was {delay:.3f}s, "
                     f"expected at least {min_delay}s"
                 )
 
@@ -84,7 +110,11 @@ class TestClassifierThrottling:
         with patch.object(classifier_module, "LLMOrchestrator", return_value=mock_llm):
             classifier = classifier_module.QuestionClassifier()
 
-            questao = {"numero": 1, "enunciado": "Questão 1", "alternativas": ["A", "B", "C", "D"]}
+            questao = {
+                "numero": 1,
+                "enunciado": "Questão 1",
+                "alternativas": {"A": "Opção A", "B": "Opção B", "C": "Opção C", "D": "Opção D"},
+            }
 
             # Act - time single classification
             start = time.time()

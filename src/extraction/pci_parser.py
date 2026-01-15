@@ -1,6 +1,7 @@
 """
 PCI Concursos PDF parser
 """
+
 import re
 from pathlib import Path
 from typing import Optional
@@ -9,7 +10,6 @@ import fitz  # PyMuPDF
 from loguru import logger
 
 from src.core.exceptions import ExtractionError
-from src.extraction.image_extractor import extract_images_from_page
 from src.extraction.pdf_detector import inferir_banca_cargo_ano
 
 
@@ -97,7 +97,9 @@ def parse_pci_pdf(pdf_path: str | Path) -> dict:
                 disciplina = get_discipline_for_position(match.start())
                 assunto_pci = None
                 # Gabarito may be in the match group
-                gabarito_from_header = match.group(2) if match.lastindex and match.lastindex >= 2 else None
+                gabarito_from_header = (
+                    match.group(2) if match.lastindex and match.lastindex >= 2 else None
+                )
 
             # Extract question block (until next question or end)
             start_pos = match.end()

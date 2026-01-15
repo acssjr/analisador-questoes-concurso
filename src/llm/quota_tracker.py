@@ -1,10 +1,10 @@
 """
 LLM Quota Tracker - monitors API usage and enforces limits
 """
+
 import json
 import threading
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Optional
 
 from loguru import logger
@@ -18,7 +18,7 @@ settings = get_settings()
 DEFAULT_QUOTAS = {
     "groq": {
         "requests_per_minute": 1000,  # Dev tier: 1000 RPM
-        "requests_per_day": 100000,   # Dev tier: effectively unlimited
+        "requests_per_day": 100000,  # Dev tier: effectively unlimited
         "tokens_per_minute": 300000,  # Dev tier: 300K TPM
         "tokens_per_day": 100000000,  # Dev tier: unlimited (100M placeholder)
     },
@@ -97,14 +97,22 @@ class QuotaTracker:
                         stored_day = data[provider].get("day_start")
                         if stored_day == today:
                             # Same day - restore counters
-                            self.usage[provider]["requests_today"] = data[provider].get("requests_today", 0)
-                            self.usage[provider]["tokens_today"] = data[provider].get("tokens_today", 0)
+                            self.usage[provider]["requests_today"] = data[provider].get(
+                                "requests_today", 0
+                            )
+                            self.usage[provider]["tokens_today"] = data[provider].get(
+                                "tokens_today", 0
+                            )
                             self.usage[provider]["day_start"] = today
-                            self.usage[provider]["history"] = data[provider].get("history", [])[-100:]
+                            self.usage[provider]["history"] = data[provider].get("history", [])[
+                                -100:
+                            ]
                         else:
                             # New day - reset but keep history
                             self.usage[provider]["day_start"] = today
-                            self.usage[provider]["history"] = data[provider].get("history", [])[-100:]
+                            self.usage[provider]["history"] = data[provider].get("history", [])[
+                                -100:
+                            ]
 
                 logger.info(f"Loaded quota usage from {self.storage_path}")
         except Exception as e:
@@ -124,7 +132,9 @@ class QuotaTracker:
         now = datetime.now()
         window_start = self.usage[provider].get("minute_window_start")
 
-        if window_start is None or (now - datetime.fromisoformat(window_start)) > timedelta(minutes=1):
+        if window_start is None or (now - datetime.fromisoformat(window_start)) > timedelta(
+            minutes=1
+        ):
             self.usage[provider]["requests_this_minute"] = 0
             self.usage[provider]["tokens_this_minute"] = 0
             self.usage[provider]["minute_window_start"] = now.isoformat()
@@ -259,7 +269,8 @@ class QuotaTracker:
                 "remaining": {
                     "requests_today": limits["requests_per_day"] - usage["requests_today"],
                     "tokens_today": limits["tokens_per_day"] - usage["tokens_today"],
-                    "requests_this_minute": limits["requests_per_minute"] - usage["requests_this_minute"],
+                    "requests_this_minute": limits["requests_per_minute"]
+                    - usage["requests_this_minute"],
                 },
             }
 
@@ -313,7 +324,9 @@ class QuotaTracker:
 
                 # Estimate remaining capacity
                 remaining_requests = limits["requests_per_day"] - usage["requests_today"]
-                estimated_questions = int(remaining_requests) if avg_tokens == 0 else remaining_requests
+                estimated_questions = (
+                    int(remaining_requests) if avg_tokens == 0 else remaining_requests
+                )
 
                 stats["providers"][provider] = {
                     "usage": {
@@ -364,7 +377,9 @@ class QuotaTracker:
         anthropic_status = providers.get("anthropic", {}).get("status", "healthy")
 
         if groq_status == "critical":
-            recommendations.append("Groq quota quase esgotada - considere usar Anthropic como alternativa")
+            recommendations.append(
+                "Groq quota quase esgotada - considere usar Anthropic como alternativa"
+            )
         if groq_status in ["warning", "critical"]:
             recommendations.append("Reduza o número de classificações em lote para preservar quota")
 

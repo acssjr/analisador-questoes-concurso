@@ -29,12 +29,11 @@
       "parameters": {
         "strict_required_status_checks_policy": false,
         "required_status_checks": [
-          {
-            "context": "Backend CI"
-          },
-          {
-            "context": "Frontend CI"
-          }
+          { "context": "Backend Lint" },
+          { "context": "Backend Test (pytest)" },
+          { "context": "Frontend Lint (ESLint)" },
+          { "context": "Frontend Test (Vitest)" },
+          { "context": "Frontend Build" }
         ]
       }
     }

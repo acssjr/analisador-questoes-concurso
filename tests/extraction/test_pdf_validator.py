@@ -3,8 +3,9 @@ Tests for PDF Validator Service
 
 TDD tests for pre-processing PDF validation before LLM extraction.
 """
-import pytest
+
 from pathlib import Path
+
 from src.extraction.pdf_validator import PDFValidator, ValidationResult
 
 
@@ -16,10 +17,10 @@ def test_validator_returns_result():
     result = validator.validate(Path("nonexistent.pdf"))
 
     assert isinstance(result, ValidationResult)
-    assert hasattr(result, 'is_valid')
-    assert hasattr(result, 'error_code')
-    assert hasattr(result, 'error_message')
-    assert hasattr(result, 'text_length')
+    assert hasattr(result, "is_valid")
+    assert hasattr(result, "error_code")
+    assert hasattr(result, "error_message")
+    assert hasattr(result, "text_length")
 
 
 def test_validator_rejects_nonexistent_file():
@@ -44,11 +45,7 @@ def test_validator_rejects_non_pdf_extension():
 def test_validation_result_has_all_fields():
     """ValidationResult should have all expected fields"""
     result = ValidationResult(
-        is_valid=True,
-        text_length=5000,
-        page_count=10,
-        has_images=True,
-        is_scanned=False
+        is_valid=True, text_length=5000, page_count=10, has_images=True, is_scanned=False
     )
 
     assert result.is_valid is True
@@ -67,7 +64,7 @@ def test_validation_result_error_fields():
         error_code="CORRUPTED",
         error_message="PDF file is corrupted",
         text_length=0,
-        page_count=0
+        page_count=0,
     )
 
     assert result.is_valid is False
@@ -140,5 +137,5 @@ class TestPDFValidatorWithRealFiles:
     def test_min_text_length_configurable(self):
         """MIN_TEXT_LENGTH should be accessible for configuration"""
         validator = PDFValidator()
-        assert hasattr(validator, 'MIN_TEXT_LENGTH')
+        assert hasattr(validator, "MIN_TEXT_LENGTH")
         assert validator.MIN_TEXT_LENGTH == 1000

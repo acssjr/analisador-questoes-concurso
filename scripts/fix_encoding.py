@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
-from sqlalchemy import select, update, text
+from sqlalchemy import select, text, update
 
 from src.core.database import AsyncSessionLocal
 from src.models.questao import Questao

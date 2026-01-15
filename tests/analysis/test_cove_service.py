@@ -1,6 +1,7 @@
 """Tests for CoVe Service"""
-import pytest
-from unittest.mock import MagicMock, patch
+
+from unittest.mock import MagicMock
+
 from src.analysis.cove_service import CoVeService, VerificationResult, VerifiedReport
 
 
@@ -59,7 +60,9 @@ def test_generate_verification_question():
 def test_find_evidence():
     """Test evidence finding"""
     mock_llm = MagicMock()
-    mock_llm.generate.return_value = {"text": '{"evidence_ids": ["q1", "q2"], "summary": "Found evidence"}'}
+    mock_llm.generate.return_value = {
+        "text": '{"evidence_ids": ["q1", "q2"], "summary": "Found evidence"}'
+    }
 
     service = CoVeService(llm=mock_llm)
     questoes = [{"id": "q1", "enunciado": "Test", "disciplina": "Portugues"}]
@@ -73,7 +76,9 @@ def test_find_evidence():
 def test_find_evidence_with_numero_field():
     """Test evidence finding when questions use 'numero' instead of 'id'"""
     mock_llm = MagicMock()
-    mock_llm.generate.return_value = {"text": '{"evidence_ids": ["1"], "summary": "Evidence from question 1"}'}
+    mock_llm.generate.return_value = {
+        "text": '{"evidence_ids": ["1"], "summary": "Evidence from question 1"}'
+    }
 
     service = CoVeService(llm=mock_llm)
     questoes = [{"numero": "1", "enunciado": "Test question", "disciplina": "Direito"}]
@@ -101,7 +106,9 @@ def test_find_evidence_error_handling():
 def test_validate_claim_verified():
     """Test claim validation - verified case"""
     mock_llm = MagicMock()
-    mock_llm.generate.return_value = {"text": '{"is_verified": true, "confidence": "high", "notes": "Clear evidence"}'}
+    mock_llm.generate.return_value = {
+        "text": '{"is_verified": true, "confidence": "high", "notes": "Clear evidence"}'
+    }
 
     service = CoVeService(llm=mock_llm)
     is_verified, confidence, notes = service._validate_claim("claim", "evidence")
@@ -114,7 +121,9 @@ def test_validate_claim_verified():
 def test_validate_claim_rejected():
     """Test claim validation - rejected case"""
     mock_llm = MagicMock()
-    mock_llm.generate.return_value = {"text": '{"is_verified": false, "confidence": "low", "notes": "No evidence"}'}
+    mock_llm.generate.return_value = {
+        "text": '{"is_verified": false, "confidence": "low", "notes": "No evidence"}'
+    }
 
     service = CoVeService(llm=mock_llm)
     is_verified, confidence, notes = service._validate_claim("claim", "evidence")
@@ -141,14 +150,16 @@ def test_generate_cleaned_report_no_rejections():
     """Test cleaned report with no rejections"""
     service = CoVeService(llm=MagicMock())
 
-    results = [VerificationResult(
-        claim="Test claim",
-        verification_question="Test?",
-        evidence_ids=["q1"],
-        evidence_summary="Evidence",
-        is_verified=True,
-        confidence="high"
-    )]
+    results = [
+        VerificationResult(
+            claim="Test claim",
+            verification_question="Test?",
+            evidence_ids=["q1"],
+            evidence_summary="Evidence",
+            is_verified=True,
+            confidence="high",
+        )
+    ]
 
     cleaned = service._generate_cleaned_report("Original report", results)
 
@@ -159,14 +170,16 @@ def test_generate_cleaned_report_with_rejections():
     """Test cleaned report with rejections"""
     service = CoVeService(llm=MagicMock())
 
-    results = [VerificationResult(
-        claim="Rejected claim",
-        verification_question="Test?",
-        evidence_ids=[],
-        evidence_summary="No evidence",
-        is_verified=False,
-        confidence="low"
-    )]
+    results = [
+        VerificationResult(
+            claim="Rejected claim",
+            verification_question="Test?",
+            evidence_ids=[],
+            evidence_summary="No evidence",
+            is_verified=False,
+            confidence="low",
+        )
+    ]
 
     cleaned = service._generate_cleaned_report("Original report", results)
 
@@ -186,7 +199,7 @@ def test_generate_cleaned_report_mixed_results():
             evidence_ids=["q1"],
             evidence_summary="Evidence found",
             is_verified=True,
-            confidence="high"
+            confidence="high",
         ),
         VerificationResult(
             claim="Rejected claim",
@@ -194,8 +207,8 @@ def test_generate_cleaned_report_mixed_results():
             evidence_ids=[],
             evidence_summary="No evidence",
             is_verified=False,
-            confidence="low"
-        )
+            confidence="low",
+        ),
     ]
 
     cleaned = service._generate_cleaned_report("Original report", results)
@@ -239,7 +252,9 @@ def test_verify_claim_full_flow():
     # Mock responses for each step
     mock_llm.generate.side_effect = [
         {"text": "Existem questoes sobre este tema?"},  # verification question
-        {"text": '{"evidence_ids": ["q1"], "summary": "Found relevant questions"}'},  # find evidence
+        {
+            "text": '{"evidence_ids": ["q1"], "summary": "Found relevant questions"}'
+        },  # find evidence
         {"text": '{"is_verified": true, "confidence": "high", "notes": "Confirmed"}'},  # validate
     ]
 
@@ -334,7 +349,7 @@ def test_verification_result_dataclass():
         evidence_summary="Found evidence",
         is_verified=True,
         confidence="high",
-        notes="Additional notes"
+        notes="Additional notes",
     )
 
     assert result.claim == "Test claim"
@@ -353,7 +368,7 @@ def test_verification_result_optional_notes():
         evidence_ids=[],
         evidence_summary="None",
         is_verified=False,
-        confidence="low"
+        confidence="low",
     )
 
     assert result.notes is None
@@ -368,7 +383,7 @@ def test_verified_report_dataclass():
             evidence_ids=["q1"],
             evidence_summary="Evidence",
             is_verified=True,
-            confidence="high"
+            confidence="high",
         )
     ]
 
@@ -377,7 +392,7 @@ def test_verified_report_dataclass():
         verified_claims=1,
         rejected_claims=0,
         verification_results=verification_results,
-        cleaned_report="Clean report"
+        cleaned_report="Clean report",
     )
 
     assert report.original_claims == 1

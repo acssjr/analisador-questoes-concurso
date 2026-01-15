@@ -1,15 +1,14 @@
 """
 Tests for LLM quota tracking system
 """
+
 import json
-import tempfile
 from datetime import datetime
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from src.llm.quota_tracker import QuotaTracker, get_quota_tracker, DEFAULT_QUOTAS
+from src.llm.quota_tracker import DEFAULT_QUOTAS, QuotaTracker, get_quota_tracker
 
 
 class TestQuotaTracker:
@@ -87,7 +86,9 @@ class TestQuotaTracker:
     def test_check_quota_exceeded_minute(self, tracker):
         """Test quota check when per-minute limit exceeded"""
         # Simulate hitting the per-minute limit
-        tracker.usage["groq"]["requests_this_minute"] = DEFAULT_QUOTAS["groq"]["requests_per_minute"]
+        tracker.usage["groq"]["requests_this_minute"] = DEFAULT_QUOTAS["groq"][
+            "requests_per_minute"
+        ]
         tracker.usage["groq"]["minute_window_start"] = datetime.now().isoformat()
 
         result = tracker.check_quota("groq")

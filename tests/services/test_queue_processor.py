@@ -2,9 +2,10 @@
 """
 Tests for QueueProcessor - the core PDF processing service.
 """
-import pytest
+
 from unittest.mock import MagicMock, patch
-from src.services.queue_processor import QueueProcessor, ProcessingResult
+
+from src.services.queue_processor import ProcessingResult, QueueProcessor
 
 
 class TestQueueProcessorStateMachine:
@@ -15,7 +16,13 @@ class TestQueueProcessorStateMachine:
         processor = QueueProcessor()
 
         assert processor.STATES == [
-            'pending', 'validating', 'processing', 'completed', 'partial', 'failed', 'retry'
+            "pending",
+            "validating",
+            "processing",
+            "completed",
+            "partial",
+            "failed",
+            "retry",
         ]
 
     def test_processor_initializes_dependencies(self):
@@ -34,14 +41,14 @@ class TestProcessingResult:
         """ProcessingResult should have all required attributes"""
         result = ProcessingResult(
             success=True,
-            status='completed',
+            status="completed",
             questoes_count=10,
             questoes_revisao=2,
-            confianca_media=85.0
+            confianca_media=85.0,
         )
 
         assert result.success is True
-        assert result.status == 'completed'
+        assert result.status == "completed"
         assert result.questoes_count == 10
         assert result.questoes_revisao == 2
         assert result.confianca_media == 85.0
@@ -53,16 +60,13 @@ class TestProcessingResult:
     def test_processing_result_with_error(self):
         """ProcessingResult should handle error fields"""
         result = ProcessingResult(
-            success=False,
-            status='failed',
-            error_code='NO_FILE',
-            error_message='File not found'
+            success=False, status="failed", error_code="NO_FILE", error_message="File not found"
         )
 
         assert result.success is False
-        assert result.status == 'failed'
-        assert result.error_code == 'NO_FILE'
-        assert result.error_message == 'File not found'
+        assert result.status == "failed"
+        assert result.error_code == "NO_FILE"
+        assert result.error_message == "File not found"
 
 
 class TestProcessProva:
@@ -82,9 +86,9 @@ class TestProcessProva:
         result = processor.process_prova(mock_prova)
 
         assert isinstance(result, ProcessingResult)
-        assert hasattr(result, 'success')
-        assert hasattr(result, 'status')
-        assert hasattr(result, 'questoes_count')
+        assert hasattr(result, "success")
+        assert hasattr(result, "status")
+        assert hasattr(result, "questoes_count")
 
     def test_processor_fails_without_file(self):
         """Processor should fail if prova has no file"""
@@ -97,8 +101,8 @@ class TestProcessProva:
         result = processor.process_prova(mock_prova)
 
         assert result.success is False
-        assert result.status == 'failed'
-        assert result.error_code == 'NO_FILE'
+        assert result.status == "failed"
+        assert result.error_code == "NO_FILE"
 
     def test_processor_validates_pdf_first(self):
         """Processor should validate PDF before processing"""
@@ -112,24 +116,22 @@ class TestProcessProva:
 
         # Should fail validation (file doesn't exist)
         assert result.success is False
-        assert result.status == 'failed'
-        assert result.error_code == 'FILE_NOT_FOUND'
-        assert result.checkpoint == 'validation_failed'
+        assert result.status == "failed"
+        assert result.error_code == "FILE_NOT_FOUND"
+        assert result.checkpoint == "validation_failed"
 
 
 class TestProcessProvaWithMocks:
     """Tests with mocked dependencies for full pipeline testing"""
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
     def test_processor_calls_llm_after_validation(self, mock_validator_class, mock_extract):
         """Processor should call LLM extraction after successful validation"""
         # Setup validator mock
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -141,7 +143,7 @@ class TestProcessProvaWithMocks:
                     "enunciado": "Test question " * 10,
                     "alternativas": {"A": "a", "B": "b", "C": "c", "D": "d", "E": "e"},
                     "gabarito": "A",
-                    "disciplina": "Portugues"
+                    "disciplina": "Portugues",
                 }
             ]
         }
@@ -153,7 +155,7 @@ class TestProcessProvaWithMocks:
         mock_prova.id = "test-id"
         mock_prova.arquivo_original = "/path/to/file.pdf"
 
-        result = processor.process_prova(mock_prova)
+        processor.process_prova(mock_prova)
 
         # Validation should be called
         mock_validator.validate.assert_called_once()
@@ -161,16 +163,14 @@ class TestProcessProvaWithMocks:
         # Extraction should be called after successful validation
         mock_extract.assert_called_once()
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
     def test_processor_scores_extracted_questions(self, mock_validator_class, mock_extract):
         """Processor should score each extracted question"""
         # Setup validator mock
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -180,17 +180,23 @@ class TestProcessProvaWithMocks:
                 {
                     "numero": 1,
                     "enunciado": "Test question with adequate length for scoring " * 5,
-                    "alternativas": {"A": "opt a", "B": "opt b", "C": "opt c", "D": "opt d", "E": "opt e"},
+                    "alternativas": {
+                        "A": "opt a",
+                        "B": "opt b",
+                        "C": "opt c",
+                        "D": "opt d",
+                        "E": "opt e",
+                    },
                     "gabarito": "A",
-                    "disciplina": "Portugues"
+                    "disciplina": "Portugues",
                 },
                 {
                     "numero": 2,
                     "enunciado": "Another test question with adequate length " * 5,
                     "alternativas": {"A": "a", "B": "b", "C": "c", "D": "d", "E": "e"},
                     "gabarito": "B",
-                    "disciplina": "Matematica"
-                }
+                    "disciplina": "Matematica",
+                },
             ]
         }
 
@@ -213,15 +219,15 @@ class TestProcessProvaWithMocks:
             assert "confianca_detalhes" in q
             assert "confianca_nivel" in q
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
-    def test_processor_status_completed_when_all_high_confidence(self, mock_validator_class, mock_extract):
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
+    def test_processor_status_completed_when_all_high_confidence(
+        self, mock_validator_class, mock_extract
+    ):
         """Processor should return 'completed' when all questions have high confidence"""
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -231,9 +237,15 @@ class TestProcessProvaWithMocks:
                 {
                     "numero": 1,
                     "enunciado": "Complete question text with reasonable length " * 3,
-                    "alternativas": {"A": "opt a", "B": "opt b", "C": "opt c", "D": "opt d", "E": "opt e"},
+                    "alternativas": {
+                        "A": "opt a",
+                        "B": "opt b",
+                        "C": "opt c",
+                        "D": "opt d",
+                        "E": "opt e",
+                    },
                     "gabarito": "A",
-                    "disciplina": "Portugues"
+                    "disciplina": "Portugues",
                 }
             ]
         }
@@ -249,18 +261,18 @@ class TestProcessProvaWithMocks:
 
         # With good quality questions matching edital, should be completed
         assert result.success is True
-        assert result.status in ['completed', 'partial']
+        assert result.status in ["completed", "partial"]
         assert result.confianca_media > 0
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
-    def test_processor_status_partial_when_some_low_confidence(self, mock_validator_class, mock_extract):
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
+    def test_processor_status_partial_when_some_low_confidence(
+        self, mock_validator_class, mock_extract
+    ):
         """Processor should return 'partial' when some questions have low confidence"""
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -272,15 +284,15 @@ class TestProcessProvaWithMocks:
                     "enunciado": "Good question " * 20,
                     "alternativas": {"A": "a", "B": "b", "C": "c", "D": "d", "E": "e"},
                     "gabarito": "A",
-                    "disciplina": "Portugues"
+                    "disciplina": "Portugues",
                 },
                 {
                     "numero": 2,
                     "enunciado": "Bad",  # Too short
                     "alternativas": {"A": "a"},  # Only one alternative
                     "gabarito": None,  # No answer
-                    "disciplina": None
-                }
+                    "disciplina": None,
+                },
             ]
         }
 
@@ -295,18 +307,16 @@ class TestProcessProvaWithMocks:
 
         # One low quality question -> partial
         assert result.success is True
-        assert result.status == 'partial'
+        assert result.status == "partial"
         assert result.questoes_revisao >= 1
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
     def test_processor_handles_extraction_failure(self, mock_validator_class, mock_extract):
         """Processor should handle extraction exceptions gracefully"""
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -323,19 +333,17 @@ class TestProcessProvaWithMocks:
         result = processor.process_prova(mock_prova)
 
         assert result.success is False
-        assert result.status == 'failed'
-        assert result.error_code == 'PROCESSING_ERROR'
+        assert result.status == "failed"
+        assert result.error_code == "PROCESSING_ERROR"
         assert "LLM API error" in result.error_message
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
     def test_processor_handles_rate_limit(self, mock_validator_class, mock_extract):
         """Processor should set retry status on rate limit errors"""
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -352,19 +360,17 @@ class TestProcessProvaWithMocks:
         result = processor.process_prova(mock_prova)
 
         assert result.success is False
-        assert result.status == 'retry'
-        assert result.error_code == 'RATE_LIMIT'
-        assert result.checkpoint == 'rate_limited'
+        assert result.status == "retry"
+        assert result.error_code == "RATE_LIMIT"
+        assert result.checkpoint == "rate_limited"
 
-    @patch('src.services.queue_processor.extract_questions_chunked')
-    @patch('src.services.queue_processor.PDFValidator')
+    @patch("src.services.queue_processor.extract_questions_chunked")
+    @patch("src.services.queue_processor.PDFValidator")
     def test_processor_fails_when_no_questions_extracted(self, mock_validator_class, mock_extract):
         """Processor should fail when no questions are extracted"""
         mock_validator = MagicMock()
         mock_validator.validate.return_value = MagicMock(
-            is_valid=True,
-            page_count=10,
-            text_length=5000
+            is_valid=True, page_count=10, text_length=5000
         )
         mock_validator_class.return_value = mock_validator
 
@@ -381,6 +387,6 @@ class TestProcessProvaWithMocks:
         result = processor.process_prova(mock_prova)
 
         assert result.success is False
-        assert result.status == 'failed'
-        assert result.error_code == 'NO_QUESTIONS'
-        assert result.checkpoint == 'extraction_failed'
+        assert result.status == "failed"
+        assert result.error_code == "NO_QUESTIONS"
+        assert result.checkpoint == "extraction_failed"

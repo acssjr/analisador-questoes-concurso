@@ -1,14 +1,15 @@
 """
 Projeto model - agrupa edital + provas + questões como unidade de trabalho
 """
+
 import uuid
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, String, Text, JSON, ForeignKey
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -20,9 +21,7 @@ if TYPE_CHECKING:
 class Projeto(Base):
     __tablename__ = "projetos"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nome: Mapped[str] = mapped_column(String(255), nullable=False)
     descricao: Mapped[Optional[str]] = mapped_column(Text)
 
@@ -32,9 +31,7 @@ class Projeto(Base):
     ano: Mapped[Optional[int]] = mapped_column(Integer)
 
     # Status do projeto
-    status: Mapped[str] = mapped_column(
-        String(50), default="configurando"
-    )
+    status: Mapped[str] = mapped_column(String(50), default="configurando")
     """
     Status possíveis:
     - configurando: edital/conteúdo programático ainda não definidos
@@ -59,9 +56,7 @@ class Projeto(Base):
     """
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
     # Relationships
     edital: Mapped[Optional["Edital"]] = relationship(

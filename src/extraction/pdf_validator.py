@@ -5,6 +5,7 @@ This module validates PDFs before spending tokens on LLM extraction,
 checking for file existence, format, extractable text, and other
 validation criteria.
 """
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -16,6 +17,7 @@ from loguru import logger
 @dataclass
 class ValidationResult:
     """Result of PDF validation"""
+
     is_valid: bool
     error_code: Optional[str] = None
     error_message: Optional[str] = None
@@ -54,7 +56,7 @@ class PDFValidator:
             return ValidationResult(
                 is_valid=False,
                 error_code="FILE_NOT_FOUND",
-                error_message=f"Arquivo nao encontrado: {file_path.name}"
+                error_message=f"Arquivo nao encontrado: {file_path.name}",
             )
 
         # Check file extension
@@ -62,7 +64,7 @@ class PDFValidator:
             return ValidationResult(
                 is_valid=False,
                 error_code="NOT_PDF",
-                error_message=f"Arquivo nao e PDF: {file_path.suffix}"
+                error_message=f"Arquivo nao e PDF: {file_path.suffix}",
             )
 
         try:
@@ -73,7 +75,7 @@ class PDFValidator:
             return ValidationResult(
                 is_valid=False,
                 error_code="CORRUPTED",
-                error_message=f"PDF corrompido ou invalido: {str(e)[:100]}"
+                error_message=f"PDF corrompido ou invalido: {str(e)[:100]}",
             )
 
         try:
@@ -82,7 +84,7 @@ class PDFValidator:
                 return ValidationResult(
                     is_valid=False,
                     error_code="PASSWORD_PROTECTED",
-                    error_message="PDF protegido por senha"
+                    error_message="PDF protegido por senha",
                 )
 
             # Extract text from all pages
@@ -108,7 +110,7 @@ class PDFValidator:
                     text_length=text_length,
                     page_count=page_count,
                     has_images=True,
-                    is_scanned=True
+                    is_scanned=True,
                 )
 
             # Check minimum text length
@@ -118,7 +120,7 @@ class PDFValidator:
                     error_code="INSUFFICIENT_TEXT",
                     error_message=f"PDF tem pouco texto ({text_length} chars). Minimo: {self.MIN_TEXT_LENGTH}",
                     text_length=text_length,
-                    page_count=page_count
+                    page_count=page_count,
                 )
 
             # All checks passed
@@ -127,7 +129,7 @@ class PDFValidator:
                 text_length=text_length,
                 page_count=page_count,
                 has_images=has_images,
-                is_scanned=False
+                is_scanned=False,
             )
 
         finally:

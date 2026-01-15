@@ -1,6 +1,7 @@
 """
 Edital extraction logic - extracts metadata and taxonomy from exam notices
 """
+
 import json
 from enum import Enum
 from pathlib import Path
@@ -15,6 +16,7 @@ from src.llm.llm_orchestrator import LLMOrchestrator
 
 class DocumentType(Enum):
     """Types of documents that can be uploaded"""
+
     EDITAL = "edital"
     CONTEUDO_PROGRAMATICO = "conteudo_programatico"
     PROVA = "prova"
@@ -23,6 +25,7 @@ class DocumentType(Enum):
 
 class WrongDocumentTypeError(ExtractionError):
     """Raised when user uploads the wrong type of document"""
+
     def __init__(self, expected: DocumentType, detected: DocumentType, message: str):
         self.expected = expected
         self.detected = detected
@@ -108,11 +111,7 @@ Responda em JSON:
         return DocumentType.DESCONHECIDO, 0.0, str(e)
 
 
-def validate_document_type(
-    text: str,
-    expected: DocumentType,
-    step_name: str
-) -> None:
+def validate_document_type(text: str, expected: DocumentType, step_name: str) -> None:
     """
     Validate that the uploaded document matches the expected type.
 
@@ -281,7 +280,9 @@ Exemplo de resposta:
         if not metadata.get("cargos"):
             metadata["cargos"] = []
 
-        logger.info(f"Extracted edital metadata: {metadata.get('nome')} with {len(metadata.get('cargos', []))} cargos: {metadata.get('cargos')}")
+        logger.info(
+            f"Extracted edital metadata: {metadata.get('nome')} with {len(metadata.get('cargos', []))} cargos: {metadata.get('cargos')}"
+        )
 
         return metadata
 
@@ -291,9 +292,7 @@ Exemplo de resposta:
 
 
 def extract_conteudo_programatico(
-    pdf_path: str | Path,
-    cargo: Optional[str] = None,
-    skip_validation: bool = False
+    pdf_path: str | Path, cargo: Optional[str] = None, skip_validation: bool = False
 ) -> dict:
     """
     Extract hierarchical taxonomy from conteúdo programático PDF
@@ -340,7 +339,9 @@ def extract_conteudo_programatico(
 
         # Validate document type - reject if it's a prova (exam with questions)
         if not skip_validation:
-            validate_document_type(text, DocumentType.CONTEUDO_PROGRAMATICO, "Upload do Conteúdo Programático")
+            validate_document_type(
+                text, DocumentType.CONTEUDO_PROGRAMATICO, "Upload do Conteúdo Programático"
+            )
 
         # Build cargo-specific instruction
         cargo_instruction = ""

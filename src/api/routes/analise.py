@@ -1,6 +1,7 @@
 """
 Analise routes - Deep analysis API endpoints
 """
+
 import asyncio
 import uuid
 from datetime import datetime
@@ -8,27 +9,27 @@ from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from loguru import logger
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
-from src.core.database import get_db, AsyncSessionLocal
+from src.core.database import AsyncSessionLocal, get_db
+from src.models.analise_job import AnaliseJob
 from src.models.projeto import Projeto
 from src.models.prova import Prova
 from src.models.questao import Questao
-from src.models.analise_job import AnaliseJob
 from src.schemas.analise import (
     AnaliseIniciarRequest,
     AnaliseIniciarResponse,
-    AnaliseStatusResponse,
-    AnaliseResultadoResponse,
-    AnaliseResultadoDisciplinaResponse,
     AnaliseJobListResponse,
+    AnaliseResultadoDisciplinaResponse,
+    AnaliseResultadoResponse,
     AnaliseResumoResponse,
-    PatternFindingSchema,
+    AnaliseStatusResponse,
     AnalysisReportSchema,
-    VerifiedReportSchema,
-    VerificationResultSchema,
     ClusterResultSchema,
+    PatternFindingSchema,
+    VerificationResultSchema,
+    VerifiedReportSchema,
 )
 
 router = APIRouter()
@@ -107,16 +108,18 @@ async def run_analysis_pipeline(job_id: uuid.UUID):
             questoes = []
             anos_set = set()
             for q in questoes_db:
-                questoes.append({
-                    "id": str(q.id),
-                    "numero": q.numero,
-                    "disciplina": q.disciplina,
-                    "enunciado": q.enunciado,
-                    "alternativas": q.alternativas,
-                    "gabarito": q.gabarito,
-                    "anulada": q.anulada,
-                    "assunto_pci": q.assunto_pci,
-                })
+                questoes.append(
+                    {
+                        "id": str(q.id),
+                        "numero": q.numero,
+                        "disciplina": q.disciplina,
+                        "enunciado": q.enunciado,
+                        "alternativas": q.alternativas,
+                        "gabarito": q.gabarito,
+                        "anulada": q.anulada,
+                        "assunto_pci": q.assunto_pci,
+                    }
+                )
                 # Get year from prova
                 prova = next((p for p in projeto.provas if p.id == q.prova_id), None)
                 if prova and prova.ano:
@@ -124,7 +127,9 @@ async def run_analysis_pipeline(job_id: uuid.UUID):
 
             if len(questoes) < MIN_QUESTOES_PARA_ANALISE:
                 job.status = "failed"
-                job.error_message = f"Not enough questions ({len(questoes)}). Minimum: {MIN_QUESTOES_PARA_ANALISE}"
+                job.error_message = (
+                    f"Not enough questions ({len(questoes)}). Minimum: {MIN_QUESTOES_PARA_ANALISE}"
+                )
                 await db.commit()
                 return
 
@@ -147,7 +152,7 @@ async def run_analysis_pipeline(job_id: uuid.UUID):
                     banca=projeto.banca or "Desconhecida",
                     anos=job.anos or [],
                     skip_phases=None,  # Could be passed from job config
-                )
+                ),
             )
 
             # Update phase tracking during execution (simulated for now)
@@ -164,8 +169,7 @@ async def run_analysis_pipeline(job_id: uuid.UUID):
                     "silhouette_score": pipeline_result.cluster_result.silhouette_score,
                 }
             job.similar_pairs = [
-                {"q1": p[0], "q2": p[1], "score": p[2]}
-                for p in pipeline_result.similar_pairs
+                {"q1": p[0], "q2": p[1], "score": p[2]} for p in pipeline_result.similar_pairs
             ]
 
             # Phase 2 results
@@ -308,8 +312,7 @@ async def iniciar_analise(
             prova_ids = [p.id for p in (projeto.provas or [])]
             if not prova_ids:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Project has no provas. Upload provas first."
+                    status_code=400, detail="Project has no provas. Upload provas first."
                 )
 
             count_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
@@ -323,7 +326,7 @@ async def iniciar_analise(
                 raise HTTPException(
                     status_code=400,
                     detail=f"Not enough questions ({questao_count}) for analysis. "
-                           f"Minimum required: {MIN_QUESTOES_PARA_ANALISE}"
+                    f"Minimum required: {MIN_QUESTOES_PARA_ANALISE}",
                 )
 
             # Check if there's already a running job for this project/discipline
@@ -339,7 +342,7 @@ async def iniciar_analise(
             if existing_job:
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Analysis already running for this discipline. Job ID: {existing_job.id}"
+                    detail=f"Analysis already running for this discipline. Job ID: {existing_job.id}",
                 )
 
             # Create analysis job
@@ -353,7 +356,9 @@ async def iniciar_analise(
             await db.commit()
             await db.refresh(job)
 
-            logger.info(f"Created analysis job {job.id} for projeto {projeto_id}, disciplina: {disciplina}")
+            logger.info(
+                f"Created analysis job {job.id} for projeto {projeto_id}, disciplina: {disciplina}"
+            )
 
             # Start background task
             background_tasks.add_task(run_analysis_pipeline, job.id)
@@ -364,7 +369,7 @@ async def iniciar_analise(
                 disciplina=disciplina,
                 status="pending",
                 message=f"Analysis started for {questao_count} questions. "
-                        f"Use GET /api/analise/{projeto_id}/status to track progress."
+                f"Use GET /api/analise/{projeto_id}/status to track progress.",
             )
 
     except HTTPException:
@@ -396,10 +401,7 @@ async def get_analise_status(
                 raise HTTPException(status_code=404, detail="Projeto not found")
 
             # Find the most recent job
-            job_stmt = (
-                select(AnaliseJob)
-                .where(AnaliseJob.projeto_id == projeto_id)
-            )
+            job_stmt = select(AnaliseJob).where(AnaliseJob.projeto_id == projeto_id)
 
             if disciplina:
                 job_stmt = job_stmt.where(AnaliseJob.disciplina == disciplina)
@@ -411,8 +413,7 @@ async def get_analise_status(
 
             if not job:
                 raise HTTPException(
-                    status_code=404,
-                    detail="No analysis job found for this project"
+                    status_code=404, detail="No analysis job found for this project"
                 )
 
             return AnaliseStatusResponse(
@@ -466,8 +467,7 @@ async def get_analise_resultado(projeto_id: uuid.UUID):
 
             if not all_jobs:
                 raise HTTPException(
-                    status_code=404,
-                    detail="No analysis results found for this project"
+                    status_code=404, detail="No analysis results found for this project"
                 )
 
             # Get the most recent job per discipline
@@ -505,7 +505,9 @@ async def get_analise_resultado(projeto_id: uuid.UUID):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{projeto_id}/resultado/{disciplina}", response_model=AnaliseResultadoDisciplinaResponse)
+@router.get(
+    "/{projeto_id}/resultado/{disciplina}", response_model=AnaliseResultadoDisciplinaResponse
+)
 async def get_analise_resultado_disciplina(
     projeto_id: uuid.UUID,
     disciplina: str,
@@ -538,8 +540,7 @@ async def get_analise_resultado_disciplina(
 
             if not job:
                 raise HTTPException(
-                    status_code=404,
-                    detail=f"No analysis found for discipline: {disciplina}"
+                    status_code=404, detail=f"No analysis found for discipline: {disciplina}"
                 )
 
             return _build_disciplina_result(job)
@@ -582,7 +583,9 @@ async def list_analise_jobs(
             jobs_stmt = jobs_stmt.order_by(AnaliseJob.created_at.desc())
 
             # Count total
-            count_stmt = select(func.count(AnaliseJob.id)).where(AnaliseJob.projeto_id == projeto_id)
+            count_stmt = select(func.count(AnaliseJob.id)).where(
+                AnaliseJob.projeto_id == projeto_id
+            )
             if status:
                 count_stmt = count_stmt.where(AnaliseJob.status == status)
             count_result = await db.execute(count_stmt)
@@ -744,8 +747,7 @@ async def cancel_analise_job(projeto_id: uuid.UUID, job_id: uuid.UUID):
 
             if job.status not in ["pending", "running"]:
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Cannot cancel job with status: {job.status}"
+                    status_code=400, detail=f"Cannot cancel job with status: {job.status}"
                 )
 
             # Cancel the job
@@ -788,9 +790,7 @@ def _build_disciplina_result(job: AnaliseJob) -> AnaliseResultadoDisciplinaRespo
         analysis_report = AnalysisReportSchema(
             disciplina=ar.get("disciplina", job.disciplina),
             total_questoes=ar.get("total_questoes", job.total_questoes),
-            temporal_patterns=[
-                PatternFindingSchema(**p) for p in ar.get("temporal_patterns", [])
-            ],
+            temporal_patterns=[PatternFindingSchema(**p) for p in ar.get("temporal_patterns", [])],
             similarity_patterns=[
                 PatternFindingSchema(**p) for p in ar.get("similarity_patterns", [])
             ],

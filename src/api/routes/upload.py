@@ -1,10 +1,9 @@
 """
 Upload routes - for PDF upload and extraction
 """
-import re
+
 import unicodedata
 import uuid
-from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, File, Query, UploadFile
@@ -13,11 +12,11 @@ from sqlalchemy import select
 
 from src.classification.classifier import QuestionClassifier
 from src.core.config import get_settings
-from src.core.database import get_db, AsyncSessionLocal
+from src.core.database import AsyncSessionLocal
 from src.extraction.edital_extractor import WrongDocumentTypeError
+from src.extraction.llm_parser import extract_questions_chunked
 from src.extraction.pci_parser import parse_pci_pdf
 from src.extraction.pdf_detector import detect_pdf_format
-from src.extraction.llm_parser import extract_questions_with_llm, extract_questions_chunked
 from src.llm.llm_orchestrator import LLMOrchestrator
 from src.models.classificacao import Classificacao
 from src.models.edital import Edital
@@ -35,12 +34,30 @@ DISCIPLINA_ALIASES = {
     "portugues": ["lingua portuguesa", "portugues", "redacao", "interpretacao de texto"],
     "lingua portuguesa": ["portugues", "lingua portuguesa", "redacao"],
     # Matemática e Raciocínio
-    "matematica": ["matematica", "raciocinio logico", "raciocinio logico-matematico", "rlm", "matematica e raciocinio logico"],
-    "raciocinio logico": ["matematica", "raciocinio logico", "raciocinio logico-matematico", "rlm", "matematica e raciocinio logico"],
+    "matematica": [
+        "matematica",
+        "raciocinio logico",
+        "raciocinio logico-matematico",
+        "rlm",
+        "matematica e raciocinio logico",
+    ],
+    "raciocinio logico": [
+        "matematica",
+        "raciocinio logico",
+        "raciocinio logico-matematico",
+        "rlm",
+        "matematica e raciocinio logico",
+    ],
     "raciocinio logico-matematico": ["matematica", "raciocinio logico", "rlm"],
     "matematica e raciocinio logico": ["matematica", "raciocinio logico", "rlm"],
     # Informática
-    "informatica": ["informatica", "nocoes de informatica", "tecnologia da informacao", "ti", "tecnologia"],
+    "informatica": [
+        "informatica",
+        "nocoes de informatica",
+        "tecnologia da informacao",
+        "ti",
+        "tecnologia",
+    ],
     "nocoes de informatica": ["informatica", "nocoes de informatica"],
     "tecnologia": ["informatica", "tecnologia"],
     # Direitos
@@ -89,7 +106,7 @@ def fix_mojibake(text: str) -> str:
     try:
         # If the text contains mojibake, it was UTF-8 bytes interpreted as Latin-1
         # We can fix it by encoding to Latin-1 and decoding as UTF-8
-        fixed = text.encode('latin-1').decode('utf-8')
+        fixed = text.encode("latin-1").decode("utf-8")
         return fixed
     except (UnicodeDecodeError, UnicodeEncodeError):
         # Not mojibake, return original
@@ -98,8 +115,8 @@ def fix_mojibake(text: str) -> str:
 
 def remove_accents(text: str) -> str:
     """Remove accents from text for comparison"""
-    nfkd = unicodedata.normalize('NFKD', text)
-    return ''.join(c for c in nfkd if not unicodedata.combining(c))
+    nfkd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
 def normalize_disciplina(nome: str) -> str:
@@ -115,6 +132,7 @@ CANONICAL_DISCIPLINAS = {
     "portugues": "Língua Portuguesa",
     "matematica": "Matemática",
     "raciocinio logico": "Raciocínio Lógico",
+    "logica": "Raciocínio Lógico",
     "raciocinio logico-matematico": "Raciocínio Lógico-Matemático",
     "matematica e raciocinio logico": "Matemática e Raciocínio Lógico",
     "informatica": "Informática",
@@ -244,7 +262,7 @@ def filter_questoes_by_edital(questoes: list[dict], taxonomia: dict) -> dict:
                 "total_removido": 0,
                 "disciplinas_edital": [],
                 "disciplinas_removidas": {},
-            }
+            },
         }
 
     questoes_filtradas = []
@@ -271,7 +289,7 @@ def filter_questoes_by_edital(questoes: list[dict], taxonomia: dict) -> dict:
             "total_removido": len(questoes_removidas),
             "disciplinas_edital": edital_disciplinas,
             "disciplinas_removidas": disciplinas_removidas,
-        }
+        },
     }
 
 
@@ -307,7 +325,12 @@ async def upload_pdf(
             # If projeto_id provided, get projeto and its edital
             if projeto_id:
                 from sqlalchemy.orm import selectinload
-                stmt = select(Projeto).options(selectinload(Projeto.edital)).where(Projeto.id == projeto_id)
+
+                stmt = (
+                    select(Projeto)
+                    .options(selectinload(Projeto.edital))
+                    .where(Projeto.id == projeto_id)
+                )
                 result = await db_session.execute(stmt)
                 projeto = result.scalar_one_or_none()
 
@@ -392,19 +415,25 @@ async def upload_pdf(
                             llm = LLMOrchestrator()
                             extraction_result = extract_questions_chunked(file_path, llm)
                             questoes_extraidas = extraction_result["questoes"]
-                            logger.info(f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}")
+                            logger.info(
+                                f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}"
+                            )
                         except WrongDocumentTypeError:
                             # Re-raise document type errors - don't try fallback
                             raise
                         except Exception as llm_error:
                             # Fallback to regex parser
-                            logger.warning(f"LLM extraction failed, falling back to regex: {llm_error}")
+                            logger.warning(
+                                f"LLM extraction failed, falling back to regex: {llm_error}"
+                            )
                             extraction_result = parse_pci_pdf(file_path)
                             questoes_extraidas = extraction_result["questoes"]
 
                         # Filtrar questões por disciplinas do edital (se vinculado e flag ativa)
                         if edital_taxonomia and filter_by_edital:
-                            filter_result = filter_questoes_by_edital(questoes_extraidas, edital_taxonomia)
+                            filter_result = filter_questoes_by_edital(
+                                questoes_extraidas, edital_taxonomia
+                            )
                             questoes_finais = filter_result["questoes_filtradas"]
                             filter_stats = filter_result["stats"]
 
@@ -413,7 +442,9 @@ async def upload_pdf(
                                 f"({filter_stats['total_removido']} removed)"
                             )
                             if filter_stats["disciplinas_removidas"]:
-                                logger.info(f"Disciplinas removidas: {filter_stats['disciplinas_removidas']}")
+                                logger.info(
+                                    f"Disciplinas removidas: {filter_stats['disciplinas_removidas']}"
+                                )
                         else:
                             questoes_finais = questoes_extraidas
                             filter_stats = None
@@ -427,17 +458,25 @@ async def upload_pdf(
                         if projeto:
                             try:
                                 # Calculate confidence score
-                                total_confianca = sum(
-                                    q.get("confianca_score", 50) for q in questoes_finais
-                                ) if questoes_finais else 0
-                                media_confianca = total_confianca / len(questoes_finais) if questoes_finais else 0
-                                total_anuladas = sum(1 for q in questoes_finais if q.get("anulada", False))
+                                total_confianca = (
+                                    sum(q.get("confianca_score", 50) for q in questoes_finais)
+                                    if questoes_finais
+                                    else 0
+                                )
+                                media_confianca = (
+                                    total_confianca / len(questoes_finais) if questoes_finais else 0
+                                )
+                                total_anuladas = sum(
+                                    1 for q in questoes_finais if q.get("anulada", False)
+                                )
 
                                 # Create Prova record
                                 prova = Prova(
                                     nome=file.filename,
-                                    banca=extraction_result["metadados"].get("banca") or projeto.banca,
-                                    cargo=extraction_result["metadados"].get("cargo") or projeto.cargo,
+                                    banca=extraction_result["metadados"].get("banca")
+                                    or projeto.banca,
+                                    cargo=extraction_result["metadados"].get("cargo")
+                                    or projeto.cargo,
                                     ano=extraction_result["metadados"].get("ano") or projeto.ano,
                                     fonte=format_type,
                                     arquivo_original=str(file_path),
@@ -479,27 +518,31 @@ async def upload_pdf(
 
                                 # Flush to get Questao IDs before classification
                                 await db_session.flush()
-                                logger.info(f"Created {len(questoes_finais)} Questao records for prova {prova.id}")
+                                logger.info(
+                                    f"Created {len(questoes_finais)} Questao records for prova {prova.id}"
+                                )
 
                                 # Classify questions and create Classificacao records
                                 if edital_taxonomia and questao_records:
                                     try:
-                                        logger.info(f"Starting classification for {len(questao_records)} questions")
+                                        logger.info(
+                                            f"Starting classification for {len(questao_records)} questions"
+                                        )
                                         classifier = QuestionClassifier()
 
                                         # Build list of question dicts for batch classification
                                         questoes_para_classificar = []
                                         for qr in questao_records:
-                                            # Use original dict data for classification
-                                            q_data = questao_data_map.get(qr.numero, {})
-                                            questoes_para_classificar.append({
-                                                "numero": qr.numero,
-                                                "enunciado": qr.enunciado,
-                                                "alternativas": qr.alternativas,
-                                                "gabarito": qr.gabarito,
-                                                "disciplina": qr.disciplina,
-                                                "_questao_id": qr.id,  # Internal: link to DB record
-                                            })
+                                            questoes_para_classificar.append(
+                                                {
+                                                    "numero": qr.numero,
+                                                    "enunciado": qr.enunciado,
+                                                    "alternativas": qr.alternativas,
+                                                    "gabarito": qr.gabarito,
+                                                    "disciplina": qr.disciplina,
+                                                    "_questao_id": qr.id,  # Internal: link to DB record
+                                                }
+                                            )
 
                                         # Call classifier (synchronous - has built-in throttling)
                                         classificacoes = classifier.classify_batch(
@@ -514,7 +557,9 @@ async def upload_pdf(
 
                                         # Create Classificacao records
                                         for i, classificacao_result in enumerate(classificacoes):
-                                            questao_id = questoes_para_classificar[i].get("_questao_id")
+                                            questao_id = questoes_para_classificar[i].get(
+                                                "_questao_id"
+                                            )
                                             if not questao_id:
                                                 continue
 
@@ -531,23 +576,49 @@ async def upload_pdf(
                                                 classificacao = Classificacao(
                                                     questao_id=questao_id,
                                                     edital_id=edital_id_for_classificacao,
-                                                    disciplina=classificacao_result.get("disciplina", ""),
+                                                    disciplina=classificacao_result.get(
+                                                        "disciplina", ""
+                                                    ),
                                                     assunto=classificacao_result.get("assunto"),
                                                     topico=classificacao_result.get("topico"),
                                                     subtopico=classificacao_result.get("subtopico"),
-                                                    conceito_especifico=classificacao_result.get("conceito_especifico"),
-                                                    item_edital_path=classificacao_result.get("item_edital_path"),
-                                                    confianca_disciplina=classificacao_result.get("confianca_disciplina"),
-                                                    confianca_assunto=classificacao_result.get("confianca_assunto"),
-                                                    confianca_topico=classificacao_result.get("confianca_topico"),
-                                                    confianca_subtopico=classificacao_result.get("confianca_subtopico"),
-                                                    conceito_testado=classificacao_result.get("conceito_testado"),
-                                                    habilidade_bloom=classificacao_result.get("habilidade_bloom"),
-                                                    nivel_dificuldade=classificacao_result.get("nivel_dificuldade"),
-                                                    llm_provider=classificacao_result.get("llm_provider"),
+                                                    conceito_especifico=classificacao_result.get(
+                                                        "conceito_especifico"
+                                                    ),
+                                                    item_edital_path=classificacao_result.get(
+                                                        "item_edital_path"
+                                                    ),
+                                                    confianca_disciplina=classificacao_result.get(
+                                                        "confianca_disciplina"
+                                                    ),
+                                                    confianca_assunto=classificacao_result.get(
+                                                        "confianca_assunto"
+                                                    ),
+                                                    confianca_topico=classificacao_result.get(
+                                                        "confianca_topico"
+                                                    ),
+                                                    confianca_subtopico=classificacao_result.get(
+                                                        "confianca_subtopico"
+                                                    ),
+                                                    conceito_testado=classificacao_result.get(
+                                                        "conceito_testado"
+                                                    ),
+                                                    habilidade_bloom=classificacao_result.get(
+                                                        "habilidade_bloom"
+                                                    ),
+                                                    nivel_dificuldade=classificacao_result.get(
+                                                        "nivel_dificuldade"
+                                                    ),
+                                                    llm_provider=classificacao_result.get(
+                                                        "llm_provider"
+                                                    ),
                                                     llm_model=classificacao_result.get("llm_model"),
-                                                    prompt_usado=classificacao_result.get("prompt_usado"),
-                                                    raw_response=classificacao_result.get("raw_response"),
+                                                    prompt_usado=classificacao_result.get(
+                                                        "prompt_usado"
+                                                    ),
+                                                    raw_response=classificacao_result.get(
+                                                        "raw_response"
+                                                    ),
                                                 )
                                                 db_session.add(classificacao)
                                                 classificacoes_criadas += 1
@@ -563,8 +634,12 @@ async def upload_pdf(
 
                                     except Exception as classification_error:
                                         # Classification is best-effort - don't fail the upload
-                                        logger.error(f"Classification batch failed: {classification_error}")
-                                        logger.info("Continuing with upload - questions saved without classification")
+                                        logger.error(
+                                            f"Classification batch failed: {classification_error}"
+                                        )
+                                        logger.info(
+                                            "Continuing with upload - questions saved without classification"
+                                        )
 
                                 await db_session.commit()
 
@@ -598,7 +673,9 @@ async def upload_pdf(
                         else:
                             file_result["classificacao"] = {
                                 "tentada": False,
-                                "motivo": "Sem edital/taxonomia vinculada" if not edital_taxonomia else "Sem projeto vinculado",
+                                "motivo": "Sem edital/taxonomia vinculada"
+                                if not edital_taxonomia
+                                else "Sem projeto vinculado",
                             }
 
                         # Adicionar stats do filtro se aplicado
@@ -619,21 +696,30 @@ async def upload_pdf(
 
                 except Exception as file_error:
                     logger.error(f"Failed to process {file.filename}: {file_error}")
-                    results.append({
-                        "success": False,
-                        "filename": file.filename,
-                        "error": str(file_error),
-                    })
+                    results.append(
+                        {
+                            "success": False,
+                            "filename": file.filename,
+                            "error": str(file_error),
+                        }
+                    )
 
             # Update projeto counters if we have a projeto and saved data
             if projeto:
                 try:
                     # Calculate totals from successful results that were persisted
-                    provas_criadas = sum(1 for r in results if r.get("success") and r.get("prova_id"))
-                    questoes_criadas = sum(r.get("total_questoes", 0) for r in results if r.get("success") and r.get("prova_id"))
+                    provas_criadas = sum(
+                        1 for r in results if r.get("success") and r.get("prova_id")
+                    )
+                    questoes_criadas = sum(
+                        r.get("total_questoes", 0)
+                        for r in results
+                        if r.get("success") and r.get("prova_id")
+                    )
                     anuladas_criadas = sum(
                         sum(1 for q in r.get("questoes", []) if q.get("anulada", False))
-                        for r in results if r.get("success") and r.get("prova_id")
+                        for r in results
+                        if r.get("success") and r.get("prova_id")
                     )
 
                     # Refresh projeto from DB to get current counts
@@ -642,11 +728,15 @@ async def upload_pdf(
                     # Update counters
                     projeto.total_provas = (projeto.total_provas or 0) + provas_criadas
                     projeto.total_questoes = (projeto.total_questoes or 0) + questoes_criadas
-                    projeto.total_questoes_validas = (projeto.total_questoes_validas or 0) + (questoes_criadas - anuladas_criadas)
+                    projeto.total_questoes_validas = (projeto.total_questoes_validas or 0) + (
+                        questoes_criadas - anuladas_criadas
+                    )
                     projeto.total_anuladas = (projeto.total_anuladas or 0) + anuladas_criadas
 
                     await db_session.commit()
-                    logger.info(f"Updated projeto counters: {projeto.total_provas} provas, {projeto.total_questoes} questoes")
+                    logger.info(
+                        f"Updated projeto counters: {projeto.total_provas} provas, {projeto.total_questoes} questoes"
+                    )
 
                 except Exception as counter_error:
                     logger.error(f"Failed to update projeto counters: {counter_error}")
@@ -654,7 +744,11 @@ async def upload_pdf(
 
             # Build response
             total_questoes = sum(r.get("total_questoes", 0) for r in results if r["success"])
-            total_questoes_extraidas = sum(r.get("total_questoes_extraidas", r.get("total_questoes", 0)) for r in results if r["success"])
+            total_questoes_extraidas = sum(
+                r.get("total_questoes_extraidas", r.get("total_questoes", 0))
+                for r in results
+                if r["success"]
+            )
             successful_files = sum(1 for r in results if r["success"])
 
             response = {
@@ -678,15 +772,19 @@ async def upload_pdf(
                     disciplinas_removidas_total = {}
                     for r in results:
                         if r.get("success") and r.get("filtro_stats"):
-                            for disc, count in r["filtro_stats"].get("disciplinas_removidas", {}).items():
-                                disciplinas_removidas_total[disc] = disciplinas_removidas_total.get(disc, 0) + count
+                            for disc, count in (
+                                r["filtro_stats"].get("disciplinas_removidas", {}).items()
+                            ):
+                                disciplinas_removidas_total[disc] = (
+                                    disciplinas_removidas_total.get(disc, 0) + count
+                                )
 
                     response["filtro_resumo"] = {
                         "total_extraidas": total_questoes_extraidas,
                         "total_validas": total_questoes,
                         "total_removidas": total_removidas,
                         "disciplinas_removidas": disciplinas_removidas_total,
-                        "mensagem": f"{total_removidas} questões removidas por não corresponderem às disciplinas do edital"
+                        "mensagem": f"{total_removidas} questões removidas por não corresponderem às disciplinas do edital",
                     }
             else:
                 response["vinculado_edital"] = False

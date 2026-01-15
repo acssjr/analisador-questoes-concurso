@@ -2,7 +2,6 @@
 Prompts for question classification
 """
 
-
 SYSTEM_PROMPT_CLASSIFICACAO = """Você é um especialista em análise de questões de concursos públicos brasileiros.
 
 Classifique questões seguindo a taxonomia do edital quando disponível.
@@ -35,10 +34,10 @@ def build_classification_prompt(
     """
     prompt = f"""Classifique esta questão de concurso de forma hierárquica e detalhada.
 
-QUESTÃO #{questao['numero']}:
+QUESTÃO #{questao["numero"]}:
 
 ENUNCIADO:
-{questao['enunciado']}
+{questao["enunciado"]}
 
 ALTERNATIVAS:
 """
@@ -106,7 +105,7 @@ def build_classification_prompt_lite(
     Returns:
         str: Compact prompt
     """
-    prompt = f"""Q{questao['numero']}: {questao['enunciado'][:500]}
+    prompt = f"""Q{questao["numero"]}: {questao["enunciado"][:500]}
 """
 
     if questao.get("gabarito"):

@@ -1,6 +1,7 @@
 """
 Cluster models (agrupamento de questões similares)
 """
+
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -13,10 +14,10 @@ except ImportError:
     HAS_PGVECTOR = False
     from sqlalchemy import JSON as Vector
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, JSON
-from sqlalchemy.types import Uuid
+from sqlalchemy import JSON, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import Uuid
 
 from src.core.database import Base
 
@@ -24,9 +25,7 @@ from src.core.database import Base
 class Cluster(Base):
     __tablename__ = "clusters"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nome: Mapped[Optional[str]] = mapped_column(String(255))
     disciplina: Mapped[Optional[str]] = mapped_column(String(100))
 
@@ -100,9 +99,7 @@ class Similaridade(Base):
     )
 
     score_similaridade: Mapped[float] = mapped_column(Float, nullable=False)
-    tipo: Mapped[Optional[str]] = mapped_column(
-        String(50)
-    )  # 'semantica', 'estrutural', 'visual'
+    tipo: Mapped[Optional[str]] = mapped_column(String(50))  # 'semantica', 'estrutural', 'visual'
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 

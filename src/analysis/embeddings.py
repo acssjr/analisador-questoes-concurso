@@ -1,9 +1,9 @@
 """
 Embeddings generation using sentence-transformers
 """
+
 from typing import Optional
 
-import numpy as np
 from loguru import logger
 from sentence_transformers import SentenceTransformer
 
@@ -21,7 +21,9 @@ class EmbeddingGenerator:
         logger.info(f"Loading embedding model: {self.model_name}")
         try:
             self.model = SentenceTransformer(self.model_name)
-            logger.info(f"Model loaded successfully - Dimension: {self.model.get_sentence_embedding_dimension()}")
+            logger.info(
+                f"Model loaded successfully - Dimension: {self.model.get_sentence_embedding_dimension()}"
+            )
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")
             raise EmbeddingError(f"Failed to load model: {e}")

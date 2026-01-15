@@ -1,7 +1,6 @@
 """
 Tests for token optimization utilities (Phase 1: Safe strategies)
 """
-import pytest
 
 
 class TestContextPruning:

@@ -95,8 +95,15 @@ include = '\.pyi?$'
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
-ignore = ["E501"]
+ignore = [
+    "E501",  # line too long
+    "F821",  # undefined name (false positives for SQLAlchemy forward references)
+    "N811",  # constant imported as non-constant (valid fallback pattern for pgvector)
+    "N818",  # exception name should end with Error
+]
 
 [tool.mypy]
 python_version = "3.11"

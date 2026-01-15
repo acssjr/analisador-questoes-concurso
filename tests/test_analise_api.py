@@ -1,6 +1,7 @@
 """
 Tests for the deep analysis API endpoints
 """
+
 import uuid
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,8 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.api.routes.analise import router, MIN_QUESTOES_PARA_ANALISE
-
+from src.api.routes.analise import MIN_QUESTOES_PARA_ANALISE, router
 
 # Create test app
 app = FastAPI()
@@ -154,8 +154,7 @@ class TestIniciarAnalise:
         mock_get_db.return_value = mock_db_gen()
 
         response = client.post(
-            f"/api/analise/{uuid.uuid4()}/iniciar",
-            json={"disciplina": "Portugues"}
+            f"/api/analise/{uuid.uuid4()}/iniciar", json={"disciplina": "Portugues"}
         )
 
         assert response.status_code == 404
@@ -178,8 +177,7 @@ class TestIniciarAnalise:
         mock_get_db.return_value = mock_db_gen()
 
         response = client.post(
-            f"/api/analise/{sample_projeto.id}/iniciar",
-            json={"disciplina": "Portugues"}
+            f"/api/analise/{sample_projeto.id}/iniciar", json={"disciplina": "Portugues"}
         )
 
         assert response.status_code == 400
@@ -279,9 +277,7 @@ class TestGetAnaliseResultadoDisciplina:
     """Tests for GET /api/analise/{projeto_id}/resultado/{disciplina}"""
 
     @patch("src.api.routes.analise.get_db")
-    async def test_get_resultado_disciplina_not_found(
-        self, mock_get_db, client, sample_projeto
-    ):
+    async def test_get_resultado_disciplina_not_found(self, mock_get_db, client, sample_projeto):
         """Should return 404 when discipline analysis not found"""
         mock_session = AsyncMock()
 
@@ -298,9 +294,7 @@ class TestGetAnaliseResultadoDisciplina:
 
         mock_get_db.return_value = mock_db_gen()
 
-        response = client.get(
-            f"/api/analise/{sample_projeto.id}/resultado/Matematica"
-        )
+        response = client.get(f"/api/analise/{sample_projeto.id}/resultado/Matematica")
 
         assert response.status_code == 404
         assert "No analysis found for discipline" in response.json()["detail"]
@@ -322,9 +316,7 @@ class TestCancelAnaliseJob:
 
         mock_get_db.return_value = mock_db_gen()
 
-        response = client.delete(
-            f"/api/analise/{sample_projeto.id}/jobs/{uuid.uuid4()}"
-        )
+        response = client.delete(f"/api/analise/{sample_projeto.id}/jobs/{uuid.uuid4()}")
 
         assert response.status_code == 404
 
@@ -345,9 +337,7 @@ class TestCancelAnaliseJob:
 
         mock_get_db.return_value = mock_db_gen()
 
-        response = client.delete(
-            f"/api/analise/{sample_projeto.id}/jobs/{sample_analise_job.id}"
-        )
+        response = client.delete(f"/api/analise/{sample_projeto.id}/jobs/{sample_analise_job.id}")
 
         assert response.status_code == 400
         assert "Cannot cancel job" in response.json()["detail"]
@@ -426,10 +416,7 @@ class TestSchemaValidation:
         """Request should accept valid values"""
         from src.schemas.analise import AnaliseIniciarRequest
 
-        request = AnaliseIniciarRequest(
-            disciplina="Portugues",
-            skip_phases=[1, 2]
-        )
+        request = AnaliseIniciarRequest(disciplina="Portugues", skip_phases=[1, 2])
         assert request.disciplina == "Portugues"
         assert request.skip_phases == [1, 2]
 
@@ -442,7 +429,7 @@ class TestSchemaValidation:
             description="Test pattern",
             evidence_ids=["Q1", "Q2"],
             confidence="high",
-            votes=3
+            votes=3,
         )
         assert pattern.pattern_type == "temporal"
         assert pattern.confidence == "high"
@@ -452,10 +439,7 @@ class TestSchemaValidation:
         """AnalysisReportSchema should have sensible defaults"""
         from src.schemas.analise import AnalysisReportSchema
 
-        report = AnalysisReportSchema(
-            disciplina="Portugues",
-            total_questoes=10
-        )
+        report = AnalysisReportSchema(disciplina="Portugues", total_questoes=10)
         assert report.temporal_patterns == []
         assert report.similarity_patterns == []
         assert report.difficulty_analysis == {}
@@ -466,11 +450,7 @@ class TestSchemaValidation:
         """VerifiedReportSchema should validate correctly"""
         from src.schemas.analise import VerifiedReportSchema
 
-        report = VerifiedReportSchema(
-            original_claims=10,
-            verified_claims=8,
-            rejected_claims=2
-        )
+        report = VerifiedReportSchema(original_claims=10, verified_claims=8, rejected_claims=2)
         assert report.original_claims == 10
         assert report.verified_claims == 8
         assert report.rejected_claims == 2
@@ -482,7 +462,7 @@ class TestSchemaValidation:
         result = ClusterResultSchema(
             n_clusters=5,
             cluster_sizes={"0": 10, "1": 15, "2": 8, "3": 12, "4": 5},
-            silhouette_score=0.72
+            silhouette_score=0.72,
         )
         assert result.n_clusters == 5
         assert len(result.cluster_sizes) == 5

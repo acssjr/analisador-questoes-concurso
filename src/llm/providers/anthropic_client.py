@@ -1,6 +1,7 @@
 """
 Anthropic Claude API client (multimodal - vision support)
 """
+
 import base64
 from pathlib import Path
 from typing import Optional
@@ -110,7 +111,14 @@ class AnthropicClient:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": image_data}},
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": image_data,
+                            },
+                        },
                         {"type": "text", "text": prompt},
                     ],
                 }
