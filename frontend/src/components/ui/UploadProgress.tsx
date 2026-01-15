@@ -58,6 +58,8 @@ export function UploadProgress({
 
   useEffect(() => {
     if (!isIndeterminate) {
+      // Reset progress when switching from indeterminate to determinate mode
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSimulatedProgress(0);
       return;
     }

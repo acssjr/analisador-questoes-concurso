@@ -133,7 +133,7 @@ export function AnimatedProgress({
           {/* Checkmark for success state */}
           {isComplete && (
             <path
-              d={getCheckmarkPath(diameter, strokeWidth)}
+              d={getCheckmarkPath(diameter)}
               fill="none"
               stroke={strokeColor}
               strokeWidth={strokeWidth}
@@ -175,7 +175,7 @@ export function AnimatedProgress({
 }
 
 // Helper to generate checkmark path based on size
-function getCheckmarkPath(diameter: number, _strokeWidth: number): string {
+function getCheckmarkPath(diameter: number): string {
   const cx = diameter / 2;
   const cy = diameter / 2;
   const scale = diameter / 36; // Base scale on medium size
