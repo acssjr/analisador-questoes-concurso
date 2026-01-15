@@ -36,7 +36,7 @@ class Questao(Base):
     imagens: Mapped[Optional[list]] = mapped_column(JSON)  # [{"arquivo": "...", "tipo": ...}]
     texto_imagem_ocr: Mapped[Optional[str]] = mapped_column(Text)
 
-    assunto_pci: Mapped[Optional[str]] = mapped_column(String(200))  # Se vier do PCI
+    assunto_pci: Mapped[Optional[str]] = mapped_column(String(500))  # Se vier do PCI
     metadados: Mapped[Optional[dict]] = mapped_column(JSON, default=dict)
 
     status_extracao: Mapped[Optional[str]] = mapped_column(

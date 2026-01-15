@@ -105,13 +105,19 @@ def _spans_to_text(spans: list[dict]) -> str:
     for line in lines:
         line_text = ""
         prev_x1 = None
+        prev_text = ""
         for span in line:
             if prev_x1 is not None:
                 gap = span["x0"] - prev_x1
-                if gap > 3:
+                # Add space if there's any gap, unless previous text ends with space
+                # or current text starts with punctuation
+                current_text = span["text"]
+                needs_space = gap > 0.5 and not prev_text.endswith(" ") and not current_text.startswith((" ", ".", ",", ";", ":", "!", "?", ")"))
+                if needs_space:
                     line_text += " "
             line_text += span["text"]
             prev_x1 = span["x1"]
+            prev_text = span["text"]
         result_lines.append(line_text)
 
     return "\n".join(result_lines)
@@ -188,15 +194,46 @@ def _reconstruct_text_from_blocks(page: fitz.Page) -> str:
     if not spans:
         return page.get_text()
 
-    # If two columns detected, process separately
+    # If two columns detected, process separately with continuation handling
     if col_boundary is not None:
         left_spans = [s for s in spans if s["x0"] < col_boundary]
         right_spans = [s for s in spans if s["x0"] >= col_boundary]
 
-        left_text = _spans_to_text(left_spans)
-        right_text = _spans_to_text(right_spans)
+        # Detect if right column TOP is a continuation (options without question header)
+        # Sort right spans by y to check what's at the top
+        right_spans_sorted = sorted(right_spans, key=lambda s: s["y_center"])
 
-        return left_text + "\n\n" + right_text
+        # Find first "Questão" in right column
+        first_question_y = None
+        for s in right_spans_sorted:
+            if "Questão" in s["text"] or "QUESTÃO" in s["text"]:
+                first_question_y = s["y_center"]
+                break
+
+        # If there's content before the first question in right column,
+        # it's likely a continuation from left column - move it to end of left
+        continuation_spans = []
+        main_right_spans = []
+
+        if first_question_y is not None:
+            for s in right_spans:
+                if s["y_center"] < first_question_y - 10:  # Content before first question
+                    continuation_spans.append(s)
+                else:
+                    main_right_spans.append(s)
+        else:
+            # No question found in right column - all might be continuation
+            main_right_spans = right_spans
+
+        left_text = _spans_to_text(left_spans)
+        continuation_text = _spans_to_text(continuation_spans) if continuation_spans else ""
+        right_text = _spans_to_text(main_right_spans)
+
+        # Combine: left column + continuation from right top + rest of right column
+        if continuation_text:
+            return left_text + "\n" + continuation_text + "\n\n" + right_text
+        else:
+            return left_text + "\n\n" + right_text
 
     # Single column: sort by y-position, then x-position
     spans.sort(key=lambda s: (s["y_center"], s["x0"]))
@@ -248,17 +285,23 @@ def _reconstruct_text_from_blocks(page: fitz.Page) -> str:
 # System prompt for question extraction
 EXTRACTION_SYSTEM_PROMPT = """Você é um especialista em extrair questões de provas de concurso de PDFs brasileiros.
 
-Sua tarefa é analisar o texto extraído de um PDF de prova e identificar TODAS as questões.
+Sua tarefa é analisar o texto extraído de um PDF de prova e identificar TODAS as questões OBJETIVAS (múltipla escolha).
 
 REGRAS IMPORTANTES:
 1. Cada questão tem: número, enunciado, 5 alternativas (A-E), e gabarito (resposta correta)
 2. O gabarito pode aparecer como "(Correta: X)" próximo ao número da questão ou no final
 3. Identifique a DISCIPLINA de cada questão baseado nos cabeçalhos de seção (ex: "Língua Portuguesa", "Matemática", etc)
-4. Se uma questão estiver marcada como ANULADA, marque anulada=true
+4. Se uma questão estiver marcada como ANULADA, marque anulada=true e inclua motivo_anulacao se disponível
 5. Extraia o enunciado COMPLETO, incluindo textos base quando aplicável
 6. NÃO invente questões - extraia apenas o que está no texto
 7. Mantenha a formatação original do enunciado e alternativas
 8. SEMPRE preserve os acentos e caracteres especiais do português (á, é, í, ó, ú, ã, õ, ç, etc.)
+
+SEÇÕES A IGNORAR - NÃO EXTRAIA:
+- "REDAÇÃO" ou "Redação" - seção de prova dissertativa/texto, NÃO é questão objetiva
+- "PROVA DISCURSIVA" - idem, não tem alternativas A-E
+- Páginas de instruções, rascunho, ou folha de respostas
+- Textos informativos sem alternativas (A-E)
 
 ATENÇÃO - QUESTÕES ENTRE PÁGINAS:
 - Questões podem COMEÇAR em uma página e TERMINAR em outra
@@ -281,7 +324,8 @@ FORMATO DE SAÍDA (JSON):
         "E": "Texto da alternativa E"
       },
       "gabarito": "C",
-      "anulada": false
+      "anulada": false,
+      "motivo_anulacao": null
     }
   ],
   "total_questoes": 60,
@@ -784,8 +828,8 @@ Retorne APENAS um JSON com a questão completa:
 def extract_questions_chunked(
     pdf_path: str | Path,
     llm: Optional[LLMOrchestrator] = None,
-    pages_per_chunk: int = 5,
-    overlap_pages: int = 2,
+    pages_per_chunk: int = 3,
+    overlap_pages: int = 1,
     skip_validation: bool = False,
 ) -> dict:
     """
@@ -794,10 +838,14 @@ def extract_questions_chunked(
     Uses overlapping pages between chunks to handle questions that span
     page boundaries (e.g., enunciado on page 4, alternatives on page 5).
 
+    NOTE: pages_per_chunk reduced from 5 to 3 to prevent LLM output truncation.
+    With 5 pages containing ~12-15 questions, the JSON output exceeds the 8192
+    token limit. With 3 pages (~6-8 questions), output fits comfortably.
+
     Args:
         pdf_path: Path to PDF file
         llm: LLM orchestrator instance
-        pages_per_chunk: Pages to process per LLM call
+        pages_per_chunk: Pages to process per LLM call (default 3 to fit token limits)
         overlap_pages: Number of pages to overlap between chunks (prevents split questions)
         skip_validation: Skip document type validation (default False)
 
@@ -928,6 +976,23 @@ Extraia todas as questoes encontradas no formato JSON."""
         logger.info(
             f"Total extracted: {len(unique_questoes)} unique questions (from {len(all_questoes)} with overlap)"
         )
+
+        # Filter out non-objective questions (Redação/Discursiva sections)
+        filtered_questoes = []
+        redacao_filtered = 0
+        for q in unique_questoes:
+            disciplina = (q.get("disciplina") or "").lower().strip()
+            # Skip questions from essay/discursive sections
+            if disciplina in ["redação", "redacao", "prova discursiva", "discursiva"]:
+                redacao_filtered += 1
+                logger.debug(f"Filtered out question {q.get('numero')} from '{disciplina}' section")
+                continue
+            filtered_questoes.append(q)
+
+        if redacao_filtered > 0:
+            logger.info(f"Filtered out {redacao_filtered} questions from Redação/Discursiva sections")
+
+        unique_questoes = filtered_questoes
 
         # Detect and retry incomplete questions (empty alternatives)
         incomplete_questions = [q for q in unique_questoes if _is_incomplete_question(q)]

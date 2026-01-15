@@ -24,9 +24,9 @@ class Classificacao(Base):
 
     # Classificação hierárquica
     disciplina: Mapped[str] = mapped_column(String(100), nullable=False)
-    assunto: Mapped[Optional[str]] = mapped_column(String(200))
-    topico: Mapped[Optional[str]] = mapped_column(String(200))
-    subtopico: Mapped[Optional[str]] = mapped_column(String(200))
+    assunto: Mapped[Optional[str]] = mapped_column(String(500))
+    topico: Mapped[Optional[str]] = mapped_column(String(500))
+    subtopico: Mapped[Optional[str]] = mapped_column(String(500))
     conceito_especifico: Mapped[Optional[str]] = mapped_column(String(300))
 
     # Scores de confiança (0.0 - 1.0)

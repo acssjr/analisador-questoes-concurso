@@ -3,6 +3,7 @@ Edital extraction logic - extracts metadata and taxonomy from exam notices
 """
 
 import json
+import re
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -12,6 +13,70 @@ from loguru import logger
 
 from src.core.exceptions import ExtractionError
 from src.llm.llm_orchestrator import LLMOrchestrator
+
+
+def _sanitize_json_string(json_str: str) -> str:
+    """
+    Sanitize JSON string by removing/escaping invalid control characters.
+
+    LLMs sometimes return JSON with invalid control characters (newlines, tabs)
+    inside string values, which causes json.loads() to fail.
+    """
+    # Remove any BOM or other unicode artifacts
+    json_str = json_str.strip()
+
+    # Common control characters that break JSON parsing inside strings
+    # We need to be careful to only fix characters INSIDE strings, not structural ones
+
+    # First, try parsing as-is
+    try:
+        json.loads(json_str)
+        return json_str
+    except json.JSONDecodeError:
+        pass
+
+    # Replace common problematic patterns
+    # Tab inside strings -> escaped tab
+    # Literal newlines inside strings -> escaped newline
+    # This is a simplified approach that works for most LLM outputs
+
+    result = []
+    in_string = False
+    escape_next = False
+
+    for char in json_str:
+        if escape_next:
+            result.append(char)
+            escape_next = False
+            continue
+
+        if char == '\\':
+            result.append(char)
+            escape_next = True
+            continue
+
+        if char == '"':
+            result.append(char)
+            in_string = not in_string
+            continue
+
+        if in_string:
+            # Replace problematic characters inside strings
+            if char == '\n':
+                result.append('\\n')
+            elif char == '\r':
+                result.append('\\r')
+            elif char == '\t':
+                result.append('\\t')
+            elif ord(char) < 32:
+                # Other control characters - skip them
+                pass
+            else:
+                result.append(char)
+        else:
+            result.append(char)
+
+    return ''.join(result)
 
 
 class DocumentType(Enum):
@@ -443,7 +508,10 @@ IMPORTANTE: Retorne APENAS o JSON. Extraia TODOS os itens do documento com a hie
             if content.startswith("json"):
                 content = content[4:]
 
-        taxonomia = json.loads(content.strip())
+        # Sanitize JSON - remove invalid control characters
+        content = _sanitize_json_string(content.strip())
+
+        taxonomia = json.loads(content)
 
         total_disciplinas = len(taxonomia.get("disciplinas", []))
         cargo_info = f" for cargo '{cargo}'" if cargo else ""

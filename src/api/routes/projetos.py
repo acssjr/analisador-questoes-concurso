@@ -379,23 +379,17 @@ async def get_projeto_questoes(
                 .where(Questao.prova_id.in_(prova_ids))
             )
 
-            # Apply filters with flexible matching
-            # "Legislação" should match "Legislação Básica Aplicada À..."
-            first_word = None
+            # Apply filters - use ILIKE with wildcards for flexible matching
             if disciplina:
-                # Use LIKE for partial matching - normalize to first significant word
-                disciplina_normalized = _normalize_for_matching(disciplina)
-                first_word = disciplina_normalized.split()[0] if disciplina_normalized else ""
-                # Match any discipline that starts with the same first word (case-insensitive)
-                q_stmt = q_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
+                # Add wildcards for partial matching (handles accent variations)
+                q_stmt = q_stmt.where(Questao.disciplina.ilike(f"%{disciplina}%"))
             if topico:
                 q_stmt = q_stmt.where(Questao.assunto_pci == topico)
 
             # Count total before pagination
             count_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
-            if disciplina and first_word:
-                # Use same flexible matching as query
-                count_stmt = count_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
+            if disciplina:
+                count_stmt = count_stmt.where(Questao.disciplina.ilike(f"%{disciplina}%"))
             if topico:
                 count_stmt = count_stmt.where(Questao.assunto_pci == topico)
 
@@ -478,6 +472,8 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
     """
     Get the edital taxonomy tree with incidence counts for each node.
     Returns the hierarchical taxonomy from the edital with question counts at each level.
+
+    When no edital taxonomy exists, builds a flat incidence list from the questions' disciplines.
     """
     try:
         async for db in get_db():
@@ -493,23 +489,68 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
             if not projeto:
                 raise HTTPException(status_code=404, detail="Projeto not found")
 
-            if not projeto.edital:
+            # Get prova IDs first - needed for both taxonomy and fallback paths
+            prova_ids = [p.id for p in (projeto.provas or [])]
+
+            # Check if we have edital with taxonomy
+            has_edital_taxonomy = (
+                projeto.edital
+                and projeto.edital.taxonomia
+                and projeto.edital.taxonomia.get("disciplinas")
+            )
+
+            if not has_edital_taxonomy:
+                # No edital taxonomy - build incidence directly from questions
+                if not prova_ids:
+                    return {
+                        "has_taxonomia": False,
+                        "taxonomia": None,
+                        "incidencia": [],
+                        "total_questoes": 0,
+                    }
+
+                # Get discipline counts directly from questions, ordered by first occurrence
+                disc_stmt = (
+                    select(
+                        Questao.disciplina,
+                        func.count(Questao.id).label("count"),
+                        func.min(Questao.numero).label("first_numero"),
+                    )
+                    .where(Questao.prova_id.in_(prova_ids))
+                    .where(Questao.disciplina.isnot(None))
+                    .group_by(Questao.disciplina)
+                    .order_by(func.min(Questao.numero))
+                )
+                disc_result = await db.execute(disc_stmt)
+                disciplina_rows = disc_result.all()
+
+                # Get total questions
+                total_stmt = select(func.count(Questao.id)).where(
+                    Questao.prova_id.in_(prova_ids)
+                )
+                total_result = await db.execute(total_stmt)
+                total_questoes = total_result.scalar() or 0
+
+                # Build flat incidence list from questions
+                incidencia = [
+                    {
+                        "id": f"disciplina-{idx}",
+                        "nome": row[0],
+                        "count": row[1],
+                        "children": [],
+                    }
+                    for idx, row in enumerate(disciplina_rows)
+                ]
+
                 return {
                     "has_taxonomia": False,
                     "taxonomia": None,
-                    "incidencia": [],
+                    "incidencia": incidencia,
+                    "total_questoes": total_questoes,
                 }
 
+            # Has edital taxonomy - use the full taxonomy structure
             taxonomia = projeto.edital.taxonomia
-            if not taxonomia or not taxonomia.get("disciplinas"):
-                return {
-                    "has_taxonomia": False,
-                    "taxonomia": taxonomia,
-                    "incidencia": [],
-                }
-
-            # Get all questions for this projeto
-            prova_ids = [p.id for p in (projeto.provas or [])]
 
             if not prova_ids:
                 # No provas yet, return taxonomy with zero counts
@@ -581,8 +622,10 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
     Matches discipline names flexibly:
     - "LEGISLAÇÃO BÁSICA APLICADA À ADMIN..." matches "Legislação"
     - "LÍNGUA PORTUGUESA" matches "Língua Portuguesa"
+    - Accumulates counts for all matching variations (e.g., "Conhecimentos Específicos"
+      and "Conhecimentos Especificos" both match "CONHECIMENTOS ESPECÍFICOS")
 
-    Uses first-word prefix matching when exact match fails.
+    Uses first-word prefix matching when exact/case-insensitive match fails.
     """
     if counts is None:
         return 0
@@ -590,11 +633,15 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
     if name in counts:
         return counts[name]
 
-    # Try case-insensitive match
+    # Try case-insensitive match - accumulate ALL matches
+    # This handles variations like "Conhecimentos Específicos" vs "Conhecimentos Especificos"
     name_normalized = _normalize_for_matching(name)
+    total = 0
     for key, value in counts.items():
         if _normalize_for_matching(key) == name_normalized:
-            return value
+            total += value
+    if total > 0:
+        return total
 
     # Try first-word prefix matching
     # This handles "Legislação" matching "LEGISLAÇÃO BÁSICA APLICADA À..."
