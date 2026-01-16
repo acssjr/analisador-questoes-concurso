@@ -97,84 +97,74 @@ export default function ProvasQuestoes() {
     }
   }, [projeto.id, addNotification]);
 
-  // Fetch taxonomy with incidence counts
+  // Fetch disciplinas from questions (flat list, not edital taxonomy)
+  // The edital taxonomy with subtopics is shown in VisaoGeral tab
   const fetchTaxonomy = useCallback(async () => {
     try {
-      // First try to get the full taxonomy with incidence from the edital
-      const taxonomiaResponse = await api.getProjetoTaxonomiaIncidencia(projeto.id);
+      // Always use flat disciplina list from questions for this tab
+      // The full edital taxonomy is shown in VisaoGeral tab
 
-      if (taxonomiaResponse.has_taxonomia && taxonomiaResponse.incidencia.length > 0) {
-        // Use the edital's taxonomy structure with counts
-        const nodes = convertIncidenciaToTaxonomyNodes(
-          taxonomiaResponse.incidencia as IncidenciaNode[]
-        );
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(true);
-        setTotalQuestoes(taxonomiaResponse.total_questoes);
-      } else {
-        // Fall back to fetching all questions to build disciplina list with accurate counts
-        // Get initial response to determine total
-        const initialResponse = await api.getProjetoQuestoes(projeto.id, { limit: 100, offset: 0 });
-        const total = initialResponse.total;
+      // Get initial response to determine total
+      const initialResponse = await api.getProjetoQuestoes(projeto.id, { limit: 100, offset: 0 });
+      const total = initialResponse.total;
 
-        // Aggregate disciplina counts and track first occurrence order
-        const counts: Record<string, number> = {};
-        const disciplineOrder: Record<string, number> = {}; // disciplina -> first question number
-        let processed = 0;
+      // Aggregate disciplina counts and track first occurrence order
+      const counts: Record<string, number> = {};
+      const disciplineOrder: Record<string, number> = {}; // disciplina -> first question number
+      let processed = 0;
 
-        // Process initial batch
-        initialResponse.questoes.forEach((q) => {
+      // Process initial batch
+      initialResponse.questoes.forEach((q) => {
+        const disciplina = q.disciplina || 'Sem disciplina';
+        counts[disciplina] = (counts[disciplina] || 0) + 1;
+        if (!(disciplina in disciplineOrder)) {
+          disciplineOrder[disciplina] = q.numero;
+        }
+      });
+      processed += initialResponse.questoes.length;
+
+      // Fetch remaining pages if needed
+      const pageLimit = 100;
+      while (processed < total) {
+        const response = await api.getProjetoQuestoes(projeto.id, { limit: pageLimit, offset: processed });
+        response.questoes.forEach((q) => {
           const disciplina = q.disciplina || 'Sem disciplina';
           counts[disciplina] = (counts[disciplina] || 0) + 1;
           if (!(disciplina in disciplineOrder)) {
             disciplineOrder[disciplina] = q.numero;
           }
         });
-        processed += initialResponse.questoes.length;
+        processed += response.questoes.length;
 
-        // Fetch remaining pages if needed
-        const limit = 100;
-        while (processed < total) {
-          const response = await api.getProjetoQuestoes(projeto.id, { limit, offset: processed });
-          response.questoes.forEach((q) => {
-            const disciplina = q.disciplina || 'Sem disciplina';
-            counts[disciplina] = (counts[disciplina] || 0) + 1;
-            if (!(disciplina in disciplineOrder)) {
-              disciplineOrder[disciplina] = q.numero;
-            }
-          });
-          processed += response.questoes.length;
+        // Safety break if no more questions returned
+        if (response.questoes.length === 0) break;
+      }
 
-          // Safety break if no more questions returned
-          if (response.questoes.length === 0) break;
-        }
+      // Build disciplinas with counts, sorted by first occurrence
+      const disciplinasWithCounts = Object.entries(counts).map(([nome, count]) => ({
+        nome,
+        count,
+        firstNumber: disciplineOrder[nome] || Number.MAX_SAFE_INTEGER,
+      }));
 
-        // Build disciplinas with counts, sorted by first occurrence
-        const disciplinasWithCounts = Object.entries(counts).map(([nome, count]) => ({
-          nome,
-          count,
-          firstNumber: disciplineOrder[nome] || Number.MAX_SAFE_INTEGER,
-        }));
+      // Sort by first occurrence order
+      disciplinasWithCounts.sort((a, b) => a.firstNumber - b.firstNumber);
 
-        // Sort by first occurrence order
-        disciplinasWithCounts.sort((a, b) => a.firstNumber - b.firstNumber);
+      const nodes: TaxonomyNode[] = disciplinasWithCounts.map((disciplina, index) => ({
+        id: `disciplina-${index}`,
+        nome: disciplina.nome,
+        count: disciplina.count,
+      }));
 
-        const nodes: TaxonomyNode[] = disciplinasWithCounts.map((disciplina, index) => ({
-          id: `disciplina-${index}`,
-          nome: disciplina.nome,
-          count: disciplina.count,
-        }));
+      setTaxonomyNodes(nodes);
+      setHasTaxonomia(false);
+      setTotalQuestoes(total);
 
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(false);
-        setTotalQuestoes(total);
-
-        // Auto-select first disciplina if there are any
-        if (nodes.length > 0) {
-          setSelectedNode(nodes[0].id);
-          setSelectedNodeName(nodes[0].nome);
-          fetchQuestoes(nodes[0].nome);
-        }
+      // Auto-select first disciplina if there are any
+      if (nodes.length > 0) {
+        setSelectedNode(nodes[0].id);
+        setSelectedNodeName(nodes[0].nome);
+        fetchQuestoes(nodes[0].nome);
       }
     } catch (error) {
       console.error('Error fetching taxonomy:', error);

@@ -379,52 +379,20 @@ async def get_projeto_questoes(
                 .where(Questao.prova_id.in_(prova_ids))
             )
 
-            # Apply filters with flexible matching
-            # "Legislação" should match "Legislação Básica Aplicada À..."
-            first_word = None
+            # Apply filters with ILIKE for case-insensitive matching
             if disciplina:
-                # Use LIKE for partial matching - normalize to first significant word
-                disciplina_normalized = _normalize_for_matching(disciplina)
-                first_word = disciplina_normalized.split()[0] if disciplina_normalized else ""
-
-                # Validate: reject very short or common words to avoid overly broad matches
-                min_search_length = 3
-                common_words = {
-                    "e",
-                    "de",
-                    "da",
-                    "do",
-                    "das",
-                    "dos",
-                    "a",
-                    "o",
-                    "as",
-                    "os",
-                    "em",
-                    "na",
-                    "no",
-                }
-
-                if (
-                    not first_word
-                    or len(first_word) < min_search_length
-                    or first_word in common_words
-                ):
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Search term '{disciplina}' is too short or common. Please use a more specific discipline name (minimum {min_search_length} characters).",
-                    )
-
-                # Match any discipline that starts with the same first word (case-insensitive)
-                q_stmt = q_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
+                # Use ILIKE for case-insensitive exact or prefix matching
+                # The disciplina comes from the frontend which got it from our API,
+                # so it should match exactly or be a valid prefix
+                q_stmt = q_stmt.where(Questao.disciplina.ilike(f"{disciplina}%"))
             if topico:
                 q_stmt = q_stmt.where(Questao.assunto_pci == topico)
 
             # Count total before pagination
             count_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
-            if disciplina and first_word:
-                # Use same flexible matching as query (validation already done above)
-                count_stmt = count_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
+            if disciplina:
+                # Use same ILIKE matching as query
+                count_stmt = count_stmt.where(Questao.disciplina.ilike(f"{disciplina}%"))
             if topico:
                 count_stmt = count_stmt.where(Questao.assunto_pci == topico)
 
