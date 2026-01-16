@@ -1,16 +1,48 @@
 // frontend/src/pages/projeto/ProjetoLayout.tsx
 import { Outlet, NavLink, useParams, useNavigate } from 'react-router';
-import { useEffect, useState } from 'react';
-import { MainLayout } from '../../components/layout/MainLayout';
-import { IconFileText, IconChart, IconFlask, IconChevronLeft } from '../../components/ui/Icons';
+import { useEffect, useState, memo } from 'react';
+import { ChevronLeft, LayoutDashboard, FileText, BarChart3, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import type { Projeto } from '../../types';
 
 interface TabConfig {
   path: string;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
+
+// Memoized tab navigation
+const TabNav = memo(function TabNav({
+  tabs,
+  projectId,
+}: {
+  tabs: TabConfig[];
+  projectId: string;
+}) {
+  return (
+    <nav className="flex gap-1">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <NavLink
+            key={tab.path}
+            to={`/projeto/${projectId}/${tab.path}`}
+            className={({ isActive }) =>
+              `flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
+                isActive
+                  ? 'bg-[var(--accent-green)] text-white shadow-sm'
+                  : 'text-gray-600 hover:text-[var(--accent-green)] hover:bg-emerald-50'
+              }`
+            }
+          >
+            <Icon size={16} />
+            {tab.label}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+});
 
 export default function ProjetoLayout() {
   const { id } = useParams<{ id: string }>();
@@ -35,84 +67,68 @@ export default function ProjetoLayout() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-        </div>
-      </MainLayout>
+      <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
+        <Loader2 size={32} className="text-[var(--accent-green)] animate-spin" />
+      </div>
     );
   }
 
-  if (!projeto) {
+  if (!projeto || !id) {
     return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <p className="text-gray-400">Projeto não encontrado</p>
+      <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
+        <div className="text-center">
+          <FileText size={48} className="text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-[15px]">Projeto não encontrado</p>
+          <button
+            onClick={() => navigate('/projetos')}
+            className="mt-4 btn btn-secondary btn-sm"
+          >
+            Voltar para Projetos
+          </button>
         </div>
-      </MainLayout>
+      </div>
     );
   }
 
   const tabs: TabConfig[] = [
-    { path: 'visao-geral', label: 'Visão Geral', icon: IconFileText },
-    { path: 'provas', label: 'Provas & Questões', icon: IconFlask },
-    { path: 'analise', label: 'Análise Profunda', icon: IconChart },
+    { path: 'visao-geral', label: 'Visão Geral', icon: LayoutDashboard },
+    { path: 'provas', label: 'Provas & Questões', icon: FileText },
+    { path: 'analise', label: 'Análise Profunda', icon: BarChart3 },
   ];
 
   return (
-    <MainLayout showSidebar={false}>
-      <div className="min-h-screen bg-gray-950">
-        {/* Header */}
-        <div className="border-b border-gray-800 bg-gray-900/50">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            {/* Back button + title */}
-            <div className="flex items-center gap-4 mb-4">
-              <button
-                onClick={() => navigate('/')}
-                className="p-2 hover:bg-gray-800 rounded-lg transition-colors text-gray-400"
-              >
-                <IconChevronLeft size={20} />
-              </button>
-              <div>
-                <h1 className="text-xl font-semibold text-white">{projeto.nome}</h1>
-                <p className="text-sm text-gray-400">
-                  {projeto.banca && `${projeto.banca} `}
-                  {projeto.ano && `• ${projeto.ano} `}
-                  {projeto.cargo && `• ${projeto.cargo}`}
-                </p>
-              </div>
+    <div className="min-h-screen bg-[var(--bg-base)]">
+      {/* Header */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto px-6 py-5">
+          {/* Back button + title */}
+          <div className="flex items-center gap-4 mb-5">
+            <button
+              onClick={() => navigate('/projetos')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-[var(--accent-green)]"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h1 className="text-[20px] font-semibold text-gray-900">{projeto.nome}</h1>
+              <p className="text-[13px] text-gray-500">
+                {projeto.banca && `${projeto.banca} `}
+                {projeto.ano && `• ${projeto.ano} `}
+                {projeto.cargo && `• ${projeto.cargo}`}
+                {!projeto.banca && !projeto.ano && !projeto.cargo && 'Projeto de análise'}
+              </p>
             </div>
-
-            {/* Tab navigation */}
-            <nav className="flex gap-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <NavLink
-                    key={tab.path}
-                    to={`/projeto/${id}/${tab.path}`}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                      }`
-                    }
-                  >
-                    <Icon size={16} />
-                    {tab.label}
-                  </NavLink>
-                );
-              })}
-            </nav>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <Outlet context={{ projeto }} />
+          {/* Tab navigation */}
+          <TabNav tabs={tabs} projectId={id!} />
         </div>
       </div>
-    </MainLayout>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <Outlet context={{ projeto, refreshProjeto: () => api.getProjeto(id!).then(setProjeto) }} />
+      </div>
+    </div>
   );
 }

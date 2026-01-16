@@ -76,51 +76,6 @@ export default function ProvasQuestoes() {
     }
   }, [projeto.id]);
 
-  // Fetch taxonomy with incidence counts
-  const fetchTaxonomy = useCallback(async () => {
-    try {
-      // First try to get the full taxonomy with incidence from the edital
-      const taxonomiaResponse = await api.getProjetoTaxonomiaIncidencia(projeto.id);
-
-      if (taxonomiaResponse.has_taxonomia && taxonomiaResponse.incidencia.length > 0) {
-        // Use the edital's taxonomy structure with counts
-        const nodes = convertIncidenciaToTaxonomyNodes(
-          taxonomiaResponse.incidencia as IncidenciaNode[]
-        );
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(true);
-        setTotalQuestoes(taxonomiaResponse.total_questoes);
-      } else {
-        // Fall back to simple disciplina list from questions
-        const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
-        const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
-          id: `disciplina-${index}`,
-          nome: disciplina || 'Sem disciplina',
-          count: 0, // Will be updated when we have per-disciplina counts
-        }));
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(false);
-        setTotalQuestoes(response.total);
-      }
-    } catch (error) {
-      console.error('Error fetching taxonomy:', error);
-      // Try fallback
-      try {
-        const response = await api.getProjetoQuestoes(projeto.id, { limit: 1 });
-        const nodes: TaxonomyNode[] = response.disciplinas.map((disciplina, index) => ({
-          id: `disciplina-${index}`,
-          nome: disciplina || 'Sem disciplina',
-          count: 0,
-        }));
-        setTaxonomyNodes(nodes);
-        setHasTaxonomia(false);
-        setTotalQuestoes(response.total);
-      } catch (fallbackError) {
-        console.error('Error fetching fallback taxonomy:', fallbackError);
-      }
-    }
-  }, [projeto.id]);
-
   // Fetch questions for selected node (disciplina or topic)
   const fetchQuestoes = useCallback(async (nodeName: string) => {
     setIsLoadingQuestoes(true);
@@ -141,6 +96,148 @@ export default function ProvasQuestoes() {
       setIsLoadingQuestoes(false);
     }
   }, [projeto.id, addNotification]);
+
+  // Fetch taxonomy with incidence counts
+  const fetchTaxonomy = useCallback(async () => {
+    try {
+      // First try to get the full taxonomy with incidence from the edital
+      const taxonomiaResponse = await api.getProjetoTaxonomiaIncidencia(projeto.id);
+
+      if (taxonomiaResponse.has_taxonomia && taxonomiaResponse.incidencia.length > 0) {
+        // Use the edital's taxonomy structure with counts
+        const nodes = convertIncidenciaToTaxonomyNodes(
+          taxonomiaResponse.incidencia as IncidenciaNode[]
+        );
+        setTaxonomyNodes(nodes);
+        setHasTaxonomia(true);
+        setTotalQuestoes(taxonomiaResponse.total_questoes);
+      } else {
+        // Fall back to fetching all questions to build disciplina list with accurate counts
+        // Get initial response to determine total
+        const initialResponse = await api.getProjetoQuestoes(projeto.id, { limit: 100, offset: 0 });
+        const total = initialResponse.total;
+
+        // Aggregate disciplina counts and track first occurrence order
+        const counts: Record<string, number> = {};
+        const disciplineOrder: Record<string, number> = {}; // disciplina -> first question number
+        let processed = 0;
+
+        // Process initial batch
+        initialResponse.questoes.forEach((q) => {
+          const disciplina = q.disciplina || 'Sem disciplina';
+          counts[disciplina] = (counts[disciplina] || 0) + 1;
+          if (!(disciplina in disciplineOrder)) {
+            disciplineOrder[disciplina] = q.numero;
+          }
+        });
+        processed += initialResponse.questoes.length;
+
+        // Fetch remaining pages if needed
+        const limit = 100;
+        while (processed < total) {
+          const response = await api.getProjetoQuestoes(projeto.id, { limit, offset: processed });
+          response.questoes.forEach((q) => {
+            const disciplina = q.disciplina || 'Sem disciplina';
+            counts[disciplina] = (counts[disciplina] || 0) + 1;
+            if (!(disciplina in disciplineOrder)) {
+              disciplineOrder[disciplina] = q.numero;
+            }
+          });
+          processed += response.questoes.length;
+
+          // Safety break if no more questions returned
+          if (response.questoes.length === 0) break;
+        }
+
+        // Build disciplinas with counts, sorted by first occurrence
+        const disciplinasWithCounts = Object.entries(counts).map(([nome, count]) => ({
+          nome,
+          count,
+          firstNumber: disciplineOrder[nome] || Number.MAX_SAFE_INTEGER,
+        }));
+
+        // Sort by first occurrence order
+        disciplinasWithCounts.sort((a, b) => a.firstNumber - b.firstNumber);
+
+        const nodes: TaxonomyNode[] = disciplinasWithCounts.map((disciplina, index) => ({
+          id: `disciplina-${index}`,
+          nome: disciplina.nome,
+          count: disciplina.count,
+        }));
+
+        setTaxonomyNodes(nodes);
+        setHasTaxonomia(false);
+        setTotalQuestoes(total);
+
+        // Auto-select first disciplina if there are any
+        if (nodes.length > 0) {
+          setSelectedNode(nodes[0].id);
+          setSelectedNodeName(nodes[0].nome);
+          fetchQuestoes(nodes[0].nome);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching taxonomy:', error);
+      // Try fallback with pagination
+      try {
+        const initialResponse = await api.getProjetoQuestoes(projeto.id, { limit: 100, offset: 0 });
+        const total = initialResponse.total;
+
+        const counts: Record<string, number> = {};
+        const disciplineOrder: Record<string, number> = {};
+        let processed = 0;
+
+        initialResponse.questoes.forEach((q) => {
+          const disciplina = q.disciplina || 'Sem disciplina';
+          counts[disciplina] = (counts[disciplina] || 0) + 1;
+          if (!(disciplina in disciplineOrder)) {
+            disciplineOrder[disciplina] = q.numero;
+          }
+        });
+        processed += initialResponse.questoes.length;
+
+        const limit = 100;
+        while (processed < total) {
+          const response = await api.getProjetoQuestoes(projeto.id, { limit, offset: processed });
+          response.questoes.forEach((q) => {
+            const disciplina = q.disciplina || 'Sem disciplina';
+            counts[disciplina] = (counts[disciplina] || 0) + 1;
+            if (!(disciplina in disciplineOrder)) {
+              disciplineOrder[disciplina] = q.numero;
+            }
+          });
+          processed += response.questoes.length;
+          if (response.questoes.length === 0) break;
+        }
+
+        const disciplinasWithCounts = Object.entries(counts).map(([nome, count]) => ({
+          nome,
+          count,
+          firstNumber: disciplineOrder[nome] || Number.MAX_SAFE_INTEGER,
+        }));
+
+        disciplinasWithCounts.sort((a, b) => a.firstNumber - b.firstNumber);
+
+        const nodes: TaxonomyNode[] = disciplinasWithCounts.map((disciplina, index) => ({
+          id: `disciplina-${index}`,
+          nome: disciplina.nome,
+          count: disciplina.count,
+        }));
+
+        setTaxonomyNodes(nodes);
+        setHasTaxonomia(false);
+        setTotalQuestoes(total);
+
+        if (nodes.length > 0) {
+          setSelectedNode(nodes[0].id);
+          setSelectedNodeName(nodes[0].nome);
+          fetchQuestoes(nodes[0].nome);
+        }
+      } catch (fallbackError) {
+        console.error('Error fetching fallback taxonomy:', fallbackError);
+      }
+    }
+  }, [projeto.id, fetchQuestoes]);
 
   // Handle taxonomy node selection
   const handleNodeSelect = useCallback((nodeId: string, nodeName: string) => {

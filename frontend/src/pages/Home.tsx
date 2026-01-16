@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ProjetoWorkflowModal } from '../components/features/ProjetoWorkflowModal';
 import { api } from '../services/api';
 import type { Projeto } from '../types';
@@ -14,191 +13,238 @@ import {
   IconFolder,
   IconChevronRight,
   IconTrash,
-  ProgressRing,
   IconGithub,
   IconSpinner,
+  IconCheck,
 } from '../components/ui/Icons';
 
-// Status labels with colors
-const statusLabels: Record<string, { label: string; color: string }> = {
-  configurando: { label: 'Configurando', color: 'var(--text-muted)' },
-  coletando: { label: 'Coletando', color: 'var(--accent-yellow)' },
-  analisando: { label: 'Analisando', color: 'var(--accent-blue)' },
-  concluido: { label: 'Concluído', color: 'var(--accent-green)' },
+// Status configuration with proper colors
+const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  configurando: {
+    label: 'Configurando',
+    color: 'var(--text-tertiary)',
+    bgColor: 'var(--bg-muted)',
+  },
+  coletando: {
+    label: 'Coletando',
+    color: 'var(--status-warning)',
+    bgColor: 'var(--status-warning-bg)',
+  },
+  analisando: {
+    label: 'Analisando',
+    color: 'var(--status-info)',
+    bgColor: 'var(--status-info-bg)',
+  },
+  concluido: {
+    label: 'Concluído',
+    color: 'var(--status-success)',
+    bgColor: 'var(--status-success-bg)',
+  },
 };
 
-// Stat card component - clickable with hover
-function StatCard({
-  icon: Icon,
-  value,
-  label,
-  trend,
-  delay,
-  onClick,
-}: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  value: string | number;
-  label: string;
-  trend?: string;
-  delay: number;
-  onClick?: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="card-interactive p-5"
-    >
-      <div className="flex items-start justify-between mb-4">
-        <motion.div
-          className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] flex items-center justify-center"
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          transition={{ type: "spring", stiffness: 400 }}
-        >
-          <Icon size={20} className="text-[var(--accent-green)]" />
-        </motion.div>
-        {trend && (
-          <span className="badge badge-green text-[11px]">{trend}</span>
-        )}
-      </div>
-      <p className="text-[28px] font-semibold text-[var(--text-primary)] text-mono mb-1">
-        {value}
-      </p>
-      <p className="text-[13px] text-[var(--text-tertiary)]">{label}</p>
-    </motion.div>
-  );
-}
-
-// Feature card for empty state - clickable
-function FeatureCard({
+// Feature item component - simplified, no complex animations
+function FeatureItem({
   icon: Icon,
   title,
   description,
-  delay,
-  onClick,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
-  delay: number;
-  onClick?: () => void;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4 }}
-      whileHover={{ x: 4, backgroundColor: 'var(--bg-subtle)' }}
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-colors group"
-    >
-      <motion.div
-        className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center flex-shrink-0"
-        whileHover={{ scale: 1.1 }}
-        transition={{ type: "spring", stiffness: 400 }}
-      >
+    <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-[var(--bg-subtle)] transition-colors duration-200">
+      <div className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.08)] flex items-center justify-center flex-shrink-0">
         <Icon size={20} className="text-[var(--accent-green)]" />
-      </motion.div>
-      <div className="flex-1">
-        <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1 group-hover:text-[var(--accent-green)] transition-colors">
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">
           {title}
         </h3>
         <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
           {description}
         </p>
       </div>
-      <motion.div
-        initial={{ opacity: 0, x: -8 }}
-        whileHover={{ opacity: 1, x: 0 }}
-        className="text-[var(--accent-green)] opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <IconArrowRight size={16} />
-      </motion.div>
-    </motion.div>
+    </div>
   );
 }
 
-// Step indicator with animation
-function StepBadge({ number, label, isActive }: { number: number; label: string; isActive?: boolean }) {
+// Step indicator component - simplified
+function StepItem({
+  number,
+  label,
+  isActive,
+}: {
+  number: number;
+  label: string;
+  isActive?: boolean;
+}) {
   return (
-    <motion.div
-      className="flex items-center gap-3"
-      whileHover={{ x: 4 }}
-      transition={{ type: "spring", stiffness: 400 }}
-    >
-      <motion.div
-        className={`w-7 h-7 rounded-full text-[12px] font-semibold flex items-center justify-center transition-colors ${
+    <div className="flex items-center gap-3">
+      <div
+        className={`w-8 h-8 rounded-full text-[13px] font-semibold flex items-center justify-center transition-colors duration-200 ${
           isActive
             ? 'bg-[var(--accent-green)] text-white'
             : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
         }`}
-        whileHover={{ scale: 1.15 }}
-        transition={{ type: "spring", stiffness: 400 }}
       >
         {number}
-      </motion.div>
-      <span className={`text-[13px] transition-colors ${
-        isActive ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'
-      }`}>
+      </div>
+      <span
+        className={`text-[14px] transition-colors duration-200 ${
+          isActive
+            ? 'text-[var(--text-primary)] font-medium'
+            : 'text-[var(--text-secondary)]'
+        }`}
+      >
         {label}
       </span>
-    </motion.div>
+    </div>
   );
 }
 
-// Footer component
+// Project card component - cleaner design with subtle hover
+function ProjectCard({
+  projeto,
+  onClick,
+  onDelete,
+}: {
+  projeto: Projeto;
+  onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+}) {
+  const status = statusConfig[projeto.status] || statusConfig.configurando;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="text-left card p-5 group cursor-pointer hover:border-[var(--accent-green)] hover:shadow-lg transition-all duration-200"
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.08)] flex items-center justify-center flex-shrink-0">
+            <IconFolder size={20} className="text-[var(--accent-green)]" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-green)] transition-colors duration-200 truncate">
+              {projeto.nome}
+            </h3>
+            <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5 truncate">
+              {projeto.banca && `${projeto.banca} `}
+              {projeto.ano && `• ${projeto.ano} `}
+              {projeto.cargo && `• ${projeto.cargo}`}
+              {!projeto.banca && !projeto.ano && !projeto.cargo && 'Sem metadados'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onDelete}
+            className="p-2 rounded-lg hover:bg-[var(--bg-muted)] text-[var(--text-muted)] hover:text-[var(--status-error)] transition-colors duration-200 opacity-0 group-hover:opacity-100"
+            aria-label="Excluir projeto"
+          >
+            <IconTrash size={14} />
+          </button>
+          <IconChevronRight
+            size={18}
+            className="text-[var(--text-muted)] group-hover:text-[var(--accent-green)] transition-colors duration-200"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 text-[12px] mb-3">
+        <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--text-primary)] font-medium font-mono">
+            {projeto.total_provas}
+          </span>{' '}
+          provas
+        </span>
+        <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--text-primary)] font-medium font-mono">
+            {projeto.total_questoes}
+          </span>{' '}
+          questões
+        </span>
+      </div>
+
+      <div className="pt-3 border-t border-[var(--border-subtle)]">
+        <span
+          className="text-[11px] font-medium px-2.5 py-1 rounded-full inline-block"
+          style={{
+            backgroundColor: status.bgColor,
+            color: status.color,
+          }}
+        >
+          {status.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Stat card component - simplified
+function StatCard({
+  value,
+  label,
+}: {
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <div className="card p-5 text-center">
+      <p className="text-[28px] font-semibold text-[var(--accent-green)] font-mono mb-1">
+        {value}
+      </p>
+      <p className="text-[13px] text-[var(--text-secondary)]">{label}</p>
+    </div>
+  );
+}
+
+// Footer component with dynamic year
 function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="footer">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-              className="w-8 h-8 rounded-lg bg-[var(--accent-green)] flex items-center justify-center"
-            >
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-green)] flex items-center justify-center">
               <IconBookOpen size={16} className="text-white" />
-            </motion.div>
-            <span className="text-[14px] font-semibold text-[var(--text-primary)]" style={{ fontFamily: 'var(--font-display)' }}>
+            </div>
+            <span className="text-[14px] font-semibold text-[var(--text-primary)]">
               Analisador de Questões
             </span>
           </div>
 
-          <div className="flex items-center gap-6">
-            <motion.a
-              href="#"
-              className="footer-link"
-              whileHover={{ y: -2 }}
-            >
+          <nav className="flex items-center gap-6">
+            <a href="#" className="footer-link">
               Documentação
-            </motion.a>
-            <motion.a
-              href="#"
-              className="footer-link"
-              whileHover={{ y: -2 }}
-            >
+            </a>
+            <a href="#" className="footer-link">
               Suporte
-            </motion.a>
-            <motion.a
+            </a>
+            <a
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
               className="footer-link flex items-center gap-1.5"
-              whileHover={{ y: -2 }}
             >
               <IconGithub size={14} />
               GitHub
-            </motion.a>
-          </div>
+            </a>
+          </nav>
 
           <p className="text-[12px] text-[var(--text-muted)]">
-            © 2024 Todos os direitos reservados
+            © {currentYear} Todos os direitos reservados
           </p>
         </div>
       </div>
@@ -213,11 +259,12 @@ export function Home() {
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load projects
+  // Load projects (stats are auto-calculated from projects state)
   useEffect(() => {
     async function loadData() {
       try {
         const projectsResponse = await api.listProjetos();
+        // Update projects state - this will trigger stats recalculation
         setProjetos(projectsResponse.projetos || []);
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
@@ -228,29 +275,25 @@ export function Home() {
     loadData();
   }, [refreshKey]);
 
-  // Refresh projects list
   function refreshData() {
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   }
 
-  // Handle new project button
   function handleNewProject() {
     setIsUploadModalOpen(true);
   }
 
-  // Handle project card click - navigate to project page
   function handleProjectClick(projeto: Projeto) {
     navigate(`/projeto/${projeto.id}`);
   }
 
-  // Handle project delete
   async function handleDeleteProject(e: React.MouseEvent, projeto: Projeto) {
     e.stopPropagation();
     if (!confirm(`Tem certeza que deseja excluir "${projeto.nome}"?`)) return;
 
     try {
       await api.deleteProjeto(projeto.id);
-      setProjetos(prev => prev.filter(p => p.id !== projeto.id));
+      setProjetos((prev) => prev.filter((p) => p.id !== projeto.id));
     } catch (err) {
       console.error('Erro ao excluir projeto:', err);
       alert('Erro ao excluir projeto');
@@ -261,396 +304,228 @@ export function Home() {
     {
       icon: IconBookOpen,
       title: 'Extração Inteligente',
-      description: 'Nossa IA extrai e classifica questões automaticamente de qualquer PDF de prova de concurso.',
+      description:
+        'Nossa IA extrai e classifica questões automaticamente de qualquer PDF de prova.',
     },
     {
       icon: IconTarget,
       title: 'Análise de Incidência',
-      description: 'Visualize em 5 níveis hierárquicos quais assuntos mais aparecem nas provas anteriores.',
+      description:
+        'Visualize em 5 níveis hierárquicos quais assuntos mais aparecem nas provas.',
     },
     {
       icon: IconChart,
       title: 'Relatórios Detalhados',
-      description: 'Gere relatórios com estatísticas de distribuição por ano, banca e cargo.',
+      description:
+        'Estatísticas de distribuição por ano, banca e cargo para guiar seus estudos.',
     },
   ];
 
   const steps = [
-    { number: 1, label: 'Crie um projeto' },
-    { number: 2, label: 'Importe as provas' },
-    { number: 3, label: 'Analise os resultados' },
+    { number: 1, label: 'Crie um projeto', isActive: true },
+    { number: 2, label: 'Importe as provas', isActive: false },
+    { number: 3, label: 'Analise os resultados', isActive: false },
   ];
+
+  const benefits = [
+    { label: 'Economia de tempo', desc: 'Foque nos assuntos certos' },
+    { label: 'Baseado em dados', desc: 'Análise de provas reais' },
+    { label: 'Fácil de usar', desc: 'Upload simples de PDFs' },
+  ];
+
+  // Calculate stats from projects
+  const totalProvas = projetos.reduce((sum, p) => sum + (p.total_provas || 0), 0);
+  const totalQuestoes = projetos.reduce((sum, p) => sum + (p.total_questoes || 0), 0);
 
   return (
     <div className="min-h-full flex flex-col">
-      <div className="flex-1 max-w-5xl mx-auto w-full py-8 px-4">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="card-accent p-8 mb-8 relative overflow-hidden"
-        >
-          {/* Decorative pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <motion.div
-              className="absolute top-0 right-0 w-64 h-64 rounded-full bg-white blur-3xl"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.15, 0.1] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-white blur-2xl"
-              animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.12, 0.1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-            />
-          </div>
-
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="max-w-lg">
-              <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-[12px] uppercase tracking-wider text-white/70 mb-2"
-              >
-                Bem-vindo ao Analisador
-              </motion.p>
-              <motion.h1
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-title text-white mb-3"
-                style={{ fontFamily: 'var(--font-display)' }}
-              >
-                Descubra o que mais cai no seu concurso
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-[15px] text-white/80 mb-6 leading-relaxed"
-              >
-                Importe provas anteriores e deixe nossa IA analisar os padrões de incidência
-                para otimizar seus estudos.
-              </motion.p>
-              <motion.button
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsUploadModalOpen(true)}
-                className="btn btn-lg bg-white text-[var(--accent-green)] hover:bg-white/95 shadow-lg"
-              >
-                <IconUpload size={18} />
-                Começar Agora
-              </motion.button>
-            </div>
-
-            {/* Progress illustration */}
-            <motion.div
-              className="hidden lg:block"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.6, type: "spring" }}
+      <div className="flex-1 max-w-6xl mx-auto w-full py-8 px-6">
+        {/* Hero Section - Clean design with good contrast */}
+        <section className="card-accent p-8 md:p-10 mb-10 relative overflow-hidden animate-fade-in">
+          <div className="relative z-10 max-w-2xl">
+            <p className="text-[12px] uppercase tracking-wider text-white font-medium mb-3 opacity-90">
+              Bem-vindo ao Analisador
+            </p>
+            <h1
+              className="text-[28px] md:text-[32px] font-semibold text-white mb-4 leading-tight"
+              style={{ textWrap: 'balance' }}
             >
-              <motion.div
-                className="relative"
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <ProgressRing progress={72} size={140} strokeWidth={10} />
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[28px] font-bold text-white">72%</span>
-                  <span className="text-[11px] text-white/70">acurácia</span>
-                </div>
-              </motion.div>
-            </motion.div>
+              Descubra o que mais cai no seu concurso
+            </h1>
+            <p className="text-[15px] text-white mb-6 leading-relaxed max-w-lg opacity-90">
+              Importe provas anteriores e deixe nossa IA analisar os padrões de
+              incidência para otimizar seus estudos.
+            </p>
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="btn btn-lg bg-white text-[var(--accent-green)] hover:bg-white/95 shadow-lg font-semibold"
+            >
+              <IconUpload size={18} />
+              Começar Agora
+            </button>
           </div>
-        </motion.div>
 
-        {/* Projects Section with Cards */}
+          {/* Subtle decorative background */}
+          <div
+            className="absolute top-0 right-0 w-72 h-72 rounded-full bg-white/5 blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute bottom-0 left-1/2 w-56 h-56 rounded-full bg-white/5 blur-2xl"
+            aria-hidden="true"
+          />
+        </section>
+
+        {/* Stats Bar - Only show if has projects */}
         {!loading && projetos.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
+          <section className="grid grid-cols-3 gap-4 mb-10 animate-fade-in-up">
+            <StatCard value={projetos.length} label="Projetos" />
+            <StatCard value={totalProvas} label="Provas Importadas" />
+            <StatCard value={totalQuestoes} label="Questões Extraídas" />
+          </section>
+        )}
+
+        {/* Projects Section */}
+        {!loading && projetos.length > 0 && (
+          <section className="mb-10 animate-fade-in-up">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">
+                <h2 className="text-[20px] font-semibold text-[var(--text-primary)]">
                   Meus Projetos
                 </h2>
-                <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+                <p className="text-[14px] text-[var(--text-secondary)] mt-1">
                   Gerencie seus projetos de análise de questões
                 </p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleNewProject}
-                className="btn btn-primary flex items-center gap-2"
-              >
+              <button onClick={handleNewProject} className="btn btn-primary">
                 <IconPlus size={18} />
                 Novo Projeto
-              </motion.button>
+              </button>
             </div>
 
-            {/* Project Cards Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence>
-                {projetos.map((projeto, index) => {
-                  const status = statusLabels[projeto.status] || statusLabels.configurando;
-
-                  return (
-                    <motion.button
-                      key={projeto.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleProjectClick(projeto)}
-                      className="text-left card p-5 group cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <motion.div
-                            className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center flex-shrink-0"
-                            whileHover={{ scale: 1.1 }}
-                          >
-                            <IconFolder size={20} className="text-[var(--accent-green)]" />
-                          </motion.div>
-                          <h3 className="text-[15px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-green)] transition-colors">
-                            {projeto.nome}
-                          </h3>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <motion.div
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={(e) => handleDeleteProject(e, projeto)}
-                            className="p-1.5 rounded-lg hover:bg-[var(--bg-muted)] text-[var(--text-muted)] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            <IconTrash size={14} />
-                          </motion.div>
-                          <IconChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-[var(--accent-green)] transition-colors" />
-                        </div>
-                      </div>
-
-                      <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-                        {projeto.banca && `${projeto.banca} `}
-                        {projeto.ano && `• ${projeto.ano} `}
-                        {projeto.cargo && `• ${projeto.cargo}`}
-                        {!projeto.banca && !projeto.ano && !projeto.cargo && 'Sem metadados'}
-                      </p>
-
-                      <div className="flex items-center gap-4 text-[12px]">
-                        <span className="text-[var(--text-secondary)]">
-                          <span className="text-[var(--text-primary)] font-medium">{projeto.total_provas}</span> provas
-                        </span>
-                        <span className="text-[var(--text-secondary)]">
-                          <span className="text-[var(--text-primary)] font-medium">{projeto.total_questoes}</span> questões
-                        </span>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between">
-                        <span
-                          className="text-[11px] px-2 py-0.5 rounded-full"
-                          style={{
-                            backgroundColor: `color-mix(in srgb, ${status.color} 15%, transparent)`,
-                            color: status.color,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                        <motion.div
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/projeto/${projeto.id}/provas`);
-                          }}
-                          className="flex items-center gap-1 text-[11px] text-[var(--accent-green)] hover:text-[var(--accent-green-hover)] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <IconUpload size={12} />
-                          Importar Provas
-                        </motion.div>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
+              {projetos.map((projeto) => (
+                <ProjectCard
+                  key={projeto.id}
+                  projeto={projeto}
+                  onClick={() => handleProjectClick(projeto)}
+                  onDelete={(e) => handleDeleteProject(e, projeto)}
+                />
+              ))}
             </div>
-          </motion.div>
+          </section>
         )}
 
         {/* Loading state */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-16">
             <IconSpinner size={32} className="text-[var(--accent-green)]" />
           </div>
         )}
 
-        {/* Empty state - no projects */}
+        {/* Empty state */}
         {!loading && projetos.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-16 card mb-8"
-          >
-            <IconFolder size={48} className="text-[var(--text-muted)] mx-auto mb-4" />
-            <h3 className="text-[16px] font-medium text-[var(--text-primary)] mb-2">
+          <section className="card p-10 text-center mb-10 animate-fade-in-up">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mx-auto mb-5">
+              <IconFolder size={32} className="text-[var(--text-muted)]" />
+            </div>
+            <h3 className="text-[18px] font-semibold text-[var(--text-primary)] mb-2">
               Nenhum projeto ainda
             </h3>
-            <p className="text-[14px] text-[var(--text-secondary)] mb-6">
-              Crie seu primeiro projeto para começar a análise
+            <p className="text-[14px] text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
+              Crie seu primeiro projeto para começar a analisar provas de concurso
             </p>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleNewProject}
-              className="btn btn-primary"
-            >
-              Criar Projeto
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* Stats Grid - Empty State (only show if no projects) */}
-        {!loading && projetos.length === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <StatCard
-              icon={IconBookOpen}
-              value="0"
-              label="Provas importadas"
-              delay={0.1}
-              onClick={() => setIsUploadModalOpen(true)}
-            />
-            <StatCard
-              icon={IconTarget}
-              value="0"
-              label="Questões extraídas"
-              delay={0.2}
-              onClick={() => setIsUploadModalOpen(true)}
-            />
-            <StatCard
-              icon={IconChart}
-              value="0"
-              label="Disciplinas"
-              delay={0.3}
-              onClick={() => setIsUploadModalOpen(true)}
-            />
-          </div>
+            <button onClick={handleNewProject} className="btn btn-primary">
+              <IconPlus size={18} />
+              Criar Primeiro Projeto
+            </button>
+          </section>
         )}
 
         {/* How it works + Features */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
           {/* How it works */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-            className="card p-6"
-          >
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-5">
+          <div className="card p-6 animate-fade-in-up delay-1">
+            <h2 className="text-[18px] font-semibold text-[var(--text-primary)] mb-6">
               Como funciona
             </h2>
-            <div className="space-y-4 mb-6">
+            <div className="space-y-5 mb-6">
               {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center gap-4">
-                  <StepBadge number={step.number} label={step.label} isActive={index === 0} />
+                <div key={step.number} className="flex items-center">
+                  <StepItem
+                    number={step.number}
+                    label={step.label}
+                    isActive={step.isActive}
+                  />
                   {index < steps.length - 1 && (
-                    <motion.div
-                      className="flex-1 h-px bg-[var(--border-subtle)]"
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                    />
+                    <div className="flex-1 h-px bg-[var(--border-subtle)] mx-4" />
                   )}
                 </div>
               ))}
             </div>
-            <motion.button
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+            <button
               onClick={() => setIsUploadModalOpen(true)}
               className="btn btn-secondary w-full group"
             >
-              Criar primeiro projeto
-              <motion.span
-                className="inline-block"
-                animate={{ x: [0, 4, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                <IconArrowRight size={16} />
-              </motion.span>
-            </motion.button>
-          </motion.div>
+              Começar agora
+              <IconArrowRight
+                size={16}
+                className="group-hover:translate-x-1 transition-transform duration-200"
+              />
+            </button>
+          </div>
 
           {/* Features */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="card p-6"
-          >
-            <h2 className="text-[16px] font-semibold text-[var(--text-primary)] mb-4">
+          <div className="card p-6 animate-fade-in-up delay-2">
+            <h2 className="text-[18px] font-semibold text-[var(--text-primary)] mb-4">
               Recursos
             </h2>
-            <div className="space-y-2">
-              {features.map((feature, index) => (
-                <FeatureCard
+            <div className="space-y-1">
+              {features.map((feature) => (
+                <FeatureItem
                   key={feature.title}
                   icon={feature.icon}
                   title={feature.title}
                   description={feature.description}
-                  delay={0.6 + index * 0.1}
-                  onClick={() => setIsUploadModalOpen(true)}
                 />
               ))}
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </section>
 
-        {/* Call to action banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.4 }}
-          className="card p-6 text-center mb-8"
-        >
-          <motion.div
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-12 h-12 rounded-xl bg-[rgba(27,67,50,0.1)] flex items-center justify-center mx-auto mb-4"
-          >
-            <IconUpload size={24} className="text-[var(--accent-green)]" />
-          </motion.div>
-          <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-2">
-            Pronto para começar?
-          </h3>
-          <p className="text-[14px] text-[var(--text-secondary)] mb-4 max-w-md mx-auto">
-            Crie seu primeiro projeto e descubra quais assuntos têm maior incidência nas provas anteriores.
-          </p>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsUploadModalOpen(true)}
-            className="btn btn-primary"
-          >
-            <IconUpload size={16} />
-            Novo Projeto
-          </motion.button>
-        </motion.div>
+        {/* Benefits section */}
+        <section className="card p-8 mb-12 bg-[var(--bg-subtle)] border-0 animate-fade-in-up delay-3">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-[20px] font-semibold text-[var(--text-primary)] mb-4">
+              Por que usar o Analisador?
+            </h2>
+            <p className="text-[15px] text-[var(--text-secondary)] mb-8 leading-relaxed">
+              Estudar para concursos exige estratégia. Nossa ferramenta identifica os
+              assuntos mais cobrados para você focar no que realmente importa.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {benefits.map((benefit) => (
+                <div key={benefit.label} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent-green)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <IconCheck size={14} className="text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[14px] font-medium text-[var(--text-primary)]">
+                      {benefit.label}
+                    </p>
+                    <p className="text-[13px] text-[var(--text-secondary)]">
+                      {benefit.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Footer */}
       <Footer />
 
-      {/* Projeto Creation Modal */}
       <ProjetoWorkflowModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}

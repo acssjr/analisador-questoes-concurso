@@ -130,10 +130,11 @@ def normalize_disciplina(nome: str) -> str:
 CANONICAL_DISCIPLINAS = {
     "lingua portuguesa": "Língua Portuguesa",
     "portugues": "Língua Portuguesa",
-    "matematica": "Matemática",
-    "raciocinio logico": "Raciocínio Lógico",
-    "logica": "Raciocínio Lógico",
-    "raciocinio logico-matematico": "Raciocínio Lógico-Matemático",
+    # All math-related disciplines unified into one
+    "matematica": "Matemática e Raciocínio Lógico",
+    "raciocinio logico": "Matemática e Raciocínio Lógico",
+    "logica": "Matemática e Raciocínio Lógico",
+    "raciocinio logico-matematico": "Matemática e Raciocínio Lógico",
     "matematica e raciocinio logico": "Matemática e Raciocínio Lógico",
     "informatica": "Informática",
     "nocoes de informatica": "Noções de Informática",
@@ -144,20 +145,22 @@ CANONICAL_DISCIPLINAS = {
     "direito tributario": "Direito Tributário",
     "direito processual": "Direito Processual",
     "administracao": "Administração",
-    "administracao publica": "Administração Pública",
+    # All legislation/public administration disciplines unified into one
+    "administracao publica": "Legislação e Administração Pública",
+    "legislacao": "Legislação e Administração Pública",
+    "legislacao basica": "Legislação e Administração Pública",
+    "legislacao basica aplicada a administracao publica": "Legislação e Administração Pública",
+    "nocoes de legislacao": "Legislação e Administração Pública",
+    "nocoes de administracao publica": "Legislação e Administração Pública",
     "contabilidade": "Contabilidade",
     "contabilidade geral": "Contabilidade Geral",
     "contabilidade publica": "Contabilidade Pública",
     "economia": "Economia",
     "afo": "AFO",
     "administracao financeira e orcamentaria": "Administração Financeira e Orçamentária",
-    "legislacao": "Legislação",
-    "legislacao basica": "Legislação Básica",
-    "legislacao basica aplicada a administracao publica": "Legislação Básica Aplicada à Administração Pública",
-    "nocoes de legislacao": "Noções de Legislação",
     "atualidades": "Atualidades",
     "conhecimentos gerais": "Conhecimentos Gerais",
-    "redacao": "Redação",
+    # Note: "redacao" is handled specially in canonicalize_disciplina() - maps to "Língua Portuguesa"
     "tecnologia": "Tecnologia",
     "tecnologia da informacao": "Tecnologia da Informação",
 }
@@ -172,6 +175,9 @@ def canonicalize_disciplina(nome: str) -> str:
 
     Also fixes mojibake (double UTF-8 encoding) like "LÃ­ngua" → "Língua".
 
+    Special handling for "Redação" - maps it to "Língua Portuguesa" since it's typically
+    an essay section header that gets incorrectly extracted as a discipline.
+
     For unknown disciplines, applies title case.
     """
     if not nome:
@@ -181,6 +187,11 @@ def canonicalize_disciplina(nome: str) -> str:
     nome = fix_mojibake(nome)
 
     normalized = normalize_disciplina(nome)
+
+    # Special case: "Redação" should be mapped to "Língua Portuguesa"
+    # It's typically an essay section header, not a separate discipline for MCQs
+    if normalized == "redacao":
+        return "Língua Portuguesa"
 
     # Check canonical mapping
     if normalized in CANONICAL_DISCIPLINAS:

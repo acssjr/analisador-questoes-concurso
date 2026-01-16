@@ -127,7 +127,7 @@ describe('QueueSummary', () => {
       render(<QueueSummary items={items} />);
 
       const revisar = screen.getByTestId('stats-revisar');
-      expect(revisar).toHaveClass('text-yellow-400');
+      expect(revisar).toHaveClass('text-yellow-600');
     });
 
     it('should dim need review count when 0', () => {
@@ -138,7 +138,7 @@ describe('QueueSummary', () => {
       render(<QueueSummary items={items} />);
 
       const revisar = screen.getByTestId('stats-revisar');
-      expect(revisar).toHaveClass('text-gray-500');
+      expect(revisar).toHaveClass('text-gray-400');
     });
 
     it('should highlight failed count when greater than 0', () => {
@@ -149,7 +149,7 @@ describe('QueueSummary', () => {
       render(<QueueSummary items={items} />);
 
       const failed = screen.getByTestId('stats-failed');
-      expect(failed).toHaveClass('text-red-400');
+      expect(failed).toHaveClass('text-red-600');
     });
 
     it('should dim failed count when 0', () => {
@@ -160,7 +160,7 @@ describe('QueueSummary', () => {
       render(<QueueSummary items={items} />);
 
       const failed = screen.getByTestId('stats-failed');
-      expect(failed).toHaveClass('text-gray-500');
+      expect(failed).toHaveClass('text-gray-400');
     });
   });
 

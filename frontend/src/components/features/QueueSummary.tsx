@@ -90,7 +90,7 @@ export function QueueSummary({
   if (items.length === 0) {
     return (
       <div
-        className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3"
+        className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3"
         data-testid="queue-summary-empty"
       >
         <p className="text-gray-500 text-sm">Nenhum arquivo processado</p>
@@ -105,43 +105,43 @@ export function QueueSummary({
 
   return (
     <div
-      className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3"
+      className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3"
       data-testid="queue-summary"
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {/* Stats section */}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-          <span className="text-gray-400">Resumo:</span>
+          <span className="text-gray-600 font-medium">Resumo:</span>
 
           {/* Completed count */}
-          <span className="text-green-400" data-testid="stats-completed">
+          <span className="text-green-600" data-testid="stats-completed">
             {stats.completed}/{stats.total} completos
           </span>
 
-          <span className="text-gray-600">|</span>
+          <span className="text-gray-400">|</span>
 
           {/* Total questions */}
-          <span className="text-blue-400" data-testid="stats-questoes">
+          <span className="text-blue-600" data-testid="stats-questoes">
             {stats.totalQuestoes} questoes
           </span>
 
-          <span className="text-gray-600">|</span>
+          <span className="text-gray-400">|</span>
 
           {/* Need review */}
           <span
             className={cn(
-              stats.needReview > 0 ? 'text-yellow-400' : 'text-gray-500'
+              stats.needReview > 0 ? 'text-yellow-600' : 'text-gray-400'
             )}
             data-testid="stats-revisar"
           >
             {stats.needReview} para revisar
           </span>
 
-          <span className="text-gray-600">|</span>
+          <span className="text-gray-400">|</span>
 
           {/* Failed */}
           <span
-            className={cn(stats.failed > 0 ? 'text-red-400' : 'text-gray-500')}
+            className={cn(stats.failed > 0 ? 'text-red-600' : 'text-gray-400')}
             data-testid="stats-failed"
           >
             {stats.failed} falhou

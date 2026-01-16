@@ -25,11 +25,63 @@ interface ApiError extends Error {
   status: number;
 }
 
+export type UploadProgressCallback = (progress: number) => void;
+
 function createApiError(status: number, message: string): ApiError {
   const error = new Error(message) as ApiError;
   error.name = 'ApiError';
   error.status = status;
   return error;
+}
+
+// XMLHttpRequest-based upload with progress tracking
+function uploadWithProgress<T>(
+  url: string,
+  formData: FormData,
+  onProgress?: UploadProgressCallback
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    // Track upload progress
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      });
+    }
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          resolve(response);
+        } catch {
+          reject(createApiError(xhr.status, 'Erro ao processar resposta'));
+        }
+      } else {
+        try {
+          const error = JSON.parse(xhr.responseText);
+          reject(createApiError(xhr.status, error.detail || error.message || 'Erro na requisição'));
+        } catch {
+          reject(createApiError(xhr.status, 'Erro na requisição'));
+        }
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      reject(createApiError(0, 'Erro de conexão'));
+    });
+
+    xhr.addEventListener('abort', () => {
+      reject(createApiError(0, 'Upload cancelado'));
+    });
+
+    xhr.open('POST', url);
+    xhr.send(formData);
+  });
 }
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -126,23 +178,23 @@ export const api = {
     return fetchApi(`/editais/${id}`);
   },
 
-  async uploadEdital(file: File): Promise<EditalUploadResponse> {
+  async uploadEdital(file: File, onProgress?: UploadProgressCallback): Promise<EditalUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_BASE_URL}/editais/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw createApiError(response.status, 'Erro ao fazer upload do edital');
-    }
-
-    return response.json();
+    return uploadWithProgress<EditalUploadResponse>(
+      `${API_BASE_URL}/editais/upload`,
+      formData,
+      onProgress
+    );
   },
 
-  async uploadConteudoProgramatico(editalId: string, file: File, cargo?: string): Promise<ConteudoProgramaticoUploadResponse> {
+  async uploadConteudoProgramatico(
+    editalId: string,
+    file: File,
+    cargo?: string,
+    onProgress?: UploadProgressCallback
+  ): Promise<ConteudoProgramaticoUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
@@ -152,19 +204,14 @@ export const api = {
       url += `?cargo=${encodeURIComponent(cargo)}`;
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw createApiError(response.status, 'Erro ao fazer upload do conteúdo programático');
-    }
-
-    return response.json();
+    return uploadWithProgress<ConteudoProgramaticoUploadResponse>(url, formData, onProgress);
   },
 
-  async uploadProvasVinculadas(editalId: string, files: File[]): Promise<{
+  async uploadProvasVinculadas(
+    editalId: string,
+    files: File[],
+    onProgress?: UploadProgressCallback
+  ): Promise<{
     success: boolean;
     total_files: number;
     successful_files: number;
@@ -185,16 +232,11 @@ export const api = {
       formData.append('files', file);
     });
 
-    const response = await fetch(`${API_BASE_URL}/upload/pdf?edital_id=${editalId}`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw createApiError(response.status, 'Erro ao fazer upload das provas');
-    }
-
-    return response.json();
+    return uploadWithProgress(
+      `${API_BASE_URL}/upload/pdf?edital_id=${editalId}`,
+      formData,
+      onProgress
+    );
   },
 
   // Projetos
@@ -230,15 +272,24 @@ export const api = {
   },
 
   // Queue operations for Provas
-  async uploadProvasProjeto(projetoId: string, files: File[]): Promise<{
+  async uploadProvasProjeto(
+    projetoId: string,
+    files: File[],
+    onProgress?: UploadProgressCallback
+  ): Promise<{
     success: boolean;
     total_files: number;
     successful_files: number;
     failed_files: number;
+    total_questoes?: number;
     results: Array<{
       success: boolean;
       filename: string;
       prova_id?: string;
+      format?: string;
+      total_questoes?: number;
+      questoes?: Questao[];
+      metadados?: Record<string, unknown>;
       error?: string;
     }>;
   }> {
@@ -247,16 +298,11 @@ export const api = {
       formData.append('files', file);
     });
 
-    const response = await fetch(`${API_BASE_URL}/upload/pdf?projeto_id=${projetoId}`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw createApiError(response.status, 'Erro ao fazer upload das provas');
-    }
-
-    return response.json();
+    return uploadWithProgress(
+      `${API_BASE_URL}/upload/pdf?projeto_id=${projetoId}`,
+      formData,
+      onProgress
+    );
   },
 
   async getProvaQueueStatus(projetoId: string): Promise<{ items: QueueItem[] }> {

@@ -66,16 +66,16 @@ function getStatusConfig(item: QueueItem): StatusConfig {
       return {
         icon: <IconPause size={16} />,
         text: 'Na fila',
-        bgColor: 'bg-gray-500/20',
-        textColor: 'text-gray-400',
-        progressColor: 'bg-gray-500',
+        bgColor: 'bg-gray-100',
+        textColor: 'text-gray-500',
+        progressColor: 'bg-gray-400',
       };
     case 'validating':
       return {
         icon: <IconSpinner size={16} className="animate-spin" />,
         text: 'Validando PDF...',
-        bgColor: 'bg-yellow-500/20',
-        textColor: 'text-yellow-400',
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-700',
         progressColor: 'bg-yellow-500',
         animate: true,
         isIndeterminate: true, // Unknown progress during validation
@@ -84,8 +84,8 @@ function getStatusConfig(item: QueueItem): StatusConfig {
       return {
         icon: <IconSpinner size={16} className="animate-spin" />,
         text: getProcessingStatusText(item.progress ?? 0),
-        bgColor: 'bg-blue-500/20',
-        textColor: 'text-blue-400',
+        bgColor: 'bg-blue-100',
+        textColor: 'text-blue-700',
         progressColor: 'bg-blue-500',
         animate: true,
         // Use indeterminate if progress is 0 (just started)
@@ -95,8 +95,8 @@ function getStatusConfig(item: QueueItem): StatusConfig {
       return {
         icon: <IconCheck size={16} />,
         text: (i: QueueItem) => `${i.total_questoes ?? 0} questoes`,
-        bgColor: 'bg-green-500/20',
-        textColor: 'text-green-400',
+        bgColor: 'bg-green-100',
+        textColor: 'text-green-700',
         progressColor: 'bg-green-500',
       };
     case 'partial':
@@ -104,33 +104,33 @@ function getStatusConfig(item: QueueItem): StatusConfig {
         icon: <IconAlertTriangle size={16} />,
         text: (i: QueueItem) =>
           `${i.total_questoes ?? 0} questoes (${i.questoes_revisar ?? 0} revisar)`,
-        bgColor: 'bg-yellow-500/20',
-        textColor: 'text-yellow-400',
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-700',
         progressColor: 'bg-yellow-500',
       };
     case 'failed':
       return {
         icon: <IconX size={16} />,
         text: (i: QueueItem) => i.queue_error ?? 'Falhou',
-        bgColor: 'bg-red-500/20',
-        textColor: 'text-red-400',
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-700',
         progressColor: 'bg-red-500',
       };
     case 'retry':
       return {
         icon: <IconRefresh size={16} />,
         text: 'Aguardando retry',
-        bgColor: 'bg-orange-500/20',
-        textColor: 'text-orange-400',
+        bgColor: 'bg-orange-100',
+        textColor: 'text-orange-700',
         progressColor: 'bg-orange-500',
       };
     default:
       return {
         icon: <IconPause size={16} />,
         text: 'Desconhecido',
-        bgColor: 'bg-gray-500/20',
-        textColor: 'text-gray-400',
-        progressColor: 'bg-gray-500',
+        bgColor: 'bg-gray-100',
+        textColor: 'text-gray-500',
+        progressColor: 'bg-gray-400',
       };
   }
 }
@@ -178,11 +178,11 @@ function QueueItemRow({ item, onRetry, onCancel, onDelete }: QueueItemRowProps) 
 
   return (
     <div
-      className="flex items-center gap-4 px-4 py-3 hover:bg-gray-800/50 transition-colors group"
+      className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 transition-colors group"
       data-testid={`queue-item-${item.id}`}
     >
       {/* File name */}
-      <div className="w-48 truncate text-sm text-gray-300" title={item.nome}>
+      <div className="w-48 truncate text-sm text-gray-700" title={item.nome}>
         {item.nome}
       </div>
 
@@ -216,7 +216,7 @@ function QueueItemRow({ item, onRetry, onCancel, onDelete }: QueueItemRowProps) 
         {canRetry && (
           <button
             onClick={() => onRetry(item.id)}
-            className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
             title="Tentar novamente"
             aria-label={`Tentar novamente ${item.nome}`}
             data-testid={`retry-${item.id}`}
@@ -227,7 +227,7 @@ function QueueItemRow({ item, onRetry, onCancel, onDelete }: QueueItemRowProps) 
         {canCancel && (
           <button
             onClick={() => onCancel(item.id)}
-            className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
             title="Cancelar"
             aria-label={`Cancelar ${item.nome}`}
             data-testid={`cancel-${item.id}`}
@@ -238,7 +238,7 @@ function QueueItemRow({ item, onRetry, onCancel, onDelete }: QueueItemRowProps) 
         {canDelete && (
           <button
             onClick={() => onDelete(item.id)}
-            className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
             title="Excluir prova e questões"
             aria-label={`Excluir ${item.nome}`}
             data-testid={`delete-${item.id}`}
@@ -255,7 +255,7 @@ export function QueueVisualization({ items, onRetry, onCancel, onDelete }: Queue
   if (items.length === 0) {
     return (
       <div
-        className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center"
+        className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center"
         data-testid="queue-empty"
       >
         <p className="text-gray-500 text-sm">Nenhum arquivo na fila</p>
@@ -265,7 +265,7 @@ export function QueueVisualization({ items, onRetry, onCancel, onDelete }: Queue
 
   return (
     <div
-      className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden"
+      className="bg-white border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-100"
       data-testid="queue-visualization"
     >
       {items.map((item) => (

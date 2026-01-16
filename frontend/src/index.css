@@ -40,6 +40,7 @@
 
   /* Accent Colors */
   --accent-green: #1B4332;
+  --accent-green-hover: #143728;
   --accent-green-light: #2D6A4F;
   --accent-green-lighter: #40916C;
   --accent-amber: #D97706;
@@ -625,6 +626,30 @@ body {
 .delay-4 { animation-delay: 200ms; }
 .delay-5 { animation-delay: 250ms; }
 .delay-6 { animation-delay: 300ms; }
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-fade-in-down,
+  .animate-scale-in,
+  .animate-slide-in-right,
+  .animate-pulse-subtle,
+  .animate-spin,
+  .animate-float,
+  .animate-bounce-subtle,
+  .animate-glow {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 
 /* ============================================
    UTILITY CLASSES

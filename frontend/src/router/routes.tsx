@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { MainLayout } from '../components/layout/MainLayout';
 
 // Lazy load pages for code splitting
 const Home = lazy(() => import('../pages/Home').then(m => ({ default: m.Home })));
@@ -10,7 +11,7 @@ const AnaliseProfunda = lazy(() => import('../pages/projeto/AnaliseProfunda'));
 export const routes = [
   {
     path: '/',
-    element: <Home />,
+    element: <MainLayout><Home /></MainLayout>,
   },
   {
     path: '/projeto/:id',

@@ -70,16 +70,16 @@ function TreeNode({
         onKeyDown={handleKeyDown}
         className={cn(
           'flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer transition-colors',
-          'hover:bg-gray-800/50',
-          isSelected && 'bg-blue-500/20 text-blue-400',
-          !isSelected && node.count > 0 && 'text-gray-300',
-          !isSelected && node.count === 0 && 'text-gray-500'
+          'hover:bg-gray-100',
+          isSelected && 'bg-blue-50 text-blue-600',
+          !isSelected && node.count > 0 && 'text-gray-700',
+          !isSelected && node.count === 0 && 'text-gray-400'
         )}
         style={{ paddingLeft: `${depth * 16 + 12}px` }}
       >
         {/* Expand/collapse icon */}
         {hasChildren ? (
-          <span className="text-gray-500 w-4 flex-shrink-0">
+          <span className="text-gray-400 w-4 flex-shrink-0">
             {isExpanded ? (
               <IconChevronDown size={14} />
             ) : (
@@ -91,7 +91,7 @@ function TreeNode({
         )}
 
         {/* Folder/file icon */}
-        <span className={cn('flex-shrink-0', isSelected ? 'text-blue-400' : 'text-gray-500')}>
+        <span className={cn('flex-shrink-0', isSelected ? 'text-blue-600' : 'text-gray-400')}>
           {hasChildren ? <IconFolder size={16} /> : <IconDocument size={16} />}
         </span>
 
@@ -104,9 +104,9 @@ function TreeNode({
             'px-2 py-0.5 rounded-full text-xs font-medium',
             node.count > 0
               ? isSelected
-                ? 'bg-blue-500/30 text-blue-300'
-                : 'bg-gray-700 text-gray-400'
-              : 'bg-gray-800/50 text-gray-600'
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-gray-200 text-gray-600'
+              : 'bg-gray-100 text-gray-400'
           )}
         >
           {node.count}
@@ -160,12 +160,12 @@ export function TaxonomyTree({
     return (
       <div
         className={cn(
-          'bg-gray-900 border border-gray-800 rounded-lg p-6 text-center',
+          'bg-gray-50 border border-gray-200 rounded-lg p-6 text-center',
           className
         )}
       >
         <p className="text-gray-500 text-sm">Nenhuma disciplina encontrada</p>
-        <p className="text-gray-600 text-xs mt-1">
+        <p className="text-gray-400 text-xs mt-1">
           Carregue provas para ver a distribuicao por disciplina
         </p>
       </div>
@@ -177,7 +177,7 @@ export function TaxonomyTree({
       role="tree"
       aria-label="Arvore de disciplinas"
       className={cn(
-        'bg-gray-900 border border-gray-800 rounded-lg overflow-hidden',
+        'bg-gray-50 border border-gray-200 rounded-lg overflow-hidden',
         className
       )}
     >

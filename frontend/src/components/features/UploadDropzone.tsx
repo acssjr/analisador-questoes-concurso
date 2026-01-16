@@ -147,13 +147,13 @@ export function UploadDropzone({
       aria-disabled={disabled}
       className={cn(
         'relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
         // Default state
-        !isDragOver && !disabled && 'border-gray-700 hover:border-gray-600 bg-gray-900/50 cursor-pointer',
+        !isDragOver && !disabled && 'border-gray-300 hover:border-gray-400 bg-gray-50 cursor-pointer',
         // Drag over state
-        isDragOver && !disabled && 'border-blue-500 bg-blue-500/10 scale-[1.02] cursor-pointer',
+        isDragOver && !disabled && 'border-blue-500 bg-blue-50 scale-[1.02] cursor-pointer',
         // Disabled/uploading state - shows active with animation
-        disabled && 'border-blue-500/50 bg-blue-500/5 cursor-wait animate-pulse',
+        disabled && 'border-blue-400 bg-blue-50 cursor-wait animate-pulse',
         className
       )}
       onDragEnter={handleDragEnter}
@@ -180,8 +180,8 @@ export function UploadDropzone({
         {/* Icon */}
         <div className={cn(
           'p-4 rounded-full transition-colors',
-          disabled ? 'bg-blue-500/20 text-blue-400' :
-          isDragOver ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-800 text-gray-400'
+          disabled ? 'bg-blue-100 text-blue-500' :
+          isDragOver ? 'bg-blue-100 text-blue-500' : 'bg-gray-200 text-gray-500'
         )}>
           {disabled ? (
             <IconSpinner size={32} className="animate-spin" />
@@ -196,7 +196,7 @@ export function UploadDropzone({
         <div className="space-y-2">
           {disabled ? (
             <div className="space-y-2">
-              <p className="text-blue-400 font-medium animate-pulse">
+              <p className="text-blue-600 font-medium animate-pulse">
                 Enviando arquivos...
               </p>
               <p className="text-sm text-gray-500">
@@ -204,14 +204,14 @@ export function UploadDropzone({
               </p>
             </div>
           ) : selectedCount !== null ? (
-            <p className="text-blue-400 font-medium">
+            <p className="text-blue-600 font-medium">
               {selectedCount} arquivo{selectedCount > 1 ? 's' : ''} selecionado{selectedCount > 1 ? 's' : ''}
             </p>
           ) : (
             <>
               <p className={cn(
                 'font-medium',
-                isDragOver && !disabled ? 'text-blue-400' : 'text-gray-300'
+                isDragOver && !disabled ? 'text-blue-600' : 'text-gray-700'
               )}>
                 Arraste PDFs de provas aqui ou clique para selecionar
               </p>
