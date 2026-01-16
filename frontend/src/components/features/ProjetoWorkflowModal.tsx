@@ -766,10 +766,10 @@ export function ProjetoWorkflowModal({
     [extractedEdital, selectedCargo]
   );
 
-  // Upload provas - uses projetoId to ensure all provas go to the same project
+  // Upload provas - uses createdProjetoId to ensure all provas go to the same project
   const uploadProvas = useCallback(
     async (files: File[]) => {
-      if (!projetoId || files.length === 0) return;
+      if (!createdProjetoId || files.length === 0) return;
 
       setUploadStatus('uploading');
       setUploadMessage(`Enviando ${files.length} arquivo(s)...`);
@@ -779,7 +779,7 @@ export function ProjetoWorkflowModal({
 
       try {
         const result = await api.uploadProvasProjeto(
-          projetoId,
+          createdProjetoId,
           files,
           (progress) => {
             setUploadProgress(progress);

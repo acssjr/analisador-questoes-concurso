@@ -35,7 +35,7 @@ function convertIncidenciaToTaxonomyNodes(incidencia: IncidenciaNode[]): Taxonom
 
 export default function ProvasQuestoes() {
   const { projeto } = useOutletContext<ProjetoContext>();
-  const addNotification = useNotifications(state => state.addNotification, (a, b) => a === b);
+  const addNotification = useNotifications(state => state.addNotification);
 
   // Queue state
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);

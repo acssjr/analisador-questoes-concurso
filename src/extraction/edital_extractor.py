@@ -49,7 +49,7 @@ def _sanitize_json_string(json_str: str) -> str:
             escape_next = False
             continue
 
-        if char == '\\':
+        if char == "\\":
             result.append(char)
             escape_next = True
             continue
@@ -61,12 +61,12 @@ def _sanitize_json_string(json_str: str) -> str:
 
         if in_string:
             # Replace problematic characters inside strings
-            if char == '\n':
-                result.append('\\n')
-            elif char == '\r':
-                result.append('\\r')
-            elif char == '\t':
-                result.append('\\t')
+            if char == "\n":
+                result.append("\\n")
+            elif char == "\r":
+                result.append("\\r")
+            elif char == "\t":
+                result.append("\\t")
             elif ord(char) < 32:
                 # Other control characters - skip them
                 pass
@@ -75,7 +75,7 @@ def _sanitize_json_string(json_str: str) -> str:
         else:
             result.append(char)
 
-    return ''.join(result)
+    return "".join(result)
 
 
 class DocumentType(Enum):

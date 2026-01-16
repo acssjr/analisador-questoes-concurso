@@ -112,7 +112,11 @@ def _spans_to_text(spans: list[dict]) -> str:
                 # Add space if there's any gap, unless previous text ends with space
                 # or current text starts with punctuation
                 current_text = span["text"]
-                needs_space = gap > 0.5 and not prev_text.endswith(" ") and not current_text.startswith((" ", ".", ",", ";", ":", "!", "?", ")"))
+                needs_space = (
+                    gap > 0.5
+                    and not prev_text.endswith(" ")
+                    and not current_text.startswith((" ", ".", ",", ";", ":", "!", "?", ")"))
+                )
                 if needs_space:
                     line_text += " "
             line_text += span["text"]
@@ -990,7 +994,9 @@ Extraia todas as questoes encontradas no formato JSON."""
             filtered_questoes.append(q)
 
         if redacao_filtered > 0:
-            logger.info(f"Filtered out {redacao_filtered} questions from Redação/Discursiva sections")
+            logger.info(
+                f"Filtered out {redacao_filtered} questions from Redação/Discursiva sections"
+            )
 
         unique_questoes = filtered_questoes
 

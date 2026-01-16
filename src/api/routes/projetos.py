@@ -389,12 +389,30 @@ async def get_projeto_questoes(
 
                 # Validate: reject very short or common words to avoid overly broad matches
                 min_search_length = 3
-                common_words = {"e", "de", "da", "do", "das", "dos", "a", "o", "as", "os", "em", "na", "no"}
+                common_words = {
+                    "e",
+                    "de",
+                    "da",
+                    "do",
+                    "das",
+                    "dos",
+                    "a",
+                    "o",
+                    "as",
+                    "os",
+                    "em",
+                    "na",
+                    "no",
+                }
 
-                if not first_word or len(first_word) < min_search_length or first_word in common_words:
+                if (
+                    not first_word
+                    or len(first_word) < min_search_length
+                    or first_word in common_words
+                ):
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Search term '{disciplina}' is too short or common. Please use a more specific discipline name (minimum {min_search_length} characters)."
+                        detail=f"Search term '{disciplina}' is too short or common. Please use a more specific discipline name (minimum {min_search_length} characters).",
                     )
 
                 # Match any discipline that starts with the same first word (case-insensitive)
