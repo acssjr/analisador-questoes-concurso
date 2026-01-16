@@ -1,37 +1,67 @@
-import { IconSettings } from '../components/ui/Icons';
+import { Settings, Bell, Shield, Palette, Database } from 'lucide-react';
 
-export default function Configuracoes() {
+export default function Configurações() {
+  const sections = [
+    {
+      icon: Bell,
+      title: 'Notificações',
+      description: 'Configure como e quando receber alertas',
+    },
+    {
+      icon: Palette,
+      title: 'Aparência',
+      description: 'Personalize o tema e cores da interface',
+    },
+    {
+      icon: Database,
+      title: 'Dados',
+      description: 'Gerencie exportação e backup de dados',
+    },
+    {
+      icon: Shield,
+      title: 'Privacidade',
+      description: 'Controle suas preferências de privacidade',
+    },
+  ];
+
   return (
-    <div className="min-h-full flex flex-col">
-      <div className="flex-1 max-w-6xl mx-auto w-full py-8 px-6">
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.08)] flex items-center justify-center">
-              <IconSettings size={20} className="text-[var(--accent-green)]" />
-            </div>
-            <h1 className="text-[28px] font-semibold text-[var(--text-primary)]">
-              Configurações
-            </h1>
-          </div>
-          <p className="text-[15px] text-[var(--text-secondary)] leading-relaxed">
-            Personalize suas preferências e configurações da aplicação.
-          </p>
-        </div>
+    <div className="p-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-[24px] font-semibold text-gray-900">Configurações</h1>
+        <p className="text-[14px] text-gray-500 mt-1">
+          Personalize sua experiência no Analisador
+        </p>
+      </div>
 
-        {/* Main Content */}
-        <div className="card p-10 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mx-auto mb-5">
-            <IconSettings size={32} className="text-[var(--text-muted)]" />
+      {/* Settings sections */}
+      <div className="space-y-4">
+        {sections.map((section) => (
+          <div
+            key={section.title}
+            className="bg-white border border-gray-200 rounded-xl p-5 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+                <section.icon size={24} className="text-gray-400 group-hover:text-[var(--accent-green)] transition-colors" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-[15px] font-medium text-gray-900 group-hover:text-[var(--accent-green)] transition-colors">
+                  {section.title}
+                </h3>
+                <p className="text-[13px] text-gray-500">{section.description}</p>
+              </div>
+              <Settings size={18} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
+            </div>
           </div>
-          <h2 className="text-[18px] font-semibold text-[var(--text-primary)] mb-2">
-            Página de Configurações
-          </h2>
-          <p className="text-[14px] text-[var(--text-secondary)] max-w-md mx-auto">
-            Esta página está em construção. Em breve você poderá ajustar todas as
-            configurações do sistema aqui.
-          </p>
-        </div>
+        ))}
+      </div>
+
+      {/* Placeholder notice */}
+      <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <p className="text-[13px] text-amber-800">
+          As configuracoes estarão disponíveis em uma versão futura.
+        </p>
       </div>
     </div>
   );
