@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-15T17:55:00Z
+**Last Updated**: 2026-01-16T00:15:00Z
 
 ---
 
@@ -38,14 +38,17 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
     - [x] Task 4.9: Frontend UI (AnaliseProfunda.tsx)
   - [x] **Upload Modal Bug Fix** (commit 2fe9dad)
     - Fixed API contract mismatch (sync vs async response)
+  - [x] **PR #4 Merged**: fix/extraction-column-continuation-discipline-unification
+    - 14 code review fixes applied in parallel
+    - All 7 CI checks passing (Frontend + Backend)
+    - Home.tsx refactored (removed framer-motion, using local Icons)
+    - Added prefers-reduced-motion accessibility support
 
-- Now: [->] User verify 60 questions extracted with unified disciplines
+- Now: [->] Ready for end-to-end testing
 
 - Next:
-  - [ ] Verify extraction: 60 questions (Q26 included)
-  - [ ] Verify unified disciplines: "Matemática e Raciocínio Lógico" (10), "Legislação e Administração Pública" (20)
-  - [ ] Commit all Session 11 fixes
-  - [ ] End-to-end testing of complete flow
+  - [ ] End-to-end testing of complete flow (upload PDF → extraction → analysis)
+  - [ ] Verify 60 questions extracted with unified disciplines
   - [ ] Production deployment
 
 ### Fixes Applied (Session 8)
@@ -113,11 +116,11 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 ### Recent Commits
 
 ```
+8d676d1 Merge PR #4: fix/extraction-column-continuation-discipline-unification
+daca064 fix(frontend): update Home component and tests to match new UI
+580af00 fix(ci): resolve all code review comments from PR #4
 324fdcc refactor(frontend): rename EditalWorkflow to ProjetoWorkflow
 6fc139b fix(extraction): canonicalize disciplines and detect two-column PDFs
-82336b4 fix(tests): fix Modal overflow and Home stats async assertions
-d756d89 docs: update ledger and handoff with extraction improvements
-70712ab feat(extraction): improve PDF question extraction reliability
 ```
 
 ### Test Commands
@@ -137,6 +140,40 @@ cd frontend && npm run dev
 ---
 
 ## Session Log
+
+### 2026-01-16 (Session 12) - PR #4 Code Review Fixes & Merge
+
+- **Task**: Fix all failing CI checks and code review comments on PR #4
+
+- **Code Review Fixes Applied (14 in parallel)**:
+  1. ProjetoLayout.tsx: Fixed id assertion with fallback
+  2. projetos.py: Added ILIKE validation (min 3 chars, block common words)
+  3. Home.tsx: Fixed disciplinas count calculation
+  4. Home.tsx: Added stats refresh after project changes
+  5. VisaoGeral.tsx: Fixed React key issue on TaxonomyTree
+  6. ProjetoWorkflowModal.tsx: Fixed cleanup logic (projetoId → createdProjetoId)
+  7. ProvasQuestoes.tsx: Fixed useCallback dependency array
+  8. ProvasQuestoes.tsx: Fixed pagination to load all questions
+  9. ProvasQuestoes.tsx: Fixed fetchQuestoes dependency
+  10. routes.tsx: Fixed AppLayout import
+  11. Added missing page components (Projetos, Configuracoes, Perfil)
+  12. Added XMLHttpRequest mock for upload tests
+  13. projetos.py: Added edital None check
+  14. Removed unused `import re` from edital_extractor.py
+
+- **CI Fixes**:
+  - Home.test.tsx: Updated tests to match new UI structure
+  - QueueSummary.test.tsx: Fixed CSS class assertions
+  - api.test.ts: Updated to use XHR mock instead of fetch mock
+  - Ran `ruff format` on backend code
+
+- **Final Commit**:
+  - `daca064`: fix(frontend): update Home component and tests to match new UI
+  - All 7 CI checks passing: Backend Lint, Backend Test, Backend Type Check, Frontend Build, Frontend Lint, Frontend Test, Frontend Type Check
+
+- **PR #4 Merged**: All extraction and discipline unification fixes now in main
+
+---
 
 ### 2026-01-15 (Session 11) - Extraction & Discipline Unification Fixes
 
@@ -344,3 +381,10 @@ cd frontend && npm run dev
   - All other tests pass (177 tests)
 
 - **Status**: Phase 4 complete, upload bug fixed, minor test fix needed
+
+## Session Auto-Summary (2026-01-15T09:58:55.419Z)
+- Build/test: 105 passed, 0 failed
+## Session Auto-Summary (2026-01-15T10:31:18.142Z)
+- Build/test: 111 passed, 0 failed
+## Session Auto-Summary (2026-01-16T00:06:34.170Z)
+- Build/test: 132 passed, 0 failed
