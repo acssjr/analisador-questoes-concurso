@@ -1,104 +1,76 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { motion } from 'framer-motion';
-import {
-  FolderOpen,
-  FileText,
-  HelpCircle,
-  TrendingUp,
-  Plus,
-  ChevronRight,
-  BookOpen,
-  Target,
-  BarChart3,
-  ArrowRight,
-  Loader2,
-} from 'lucide-react';
 import { ProjetoWorkflowModal } from '../components/features/ProjetoWorkflowModal';
 import { api } from '../services/api';
 import type { Projeto } from '../types';
+import {
+  IconUpload,
+  IconBookOpen,
+  IconTarget,
+  IconChart,
+  IconArrowRight,
+  IconPlus,
+  IconFolder,
+  IconChevronRight,
+  IconTrash,
+  IconGithub,
+  IconSpinner,
+  IconCheck,
+} from '../components/ui/Icons';
 
-// Status labels
-const statusLabels: Record<string, { label: string; color: string }> = {
-  configurando: { label: 'Configurando', color: 'var(--text-muted)' },
-  coletando: { label: 'Coletando', color: 'var(--accent-amber)' },
-  analisando: { label: 'Analisando', color: 'var(--status-info)' },
-  concluido: { label: 'Concluido', color: 'var(--status-success)' },
+// Status configuration with proper colors
+const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  configurando: {
+    label: 'Configurando',
+    color: 'var(--text-tertiary)',
+    bgColor: 'var(--bg-muted)',
+  },
+  coletando: {
+    label: 'Coletando',
+    color: 'var(--status-warning)',
+    bgColor: 'var(--status-warning-bg)',
+  },
+  analisando: {
+    label: 'Analisando',
+    color: 'var(--status-info)',
+    bgColor: 'var(--status-info-bg)',
+  },
+  concluido: {
+    label: 'Concluído',
+    color: 'var(--status-success)',
+    bgColor: 'var(--status-success-bg)',
+  },
 };
 
-// Memoized stat card
-const StatCard = memo(function StatCard({
-  icon: Icon,
-  value,
-  label,
-  trend,
-  delay,
-  onClick,
-}: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  value: string | number;
-  label: string;
-  trend?: string;
-  delay: number;
-  onClick?: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.3 }}
-      whileHover={{ y: -2 }}
-      onClick={onClick}
-      className="bg-white border border-gray-200 rounded-xl p-5 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-          <Icon size={20} className="text-[var(--accent-green)]" />
-        </div>
-        {trend && (
-          <span className="text-[11px] font-medium text-[var(--status-success)] bg-emerald-50 px-2 py-0.5 rounded-full">
-            {trend}
-          </span>
-        )}
-      </div>
-      <p className="text-[28px] font-semibold text-gray-900 mb-1">{value}</p>
-      <p className="text-[13px] text-gray-500">{label}</p>
-    </motion.div>
-  );
-});
-
-// Feature card for quick start
-const FeatureCard = memo(function FeatureCard({
+// Feature item component - simplified, no complex animations
+function FeatureItem({
   icon: Icon,
   title,
   description,
-  delay,
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
-  delay: number;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.3 }}
-      className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors"
-    >
-      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+    <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-[var(--bg-subtle)] transition-colors duration-200">
+      <div className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.08)] flex items-center justify-center flex-shrink-0">
         <Icon size={20} className="text-[var(--accent-green)]" />
       </div>
-      <div>
-        <h4 className="text-[14px] font-medium text-gray-900 mb-1">{title}</h4>
-        <p className="text-[13px] text-gray-500 leading-relaxed">{description}</p>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">
+          {title}
+        </h3>
+        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+          {description}
+        </p>
       </div>
-    </motion.div>
+    </div>
   );
-});
+}
 
-// Step badge
-const StepBadge = memo(function StepBadge({
+// Step indicator component - simplified
+function StepItem({
   number,
   label,
   isActive,
@@ -110,47 +82,190 @@ const StepBadge = memo(function StepBadge({
   return (
     <div className="flex items-center gap-3">
       <div
-        className={`w-7 h-7 rounded-full text-[12px] font-semibold flex items-center justify-center transition-colors ${
+        className={`w-8 h-8 rounded-full text-[13px] font-semibold flex items-center justify-center transition-colors duration-200 ${
           isActive
             ? 'bg-[var(--accent-green)] text-white'
-            : 'bg-gray-100 text-gray-500'
+            : 'bg-[var(--bg-muted)] text-[var(--text-secondary)]'
         }`}
       >
         {number}
       </div>
       <span
-        className={`text-[13px] ${
-          isActive ? 'text-gray-900 font-medium' : 'text-gray-500'
+        className={`text-[14px] transition-colors duration-200 ${
+          isActive
+            ? 'text-[var(--text-primary)] font-medium'
+            : 'text-[var(--text-secondary)]'
         }`}
       >
         {label}
       </span>
     </div>
   );
-});
+}
+
+// Project card component - cleaner design with subtle hover
+function ProjectCard({
+  projeto,
+  onClick,
+  onDelete,
+}: {
+  projeto: Projeto;
+  onClick: () => void;
+  onDelete: (e: React.MouseEvent) => void;
+}) {
+  const status = statusConfig[projeto.status] || statusConfig.configurando;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="text-left card p-5 group cursor-pointer hover:border-[var(--accent-green)] hover:shadow-lg transition-all duration-200"
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[rgba(27,67,50,0.08)] flex items-center justify-center flex-shrink-0">
+            <IconFolder size={20} className="text-[var(--accent-green)]" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[15px] font-semibold text-[var(--text-primary)] group-hover:text-[var(--accent-green)] transition-colors duration-200 truncate">
+              {projeto.nome}
+            </h3>
+            <p className="text-[12px] text-[var(--text-tertiary)] mt-0.5 truncate">
+              {projeto.banca && `${projeto.banca} `}
+              {projeto.ano && `• ${projeto.ano} `}
+              {projeto.cargo && `• ${projeto.cargo}`}
+              {!projeto.banca && !projeto.ano && !projeto.cargo && 'Sem metadados'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onDelete}
+            className="p-2 rounded-lg hover:bg-[var(--bg-muted)] text-[var(--text-muted)] hover:text-[var(--status-error)] transition-colors duration-200 opacity-0 group-hover:opacity-100"
+            aria-label="Excluir projeto"
+          >
+            <IconTrash size={14} />
+          </button>
+          <IconChevronRight
+            size={18}
+            className="text-[var(--text-muted)] group-hover:text-[var(--accent-green)] transition-colors duration-200"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 text-[12px] mb-3">
+        <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--text-primary)] font-medium font-mono">
+            {projeto.total_provas}
+          </span>{' '}
+          provas
+        </span>
+        <span className="text-[var(--text-secondary)]">
+          <span className="text-[var(--text-primary)] font-medium font-mono">
+            {projeto.total_questoes}
+          </span>{' '}
+          questões
+        </span>
+      </div>
+
+      <div className="pt-3 border-t border-[var(--border-subtle)]">
+        <span
+          className="text-[11px] font-medium px-2.5 py-1 rounded-full inline-block"
+          style={{
+            backgroundColor: status.bgColor,
+            color: status.color,
+          }}
+        >
+          {status.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Stat card component - simplified
+function StatCard({
+  value,
+  label,
+}: {
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <div className="card p-5 text-center">
+      <p className="text-[28px] font-semibold text-[var(--accent-green)] font-mono mb-1">
+        {value}
+      </p>
+      <p className="text-[13px] text-[var(--text-secondary)]">{label}</p>
+    </div>
+  );
+}
+
+// Footer component with dynamic year
+function Footer() {
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <footer className="footer">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-green)] flex items-center justify-center">
+              <IconBookOpen size={16} className="text-white" />
+            </div>
+            <span className="text-[14px] font-semibold text-[var(--text-primary)]">
+              Analisador de Questões
+            </span>
+          </div>
+
+          <nav className="flex items-center gap-6">
+            <a href="#" className="footer-link">
+              Documentação
+            </a>
+            <a href="#" className="footer-link">
+              Suporte
+            </a>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-link flex items-center gap-1.5"
+            >
+              <IconGithub size={14} />
+              GitHub
+            </a>
+          </nav>
+
+          <p className="text-[12px] text-[var(--text-muted)]">
+            © {currentYear} Todos os direitos reservados
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
 
 export function Home() {
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ provas: 0, questões: 0, disciplinas: 0 });
+  const [refreshKey, setRefreshKey] = useState(0);
 
+  // Load projects (stats are auto-calculated from projects state)
   useEffect(() => {
     async function loadData() {
       try {
-        const projectsRes = await api.listProjetos();
-        const projetosList = projectsRes.projetos || [];
-        setProjetos(projetosList);
-
-        // Calculate stats from projects
-        const totalProvas = projetosList.reduce((sum, p) => sum + (p.total_provas || 0), 0);
-        const totalQuestoes = projetosList.reduce((sum, p) => sum + (p.total_questoes || 0), 0);
-        setStats({
-          provas: totalProvas,
-          questões: totalQuestoes,
-          disciplinas: 0, // Will be calculated per project
-        });
+        const projectsResponse = await api.listProjetos();
+        // Update projects state - this will trigger stats recalculation
+        setProjetos(projectsResponse.projetos || []);
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
       } finally {
@@ -158,239 +273,265 @@ export function Home() {
       }
     }
     loadData();
-  }, []);
+  }, [refreshKey]);
 
-  const recentProjetos = projetos.slice(0, 5);
+  function refreshData() {
+    setRefreshKey((k) => k + 1);
+  }
+
+  function handleNewProject() {
+    setIsUploadModalOpen(true);
+  }
+
+  function handleProjectClick(projeto: Projeto) {
+    navigate(`/projeto/${projeto.id}`);
+  }
+
+  async function handleDeleteProject(e: React.MouseEvent, projeto: Projeto) {
+    e.stopPropagation();
+    if (!confirm(`Tem certeza que deseja excluir "${projeto.nome}"?`)) return;
+
+    try {
+      await api.deleteProjeto(projeto.id);
+      setProjetos((prev) => prev.filter((p) => p.id !== projeto.id));
+    } catch (err) {
+      console.error('Erro ao excluir projeto:', err);
+      alert('Erro ao excluir projeto');
+    }
+  }
 
   const features = [
     {
-      icon: BookOpen,
+      icon: IconBookOpen,
       title: 'Extração Inteligente',
-      description: 'Nossa IA extrai e classifica questões automaticamente de qualquer PDF.',
+      description:
+        'Nossa IA extrai e classifica questões automaticamente de qualquer PDF de prova.',
     },
     {
-      icon: Target,
+      icon: IconTarget,
       title: 'Análise de Incidência',
-      description: 'Visualize em 5 níveis hierárquicos quais assuntos mais aparecem.',
+      description:
+        'Visualize em 5 níveis hierárquicos quais assuntos mais aparecem nas provas.',
     },
     {
-      icon: BarChart3,
+      icon: IconChart,
       title: 'Relatórios Detalhados',
-      description: 'Gere relatórios com estatísticas de distribuição por ano e banca.',
+      description:
+        'Estatísticas de distribuição por ano, banca e cargo para guiar seus estudos.',
     },
   ];
 
+  const steps = [
+    { number: 1, label: 'Crie um projeto', isActive: true },
+    { number: 2, label: 'Importe as provas', isActive: false },
+    { number: 3, label: 'Analise os resultados', isActive: false },
+  ];
+
+  const benefits = [
+    { label: 'Economia de tempo', desc: 'Foque nos assuntos certos' },
+    { label: 'Baseado em dados', desc: 'Análise de provas reais' },
+    { label: 'Fácil de usar', desc: 'Upload simples de PDFs' },
+  ];
+
+  // Calculate stats from projects
+  const totalProvas = projetos.reduce((sum, p) => sum + (p.total_provas || 0), 0);
+  const totalQuestoes = projetos.reduce((sum, p) => sum + (p.total_questoes || 0), 0);
+
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h1 className="text-[24px] font-semibold text-gray-900">
-          Bem-vindo ao Analisador
-        </h1>
-        <p className="text-[14px] text-gray-500 mt-1">
-          Descubra o que mais cai no seu concurso
-        </p>
-      </motion.div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          icon={FolderOpen}
-          value={projetos.length}
-          label="Projetos"
-          delay={0.1}
-          onClick={() => navigate('/projetos')}
-        />
-        <StatCard
-          icon={FileText}
-          value={stats.provas}
-          label="Provas importadas"
-          delay={0.15}
-        />
-        <StatCard
-          icon={HelpCircle}
-          value={stats.questões}
-          label="Questões extraídas"
-          delay={0.2}
-        />
-        <StatCard
-          icon={TrendingUp}
-          value={stats.disciplinas}
-          label="Disciplinas"
-          delay={0.25}
-        />
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Projects - 2 columns */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="lg:col-span-2 bg-white border border-gray-200 rounded-xl"
-        >
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-[16px] font-semibold text-gray-900">
-                Projetos Recentes
-              </h2>
-              <p className="text-[13px] text-gray-500">
-                Acesse rapidamente seus projetos
-              </p>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="btn btn-primary btn-sm"
+    <div className="min-h-full flex flex-col">
+      <div className="flex-1 max-w-6xl mx-auto w-full py-8 px-6">
+        {/* Hero Section - Clean design with good contrast */}
+        <section className="card-accent p-8 md:p-10 mb-10 relative overflow-hidden animate-fade-in">
+          <div className="relative z-10 max-w-2xl">
+            <p className="text-[12px] uppercase tracking-wider text-white font-medium mb-3 opacity-90">
+              Bem-vindo ao Analisador
+            </p>
+            <h1
+              className="text-[28px] md:text-[32px] font-semibold text-white mb-4 leading-tight"
+              style={{ textWrap: 'balance' }}
             >
-              <Plus size={16} />
-              Novo Projeto
+              Descubra o que mais cai no seu concurso
+            </h1>
+            <p className="text-[15px] text-white mb-6 leading-relaxed max-w-lg opacity-90">
+              Importe provas anteriores e deixe nossa IA analisar os padrões de
+              incidência para otimizar seus estudos.
+            </p>
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="btn btn-lg bg-white text-[var(--accent-green)] hover:bg-white/95 shadow-lg font-semibold"
+            >
+              <IconUpload size={18} />
+              Começar Agora
             </button>
           </div>
 
-          <div className="p-5">
-            {loading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 size={24} className="text-gray-400 animate-spin" />
-              </div>
-            )}
+          {/* Subtle decorative background */}
+          <div
+            className="absolute top-0 right-0 w-72 h-72 rounded-full bg-white/5 blur-3xl"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute bottom-0 left-1/2 w-56 h-56 rounded-full bg-white/5 blur-2xl"
+            aria-hidden="true"
+          />
+        </section>
 
-            {!loading && recentProjetos.length === 0 && (
-              <div className="text-center py-12">
-                <FolderOpen size={40} className="text-gray-300 mx-auto mb-3" />
-                <p className="text-[14px] text-gray-500 mb-4">
-                  Nenhum projeto ainda
+        {/* Stats Bar - Only show if has projects */}
+        {!loading && projetos.length > 0 && (
+          <section className="grid grid-cols-3 gap-4 mb-10 animate-fade-in-up">
+            <StatCard value={projetos.length} label="Projetos" />
+            <StatCard value={totalProvas} label="Provas Importadas" />
+            <StatCard value={totalQuestoes} label="Questões Extraídas" />
+          </section>
+        )}
+
+        {/* Projects Section */}
+        {!loading && projetos.length > 0 && (
+          <section className="mb-10 animate-fade-in-up">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-[20px] font-semibold text-[var(--text-primary)]">
+                  Meus Projetos
+                </h2>
+                <p className="text-[14px] text-[var(--text-secondary)] mt-1">
+                  Gerencie seus projetos de análise de questões
                 </p>
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Criar primeiro projeto
-                </button>
               </div>
-            )}
+              <button onClick={handleNewProject} className="btn btn-primary">
+                <IconPlus size={18} />
+                Novo Projeto
+              </button>
+            </div>
 
-            {!loading && recentProjetos.length > 0 && (
-              <div className="space-y-3">
-                {recentProjetos.map((projeto) => {
-                  const status = statusLabels[projeto.status] || statusLabels.configurando;
-                  return (
-                    <motion.div
-                      key={projeto.id}
-                      whileHover={{ x: 4 }}
-                      onClick={() => navigate(`/projeto/${projeto.id}`)}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 cursor-pointer group transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                        <FolderOpen size={18} className="text-[var(--accent-green)]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[14px] font-medium text-gray-900 truncate group-hover:text-[var(--accent-green)] transition-colors">
-                          {projeto.nome}
-                        </h4>
-                        <p className="text-[12px] text-gray-500">
-                          {projeto.total_provas} provas • {projeto.total_questoes} questões
-                        </p>
-                      </div>
-                      <span
-                        className="text-[11px] px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: `color-mix(in srgb, ${status.color} 15%, transparent)`,
-                          color: status.color,
-                        }}
-                      >
-                        {status.label}
-                      </span>
-                      <ChevronRight
-                        size={16}
-                        className="text-gray-300 group-hover:text-[var(--accent-green)] transition-colors"
-                      />
-                    </motion.div>
-                  );
-                })}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {projetos.map((projeto) => (
+                <ProjectCard
+                  key={projeto.id}
+                  projeto={projeto}
+                  onClick={() => handleProjectClick(projeto)}
+                  onDelete={(e) => handleDeleteProject(e, projeto)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
-                {projetos.length > 5 && (
-                  <button
-                    onClick={() => navigate('/projetos')}
-                    className="w-full py-3 text-[13px] text-[var(--accent-green)] hover:bg-emerald-50 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    Ver todos os projetos
-                    <ArrowRight size={14} />
-                  </button>
-                )}
-              </div>
-            )}
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <IconSpinner size={32} className="text-[var(--accent-green)]" />
           </div>
-        </motion.div>
+        )}
 
-        {/* Quick Start - 1 column */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="bg-white border border-gray-200 rounded-xl"
-        >
-          <div className="p-5 border-b border-gray-100">
-            <h2 className="text-[16px] font-semibold text-gray-900">
+        {/* Empty state */}
+        {!loading && projetos.length === 0 && (
+          <section className="card p-10 text-center mb-10 animate-fade-in-up">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] flex items-center justify-center mx-auto mb-5">
+              <IconFolder size={32} className="text-[var(--text-muted)]" />
+            </div>
+            <h3 className="text-[18px] font-semibold text-[var(--text-primary)] mb-2">
+              Nenhum projeto ainda
+            </h3>
+            <p className="text-[14px] text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
+              Crie seu primeiro projeto para começar a analisar provas de concurso
+            </p>
+            <button onClick={handleNewProject} className="btn btn-primary">
+              <IconPlus size={18} />
+              Criar Primeiro Projeto
+            </button>
+          </section>
+        )}
+
+        {/* How it works + Features */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+          {/* How it works */}
+          <div className="card p-6 animate-fade-in-up delay-1">
+            <h2 className="text-[18px] font-semibold text-[var(--text-primary)] mb-6">
               Como funciona
             </h2>
-          </div>
-
-          <div className="p-5 space-y-4">
-            <StepBadge number={1} label="Crie um projeto" isActive />
-            <div className="ml-3 pl-3 border-l-2 border-gray-100">
-              <StepBadge number={2} label="Importe as provas" />
+            <div className="space-y-5 mb-6">
+              {steps.map((step, index) => (
+                <div key={step.number} className="flex items-center">
+                  <StepItem
+                    number={step.number}
+                    label={step.label}
+                    isActive={step.isActive}
+                  />
+                  {index < steps.length - 1 && (
+                    <div className="flex-1 h-px bg-[var(--border-subtle)] mx-4" />
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="ml-3 pl-3 border-l-2 border-gray-100">
-              <StepBadge number={3} label="Analise os resultados" />
-            </div>
-
             <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full mt-4 btn btn-secondary flex items-center justify-center gap-2"
+              onClick={() => setIsUploadModalOpen(true)}
+              className="btn btn-secondary w-full group"
             >
-              Criar primeiro projeto
-              <ArrowRight size={16} />
+              Começar agora
+              <IconArrowRight
+                size={16}
+                className="group-hover:translate-x-1 transition-transform duration-200"
+              />
             </button>
           </div>
-        </motion.div>
+
+          {/* Features */}
+          <div className="card p-6 animate-fade-in-up delay-2">
+            <h2 className="text-[18px] font-semibold text-[var(--text-primary)] mb-4">
+              Recursos
+            </h2>
+            <div className="space-y-1">
+              {features.map((feature) => (
+                <FeatureItem
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.description}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits section */}
+        <section className="card p-8 mb-12 bg-[var(--bg-subtle)] border-0 animate-fade-in-up delay-3">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-[20px] font-semibold text-[var(--text-primary)] mb-4">
+              Por que usar o Analisador?
+            </h2>
+            <p className="text-[15px] text-[var(--text-secondary)] mb-8 leading-relaxed">
+              Estudar para concursos exige estratégia. Nossa ferramenta identifica os
+              assuntos mais cobrados para você focar no que realmente importa.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {benefits.map((benefit) => (
+                <div key={benefit.label} className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[var(--accent-green)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <IconCheck size={14} className="text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[14px] font-medium text-[var(--text-primary)]">
+                      {benefit.label}
+                    </p>
+                    <p className="text-[13px] text-[var(--text-secondary)]">
+                      {benefit.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Features Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="mt-6 bg-white border border-gray-200 rounded-xl p-5"
-      >
-        <h2 className="text-[16px] font-semibold text-gray-900 mb-4">
-          Recursos
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {features.map((feature, index) => (
-            <FeatureCard
-              key={feature.title}
-              icon={feature.icon}
-              title={feature.title}
-              description={feature.description}
-              delay={0.45 + index * 0.05}
-            />
-          ))}
-        </div>
-      </motion.div>
+      <Footer />
 
-      {/* Modal */}
       <ProjetoWorkflowModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={() => {
-          setIsModalOpen(false);
-          // Reload data
-          api.listProjetos().then((res) => setProjetos(res.projetos || []));
+          setIsUploadModalOpen(false);
+          refreshData();
         }}
       />
     </div>

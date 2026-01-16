@@ -627,6 +627,30 @@ body {
 .delay-5 { animation-delay: 250ms; }
 .delay-6 { animation-delay: 300ms; }
 
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-fade-in-down,
+  .animate-scale-in,
+  .animate-slide-in-right,
+  .animate-pulse-subtle,
+  .animate-spin,
+  .animate-float,
+  .animate-bounce-subtle,
+  .animate-glow {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* ============================================
    UTILITY CLASSES
    ============================================ */
