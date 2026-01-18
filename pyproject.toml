@@ -31,6 +31,10 @@ dependencies = [
     "pillow>=10.2.0",
     "pytesseract>=0.3.10",
     "paddleocr>=2.7.0",
+    # PDF Extraction (hybrid pipeline - Docling + Vision)
+    "docling>=2.15.0",  # IBM document extraction (MIT)
+    "pdf2image>=1.17.0",  # PDF rasterization for Vision fallback
+    "pyspellchecker>=0.8.0",  # Quality check for extraction
     # LLMs
     "groq>=0.4.0",
     "anthropic>=0.23.0",
@@ -56,7 +60,7 @@ dependencies = [
     "plotly>=5.18.0",
     "seaborn>=0.13.0",
     # CLI
-    "typer[all]>=0.9.0",
+    "typer>=0.9.0",
     "rich>=13.7.0",  # Beautiful terminal output
     "tqdm>=4.66.0",  # Progress bars
     # Logging
@@ -117,3 +121,7 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration tests (may require external resources)",
+    "slow: marks tests as slow running",
+]

@@ -14,10 +14,15 @@ from src.classification.classifier import QuestionClassifier
 from src.core.config import get_settings
 from src.core.database import AsyncSessionLocal
 from src.extraction.edital_extractor import WrongDocumentTypeError
+from src.extraction.hybrid_extractor import extract_questions_hybrid
 from src.extraction.llm_parser import extract_questions_chunked
 from src.extraction.pci_parser import parse_pci_pdf
 from src.extraction.pdf_detector import detect_pdf_format
 from src.llm.llm_orchestrator import LLMOrchestrator
+
+# Feature flag for hybrid Docling + Vision extraction pipeline
+# Set to True to use new pipeline, False for legacy LLM extraction
+USE_HYBRID_EXTRACTION = True
 from src.models.classificacao import Classificacao
 from src.models.edital import Edital
 from src.models.projeto import Projeto
@@ -421,21 +426,47 @@ async def upload_pdf(
                     # Falls back to regex parser if LLM fails
                     if format_type in ["PCI", "GABARITO", "PROVA_GENERICA"]:
                         try:
-                            # Use LLM for intelligent extraction (chunked for large PDFs)
-                            # Using defaults: pages_per_chunk=5, overlap_pages=2 for better cross-page handling
-                            llm = LLMOrchestrator()
-                            extraction_result = extract_questions_chunked(file_path, llm)
-                            questoes_extraidas = extraction_result["questoes"]
-                            logger.info(
-                                f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}"
-                            )
+                            if USE_HYBRID_EXTRACTION:
+                                # Use new hybrid Docling + Vision pipeline
+                                logger.info("Using hybrid extraction pipeline (Docling + Vision)")
+                                hybrid_result = extract_questions_hybrid(file_path)
+
+                                if not hybrid_result.success:
+                                    raise Exception(f"Hybrid extraction failed: {hybrid_result.error}")
+
+                                questoes_extraidas = hybrid_result.questions
+                                extraction_result = {
+                                    "questoes": questoes_extraidas,
+                                    "metadados": {
+                                        "extraction_tier": hybrid_result.tier_used.value,
+                                        "quality_score": hybrid_result.quality_score,
+                                        "vision_fallback_rate": hybrid_result.vision_fallback_rate,
+                                        "total_pages": hybrid_result.total_pages,
+                                    },
+                                }
+
+                                logger.info(
+                                    f"Hybrid extraction complete: {len(questoes_extraidas)} questions, "
+                                    f"tier={hybrid_result.tier_used.value}, "
+                                    f"quality={hybrid_result.quality_score:.2f}, "
+                                    f"vision_fallback={hybrid_result.vision_fallback_rate:.1%}"
+                                )
+                            else:
+                                # Legacy: Use LLM for intelligent extraction (chunked for large PDFs)
+                                # Using defaults: pages_per_chunk=5, overlap_pages=2 for better cross-page handling
+                                llm = LLMOrchestrator()
+                                extraction_result = extract_questions_chunked(file_path, llm)
+                                questoes_extraidas = extraction_result["questoes"]
+                                logger.info(
+                                    f"LLM extracted {len(questoes_extraidas)} questions from {file.filename}"
+                                )
                         except WrongDocumentTypeError:
                             # Re-raise document type errors - don't try fallback
                             raise
-                        except Exception as llm_error:
+                        except Exception as extraction_error:
                             # Fallback to regex parser
                             logger.warning(
-                                f"LLM extraction failed, falling back to regex: {llm_error}"
+                                f"Extraction failed, falling back to regex: {extraction_error}"
                             )
                             extraction_result = parse_pci_pdf(file_path)
                             questoes_extraidas = extraction_result["questoes"]

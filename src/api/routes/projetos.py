@@ -415,8 +415,11 @@ async def get_projeto_questoes(
                         detail=f"Search term '{disciplina}' is too short or common. Please use a more specific discipline name (minimum {min_search_length} characters).",
                     )
 
-                # Match any discipline that starts with the same first word (case-insensitive)
-                q_stmt = q_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
+                # Match any discipline that starts with the same first word (case+accent insensitive)
+                # Uses PostgreSQL unaccent extension for accent-insensitive matching
+                q_stmt = q_stmt.where(
+                    func.lower(func.unaccent(Questao.disciplina)).like(f"{first_word}%")
+                )
             if topico:
                 q_stmt = q_stmt.where(Questao.assunto_pci == topico)
 
@@ -424,7 +427,9 @@ async def get_projeto_questoes(
             count_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
             if disciplina and first_word:
                 # Use same flexible matching as query (validation already done above)
-                count_stmt = count_stmt.where(func.lower(Questao.disciplina).like(f"{first_word}%"))
+                count_stmt = count_stmt.where(
+                    func.lower(func.unaccent(Questao.disciplina)).like(f"{first_word}%")
+                )
             if topico:
                 count_stmt = count_stmt.where(Questao.assunto_pci == topico)
 
