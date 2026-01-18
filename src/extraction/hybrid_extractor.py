@@ -223,6 +223,9 @@ TEXTO CORRIGIDO:"""
         """
         Parse questions from extracted text using LLM.
 
+        Processes text in chunks to avoid LLM token limits (8192 max output).
+        Each chunk is processed separately, then results are merged with deduplication.
+
         Args:
             text: Extracted/corrected text
 
@@ -231,34 +234,80 @@ TEXTO CORRIGIDO:"""
         """
         from src.extraction.llm_parser import EXTRACTION_SYSTEM_PROMPT, parse_llm_response
 
-        prompt = f"""Analise o texto abaixo extraído de uma prova de concurso e extraia TODAS as questões.
+        # Split text into chunks of ~8000 chars with overlap
+        # This ensures each chunk can be processed without truncation
+        chunk_size = 8000
+        overlap = 1000
+        chunks = []
+
+        if len(text) <= chunk_size:
+            chunks = [text]
+        else:
+            start = 0
+            while start < len(text):
+                end = start + chunk_size
+                chunk = text[start:end]
+                chunks.append(chunk)
+                start = end - overlap  # Overlap to catch questions at boundaries
+
+        logger.info(f"Processing text in {len(chunks)} chunks")
+
+        all_questions = []
+        for i, chunk in enumerate(chunks):
+            logger.info(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk)} chars)")
+
+            prompt = f"""Analise o texto abaixo extraído de uma prova de concurso e extraia TODAS as questões.
 
 TEXTO:
-{text}
+{chunk}
 
 Extraia todas as questões no formato JSON especificado."""
 
-        try:
-            result = self.llm.generate(
-                prompt=prompt,
-                system_prompt=EXTRACTION_SYSTEM_PROMPT,
-                temperature=0.1,
-                max_tokens=8192,
-            )
+            try:
+                result = self.llm.generate(
+                    prompt=prompt,
+                    system_prompt=EXTRACTION_SYSTEM_PROMPT,
+                    temperature=0.1,
+                    max_tokens=8192,
+                )
 
-            response_text = result.get("content", "")
-            parsed = parse_llm_response(response_text)
+                response_text = result.get("content", "")
+                parsed = parse_llm_response(response_text)
 
-            if parsed:
-                questions = parsed.get("questoes", [])
-                logger.info(f"Parsed {len(questions)} questions from text")
-                return questions
+                if parsed:
+                    questions = parsed.get("questoes", [])
+                    logger.info(f"Chunk {i+1}: found {len(questions)} questions")
+                    all_questions.extend(questions)
 
-            return []
+            except Exception as e:
+                logger.error(f"Chunk {i+1} parsing failed: {e}")
 
-        except Exception as e:
-            logger.error(f"Question parsing failed: {e}")
-            return []
+        # Deduplicate by question number, keeping most complete version
+        questions_by_number: dict[int, dict] = {}
+        for q in all_questions:
+            num = q.get("numero")
+            if num is None:
+                continue
+
+            # Score completeness: more alternatives + longer enunciado = better
+            alternativas = q.get("alternativas", {})
+            enunciado = q.get("enunciado", "")
+            completeness = len(alternativas) * 10 + len(enunciado)
+
+            existing = questions_by_number.get(num)
+            if existing is None:
+                questions_by_number[num] = {"question": q, "score": completeness}
+            elif completeness > existing["score"]:
+                questions_by_number[num] = {"question": q, "score": completeness}
+
+        # Sort by question number and return
+        unique_questions = [
+            questions_by_number[num]["question"]
+            for num in sorted(questions_by_number.keys())
+        ]
+
+        logger.info(f"Parsed {len(unique_questions)} unique questions from {len(all_questions)} total")
+        return unique_questions
 
     def _extract_all_with_vision_wrapped(
         self,
