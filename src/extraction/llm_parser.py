@@ -526,11 +526,44 @@ def parse_llm_response(response_text: str) -> Optional[dict]:
 
 def _repair_truncated_json(json_str: str) -> Optional[str]:
     """
-    Attempt to repair truncated JSON by closing open braces/brackets.
+    Attempt to repair truncated JSON by finding the last complete question object.
 
     Returns repaired JSON string or None if repair not possible.
     """
-    # Track open braces and brackets
+    # Strategy: Find the last complete question object by looking for
+    # the pattern: "anulada": false/true followed by } or "motivo_anulacao": ... followed by }
+
+    # Look for last complete question ending patterns
+    patterns_to_try = [
+        r'"motivo_anulacao"\s*:\s*(?:null|"[^"]*")\s*\}',  # ends with motivo_anulacao
+        r'"anulada"\s*:\s*(?:true|false)\s*\}',  # ends with anulada
+        r'"gabarito"\s*:\s*"[A-E]"\s*\}',  # ends with gabarito
+    ]
+
+    last_complete_pos = -1
+    for pattern in patterns_to_try:
+        matches = list(re.finditer(pattern, json_str))
+        if matches:
+            # Get the position after the closing brace of the last match
+            last_match = matches[-1]
+            pos = last_match.end() - 1  # Position of the }
+            if pos > last_complete_pos:
+                last_complete_pos = pos
+
+    if last_complete_pos > 0:
+        # Truncate at the last complete question
+        repaired = json_str[:last_complete_pos + 1]
+
+        # Count what's still open
+        open_braces = repaired.count("{") - repaired.count("}")
+        open_brackets = repaired.count("[") - repaired.count("]")
+
+        # Add closing characters
+        repaired += "]" * open_brackets + "}" * open_braces
+
+        return repaired
+
+    # Fallback: original method for non-question JSON
     open_braces = 0
     open_brackets = 0
     in_string = False
@@ -566,29 +599,11 @@ def _repair_truncated_json(json_str: str) -> Optional[str]:
             if open_brackets >= 0:
                 last_valid_pos = i
 
-    # If we're still inside a string, try to close it
-    if in_string:
-        # Find the last complete question object
-        # Look for pattern: "numero": N followed by complete alternatives
-        last_complete = json_str.rfind('"gabarito"')
-        if last_complete > 0:
-            # Find the closing brace after gabarito value
-            search_start = last_complete + 10
-            brace_pos = json_str.find("}", search_start)
-            if brace_pos > 0:
-                last_valid_pos = brace_pos
-
     if last_valid_pos > 0:
         repaired = json_str[: last_valid_pos + 1]
-
-        # Close remaining brackets and braces
-        # Count what's still open
         open_braces = repaired.count("{") - repaired.count("}")
         open_brackets = repaired.count("[") - repaired.count("]")
-
-        # Add closing characters
         repaired += "]" * open_brackets + "}" * open_braces
-
         return repaired
 
     return None
