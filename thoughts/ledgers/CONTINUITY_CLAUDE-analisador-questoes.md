@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-18T00:50:00Z
+**Last Updated**: 2026-02-01T12:00:00Z
 
 ---
 
@@ -44,12 +44,19 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
     - All 7 CI checks passing (Frontend + Backend)
     - Home.tsx refactored (removed framer-motion, using local Icons)
     - Added prefers-reduced-motion accessibility support
-  - [x] **Session 13: Docling + Vision Extraction Plan** (2026-01-18)
+  - [x] **Session 13 Fixes**: ProvasQuestoes tab showing edital taxonomy instead of questions
+    - Fixed fetchTaxonomy to always use flat disciplina list from questions
+    - Fixed discipline filter (ILIKE with accent support)
+    - Cleaned up stale backend processes on port 8000
+    - Merged feature branch to main with 11 conflict resolutions
+    - Added new layout components (AppLayout, GlobalNavbar, GlobalSidebar)
+    - Added new pages (Configuracoes, Perfil, Projetos with full functionality)
+  - [x] **Session 14: Docling + Vision Extraction Plan** (2026-01-18)
     - Analyzed two research documents on document extraction tech 2026
     - Decided hybrid 3-layer architecture: Docling → Haiku → Vision
     - Created comprehensive implementation plan (8 tasks)
     - Plan saved: `docs/plans/2026-01-17-docling-vision-extraction.md`
-  - [x] **Session 14: Docling + Vision Implementation** (2026-01-18)
+  - [x] **Session 15: Docling + Vision Implementation** (2026-01-18)
     - [x] Task 1: Added dependencies (docling, pdf2image, pyspellchecker)
     - [x] Task 2: Created quality_checker.py module (TDD)
     - [x] Task 3: Created docling_extractor.py module (TDD)
@@ -60,14 +67,18 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
     - [x] Task 8: Updated documentation (ARQUITETURA_COMPLETA.md §13)
     - All 35 tests passing (unit + E2E)
     - Feature flag enabled by default
+  - [x] **Session 16: Taxonomy fixes, frontend accents, CLAUDE.md** (2026-02-01)
+    - Fixed taxonomy incidence to query classificacoes table (not legacy assunto_pci)
+    - Fixed null texto in edital taxonomy nodes
+    - Fixed 19 Portuguese accent strings in frontend
+    - Added CLAUDE.md with project guidance and git workflow rule
 
-- Now: [->] Install Poppler and test with real PDFs
+- Now: [->] PR #5 merge to main
 
 - Next:
-  - [ ] Install Poppler on Windows for Vision fallback (pdf2image dependency)
-  - [ ] Test hybrid pipeline with UNEB 2024 PDF
-  - [ ] Tune quality thresholds based on real data
-  - [ ] Consider PR for hybrid extraction feature
+  - [ ] Production deployment
+  - [ ] Consider normalizing discipline names against edital taxonomy during upload
+  - [ ] Consider deprecating Questao.assunto_pci field
 
 ### Fixes Applied (Session 8)
 - [x] Real upload progress with XMLHttpRequest (Option A)
@@ -101,6 +112,10 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 | Legislation discipline unification | "Administração Pública" + "Legislação Básica..." → "Legislação e Administração Pública" | 2026-01-15 |
 | Column continuation detection | Right column TOP before first "Questão" is continuation from left column bottom | 2026-01-15 |
 | Word spacing threshold | Reduced gap threshold from 3 to 0.5 pixels for proper word separation | 2026-01-15 |
+| ProvasQuestoes flat list | Always show flat disciplina list from questions, not edital taxonomy tree | 2026-01-16 |
+| ILIKE discipline filter | Use ILIKE for case-insensitive matching with accents (replaces normalized first-word) | 2026-01-16 |
+| **PDF Extraction Strategy** | Vision-First (pdf2image + LMM) or Hybrid 3-layer (Docling + LLM correction + Vision fallback) - PyMuPDF abandoned | 2026-01-16 |
+| Docling for extraction | Docling (MIT license) has custom `docling-parse` backend that handles column merging correctly | 2026-01-16 |
 
 ---
 
@@ -137,11 +152,11 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 ### Recent Commits
 
 ```
-8d676d1 Merge PR #4: fix/extraction-column-continuation-discipline-unification
-daca064 fix(frontend): update Home component and tests to match new UI
-580af00 fix(ci): resolve all code review comments from PR #4
-324fdcc refactor(frontend): rename EditalWorkflow to ProjetoWorkflow
-6fc139b fix(extraction): canonicalize disciplines and detect two-column PDFs
+bb0a658 Merge branch 'fix/extraction-column-continuation-discipline-unification' into main
+e2a35f3 feat(frontend): add global layout components and new pages
+7f2b90a docs: update continuity ledger and add session 11 handoff
+d82f96e feat(frontend): improve projeto workflow and question display
+97342ff fix(extraction): handle column continuation and unify disciplines
 ```
 
 ### Test Commands
@@ -161,6 +176,82 @@ cd frontend && npm run dev
 ---
 
 ## Session Log
+
+### 2026-01-16 (Session 14) - PDF Extraction Deep Research
+
+- **Problems Reported**:
+  1. Questions 43-55 (Legislação) have text formatting issues
+  2. Words concatenated without spaces
+  3. Excessive spacing between words in justified text
+  4. Text broken into short lines
+
+- **Debug Agent Analysis**:
+  - Root cause: PyMuPDF uses inconsistent gap thresholds (0.5 vs 3 pixels)
+  - PDFs don't store "text" - they store glyphs with X,Y coordinates
+  - No concept of "space" between words in PDF format
+  - Justified text creates variable micro-spacing that confuses reconstruction
+
+- **Deep Research Conducted**:
+  - Analyzed two research documents (2025 Guide + 2026 Tech Update)
+  - Used research agents in parallel to extract insights
+  - Synthesized findings into strategic recommendation
+
+- **Key Findings**:
+  1. **PyMuPDF is fundamentally broken** for justified text PDFs
+  2. **Vision-First is 2026 paradigm** - send images to LMM, immune to encoding issues
+  3. **Docling (IBM, MIT license)** has custom backend that handles columns correctly
+  4. **Hybrid 3-layer** reduces costs 85-90% vs Vision-only
+
+- **Recommended Approaches**:
+  | Approach | Cost/1000 provas | Accuracy |
+  |----------|------------------|----------|
+  | Hybrid 3-layer | R$200-350 | 93-97% |
+  | Vision-First (API) | R$1000-1500 | 95%+ |
+  | Vision-First (Self-hosted) | R$100-170 | 95%+ |
+
+- **Artifacts Created**:
+  - Debug report: `.claude/cache/agents/debug-agent/latest-output.md`
+  - Research synthesis: `.claude/cache/agents/research-agent/latest-output.md`
+  - Handoff: `thoughts/shared/handoffs/analisador-questoes/2026-01-16_17-13-40_pdf-extraction-research-fix-questions-display.md`
+
+- **Decision Pending**: User to choose Vision-First (simpler) vs Hybrid (cheaper)
+
+---
+
+### 2026-01-16 (Session 13) - ProvasQuestoes Fix & Git Push
+
+- **Problems Reported**:
+  1. ProvasQuestoes tab showing edital taxonomy tree instead of flat discipline list
+  2. "Nenhuma questão encontrada" when clicking disciplines
+  3. Frontend not being pushed to repository
+
+- **Root Cause Analysis**:
+  1. **Taxonomy instead of questions**: `fetchTaxonomy()` was using `getProjetoTaxonomiaIncidencia` when `has_taxonomia=true`, showing edital subtopics
+  2. **Filter returning 0**: Discipline filter used `_normalize_for_matching()` which removed accents, but PostgreSQL `lower()` doesn't - "lingua" didn't match "língua"
+  3. **Multiple stale processes**: 3 Python processes were listening on port 8000 with old code
+
+- **Fixes Applied**:
+  1. **ProvasQuestoes.tsx**: Always use flat disciplina list from questions (removed edital taxonomy branch)
+  2. **projetos.py**: Changed filter from `func.lower().like(first_word%)` to `Questao.disciplina.ilike(disciplina%)`
+  3. **Cleaned port 8000**: Killed all stale Python processes, restarted fresh backend
+
+- **Git Operations**:
+  - Merged `fix/extraction-column-continuation-discipline-unification` → `main`
+  - Resolved 11 merge conflicts (preferring main for Python, feature for new pages)
+  - Added new frontend files: AppLayout, GlobalNavbar, GlobalSidebar, Configuracoes, Perfil, Projetos
+  - Pushed to remote: `bb0a658`
+
+- **Current State**:
+  - Backend: http://localhost:8000 (task b5d1825)
+  - Frontend: http://localhost:5174 (task bfe9926)
+  - API tested: "Língua Portuguesa" returns 20 questions ✅
+  - Disciplines displayed: 4 (LP: 20, Mat: 9, Info: 9, Leg: 20) = 58 total
+
+- **Pending**:
+  - Verify questions display in browser after clicking discipline
+  - Investigate 2 missing questions (58/60)
+
+---
 
 ### 2026-01-16 (Session 12) - PR #4 Code Review Fixes & Merge
 
