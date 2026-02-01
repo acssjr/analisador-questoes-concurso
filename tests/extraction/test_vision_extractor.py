@@ -1,16 +1,16 @@
 # tests/extraction/test_vision_extractor.py
 """Tests for Vision LLM fallback extraction."""
 
-import pytest
 import base64
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.extraction.vision_extractor import (
-    VisionExtractionResult,
-    rasterize_pdf_page,
-    extract_page_with_vision,
     VISION_EXTRACTION_PROMPT,
+    VisionExtractionResult,
+    extract_page_with_vision,
+    rasterize_pdf_page,
 )
 
 

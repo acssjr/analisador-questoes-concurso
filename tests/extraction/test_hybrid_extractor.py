@@ -1,13 +1,11 @@
 # tests/extraction/test_hybrid_extractor.py
 """Tests for hybrid extraction pipeline."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from src.extraction.hybrid_extractor import (
-    HybridExtractionPipeline,
     ExtractionTier,
+    HybridExtractionPipeline,
     HybridExtractionResult,
 )
 
@@ -84,48 +82,39 @@ class TestHybridExtractionPipeline:
         vision_pages = result.pages_by_tier.get(ExtractionTier.VISION_LLM, [])
         assert len(vision_pages) == 0
 
-    @patch("fitz.open")
     @patch("src.extraction.hybrid_extractor.extract_with_docling")
     @patch("src.extraction.hybrid_extractor.assess_extraction_quality")
-    @patch("src.extraction.hybrid_extractor.extract_page_with_vision")
-    def test_vision_fallback_bad_quality(self, mock_vision, mock_quality, mock_docling, mock_fitz_open):
+    def test_vision_fallback_bad_quality(self, mock_quality, mock_docling):
         """Poor quality extraction should trigger Vision fallback."""
-        import tempfile
+        # Setup mocks
+        mock_docling.return_value = MagicMock(
+            success=True,
+            text="Textocorrompidosemespaços",
+            page_count=1,
+        )
+        mock_quality.return_value = MagicMock(
+            score=0.30,
+            needs_correction=lambda threshold=0.8: True,
+        )
 
-        # Create a temp file so it exists
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
-            f.write(b"%PDF-1.4 fake content")
-            temp_path = f.name
+        pipeline = HybridExtractionPipeline()
 
-        try:
-            # Setup mocks
-            mock_docling.return_value = MagicMock(
-                success=True,
-                text="Textocorrompidosemespaços",
-                page_count=1,
-            )
-            mock_quality.return_value = MagicMock(
-                score=0.30,
-                needs_correction=lambda threshold=0.8: True,
-            )
-            mock_vision.return_value = MagicMock(
-                success=True,
+        # Mock the vision wrapper directly since score < vision_threshold (0.60)
+        # skips Tier 2 and goes straight to _extract_all_with_vision_wrapped
+        with patch.object(pipeline, "_extract_all_with_vision_wrapped") as mock_vision_wrapped:
+            mock_vision_wrapped.return_value = HybridExtractionResult(
                 questions=[{"numero": 1, "enunciado": "Questão correta"}],
+                tier_used=ExtractionTier.VISION_LLM,
+                quality_score=0.95,
+                pages_by_tier={ExtractionTier.VISION_LLM: [0]},
+                total_pages=1,
+                success=True,
             )
+            result = pipeline.extract("test.pdf")
 
-            # Mock fitz for page count
-            mock_doc = MagicMock()
-            mock_doc.__len__ = MagicMock(return_value=1)
-            mock_fitz_open.return_value = mock_doc
-
-            pipeline = HybridExtractionPipeline()
-            result = pipeline.extract(temp_path)
-
-            assert result.success
-            assert mock_vision.called
-        finally:
-            import os
-            os.unlink(temp_path)
+        assert result.success
+        assert mock_vision_wrapped.called
+        assert result.tier_used == ExtractionTier.VISION_LLM
 
     @patch("src.extraction.hybrid_extractor.extract_with_docling")
     def test_docling_failure_uses_vision(self, mock_docling):

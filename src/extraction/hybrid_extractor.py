@@ -14,6 +14,10 @@ from typing import Optional
 
 from loguru import logger
 
+from src.extraction.docling_extractor import extract_with_docling
+from src.extraction.quality_checker import assess_extraction_quality
+from src.extraction.vision_extractor import extract_page_with_vision
+
 
 def preprocess_ocr_text(text: str) -> str:
     """
@@ -40,10 +44,6 @@ def preprocess_ocr_text(text: str) -> str:
     text = re.sub(r' +', ' ', text)
 
     return text
-
-from src.extraction.docling_extractor import extract_with_docling
-from src.extraction.quality_checker import assess_extraction_quality
-from src.extraction.vision_extractor import extract_page_with_vision
 
 
 class ExtractionTier(Enum):

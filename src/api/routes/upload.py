@@ -20,15 +20,15 @@ from src.extraction.llm_parser import extract_questions_chunked
 from src.extraction.pci_parser import parse_pci_pdf
 from src.extraction.pdf_detector import detect_pdf_format
 from src.llm.llm_orchestrator import LLMOrchestrator
-
-# Feature flag for hybrid Docling + Vision extraction pipeline
-# Set to True to use new pipeline, False for legacy LLM extraction
-USE_HYBRID_EXTRACTION = True
 from src.models.classificacao import Classificacao
 from src.models.edital import Edital
 from src.models.projeto import Projeto
 from src.models.prova import Prova
 from src.models.questao import Questao
+
+# Feature flag for hybrid Docling + Vision extraction pipeline
+# Set to True to use new pipeline, False for legacy LLM extraction
+USE_HYBRID_EXTRACTION = True
 
 settings = get_settings()
 router = APIRouter()

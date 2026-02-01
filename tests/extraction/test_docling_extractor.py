@@ -1,13 +1,14 @@
 # tests/extraction/test_docling_extractor.py
 """Tests for Docling-based PDF extraction."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.extraction.docling_extractor import (
-    extract_with_docling,
     DoclingExtractionResult,
+    extract_with_docling,
 )
 
 

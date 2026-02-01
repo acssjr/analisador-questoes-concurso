@@ -1,12 +1,13 @@
 # tests/integration/test_hybrid_extraction_e2e.py
 """End-to-end tests for hybrid extraction pipeline."""
 
-import pytest
 from pathlib import Path
 
+import pytest
+
 from src.extraction.hybrid_extractor import (
-    extract_questions_hybrid,
     ExtractionTier,
+    extract_questions_hybrid,
 )
 
 

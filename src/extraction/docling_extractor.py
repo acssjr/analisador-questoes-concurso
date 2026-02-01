@@ -48,10 +48,11 @@ def _extract_with_pytesseract(
         DoclingExtractionResult with text
     """
     try:
+        import io
+
         import fitz  # PyMuPDF
         import pytesseract
         from PIL import Image
-        import io
 
         # Configure Tesseract path
         tess_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
@@ -144,10 +145,10 @@ def extract_with_docling(
     try:
         # Import here to avoid startup cost if not used
         import platform
-        from docling.document_converter import DocumentConverter
+
         from docling.datamodel.base_models import InputFormat
         from docling.datamodel.pipeline_options import PdfPipelineOptions
-        from docling.document_converter import PdfFormatOption
+        from docling.document_converter import DocumentConverter, PdfFormatOption
 
         logger.info(f"Extracting with Docling: {pdf_path.name}")
 

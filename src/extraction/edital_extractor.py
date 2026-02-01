@@ -3,6 +3,7 @@ Edital extraction logic - extracts metadata and taxonomy from exam notices
 """
 
 import json
+import re as _re
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -76,9 +77,6 @@ def _sanitize_json_string(json_str: str) -> str:
             result.append(char)
 
     return "".join(result)
-
-
-import re as _re
 
 
 def _repair_taxonomy_json(content: str) -> dict:

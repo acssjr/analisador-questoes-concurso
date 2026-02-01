@@ -1,7 +1,6 @@
 # tests/extraction/test_quality_checker.py
 """Tests for extraction quality checker."""
 
-import pytest
 from src.extraction.quality_checker import (
     QualityMetrics,
     assess_extraction_quality,

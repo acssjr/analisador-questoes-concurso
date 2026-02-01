@@ -197,6 +197,7 @@ def extract_page_with_vision(
     # Step 2: Call Claude Vision
     try:
         import anthropic
+
         from src.core.config import get_settings
 
         settings = get_settings()

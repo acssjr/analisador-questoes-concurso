@@ -16,14 +16,6 @@ interface ProjetoContext {
 // Polling interval in milliseconds
 const QUEUE_POLL_INTERVAL = 3000;
 
-// API incidence node type
-interface IncidenciaNode {
-  id: string;
-  nome: string;
-  count: number;
-  children?: IncidenciaNode[];
-}
-
 
 export default function ProvasQuestoes() {
   const { projeto } = useOutletContext<ProjetoContext>();
