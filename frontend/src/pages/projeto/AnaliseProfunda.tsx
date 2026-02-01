@@ -137,15 +137,15 @@ export default function AnaliseProfunda() {
           await fetchResultado();
           addNotification({
             type: 'success',
-            title: 'Analise concluida',
-            message: 'A analise profunda foi concluida com sucesso',
+            title: 'Análise concluída',
+            message: 'A análise profunda foi concluída com sucesso',
           });
         } else if (statusData.status === 'failed') {
-          setError(statusData.error_message || 'A analise falhou');
+          setError(statusData.error_message || 'A análise falhou');
           addNotification({
             type: 'error',
-            title: 'Falha na analise',
-            message: statusData.error_message || 'Ocorreu um erro durante a analise',
+            title: 'Falha na análise',
+            message: statusData.error_message || 'Ocorreu um erro durante a análise',
           });
         }
 
@@ -173,7 +173,7 @@ export default function AnaliseProfunda() {
 
       addNotification({
         type: 'info',
-        title: 'Analise iniciada',
+        title: 'Análise iniciada',
         message: response.message,
       });
 
@@ -183,11 +183,11 @@ export default function AnaliseProfunda() {
       // Start polling
       startPolling();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao iniciar analise';
+      const message = err instanceof Error ? err.message : 'Erro ao iniciar análise';
       setError(message);
       addNotification({
         type: 'error',
-        title: 'Erro ao iniciar analise',
+        title: 'Erro ao iniciar análise',
         message,
       });
     } finally {
@@ -204,8 +204,8 @@ export default function AnaliseProfunda() {
 
       addNotification({
         type: 'info',
-        title: 'Analise cancelada',
-        message: 'A analise foi cancelada',
+        title: 'Análise cancelada',
+        message: 'A análise foi cancelada',
       });
 
       stopPolling();
@@ -406,7 +406,7 @@ export default function AnaliseProfunda() {
             }
           />
           <DashboardCard
-            label="Questoes Analisadas"
+            label="Questões Analisadas"
             value={resumo.questoes_analisadas.toString()}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -415,7 +415,7 @@ export default function AnaliseProfunda() {
             }
           />
           <DashboardCard
-            label="Padroes Encontrados"
+            label="Padrões Encontrados"
             value={resumo.padroes_encontrados.toString()}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -424,7 +424,7 @@ export default function AnaliseProfunda() {
             }
           />
           <DashboardCard
-            label="Recomendacoes"
+            label="Recomendações"
             value={resumo.recomendacoes.toString()}
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -603,10 +603,10 @@ function OverviewTab({ result }: { result: AnaliseResultadoDisciplina }) {
     <div className="space-y-4">
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox label="Total de Questoes" value={result.total_questoes} />
+        <StatBox label="Total de Questões" value={result.total_questoes} />
         <StatBox label="Clusters" value={result.cluster_result?.n_clusters || 0} />
         <StatBox label="Pares Similares" value={result.similar_pairs_count} />
-        <StatBox label="Fases Concluidas" value={result.phases_completed.length} />
+        <StatBox label="Fases Concluídas" value={result.phases_completed.length} />
       </div>
 
       {/* Cluster Info */}

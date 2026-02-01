@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-16T00:15:00Z
+**Last Updated**: 2026-01-18T00:50:00Z
 
 ---
 
@@ -16,6 +16,7 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 2. **Classificação com LLM sem erros de API** ✅
 3. **Pipeline de Análise Profunda (4 fases)** ✅
 4. **Frontend completo com 3 abas** ✅
+5. **Extração híbrida Docling + Vision** ✅ COMPLETE
 
 ---
 
@@ -43,13 +44,30 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
     - All 7 CI checks passing (Frontend + Backend)
     - Home.tsx refactored (removed framer-motion, using local Icons)
     - Added prefers-reduced-motion accessibility support
+  - [x] **Session 13: Docling + Vision Extraction Plan** (2026-01-18)
+    - Analyzed two research documents on document extraction tech 2026
+    - Decided hybrid 3-layer architecture: Docling → Haiku → Vision
+    - Created comprehensive implementation plan (8 tasks)
+    - Plan saved: `docs/plans/2026-01-17-docling-vision-extraction.md`
+  - [x] **Session 14: Docling + Vision Implementation** (2026-01-18)
+    - [x] Task 1: Added dependencies (docling, pdf2image, pyspellchecker)
+    - [x] Task 2: Created quality_checker.py module (TDD)
+    - [x] Task 3: Created docling_extractor.py module (TDD)
+    - [x] Task 4: Created vision_extractor.py module (TDD)
+    - [x] Task 5: Created hybrid_extractor.py pipeline (TDD)
+    - [x] Task 6: Integrated in upload.py API route (USE_HYBRID_EXTRACTION flag)
+    - [x] Task 7: Added E2E integration tests
+    - [x] Task 8: Updated documentation (ARQUITETURA_COMPLETA.md §13)
+    - All 35 tests passing (unit + E2E)
+    - Feature flag enabled by default
 
-- Now: [->] Ready for end-to-end testing
+- Now: [->] Install Poppler and test with real PDFs
 
 - Next:
-  - [ ] End-to-end testing of complete flow (upload PDF → extraction → analysis)
-  - [ ] Verify 60 questions extracted with unified disciplines
-  - [ ] Production deployment
+  - [ ] Install Poppler on Windows for Vision fallback (pdf2image dependency)
+  - [ ] Test hybrid pipeline with UNEB 2024 PDF
+  - [ ] Tune quality thresholds based on real data
+  - [ ] Consider PR for hybrid extraction feature
 
 ### Fixes Applied (Session 8)
 - [x] Real upload progress with XMLHttpRequest (Option A)
@@ -68,6 +86,9 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
+| Hybrid extraction (Docling + Vision) | Docling resolves column issues; Vision as 5% fallback (85-90% cost savings vs Vision-only) | 2026-01-18 |
+| Three-tier routing | Quality score >=0.80 → Docling; <0.80 → Haiku correction; <0.60 → Vision | 2026-01-18 |
+| PyMuPDF deprecated | Extracts in draw order, not reading order; causes column fusion and mojibake | 2026-01-18 |
 | Pipeline 4 fases | Vetorização → Map → Reduce → CoVe (baseado em pesquisa) | 2026-01-13 |
 | HDBSCAN clustering | Auto-detects number of clusters | 2026-01-14 |
 | Multi-Pass voting | 3/5 = high confidence, 2/5 = medium | 2026-01-14 |
@@ -388,3 +409,19 @@ cd frontend && npm run dev
 - Build/test: 111 passed, 0 failed
 ## Session Auto-Summary (2026-01-16T00:06:34.170Z)
 - Build/test: 132 passed, 0 failed
+
+## Session Auto-Summary (2026-01-18T00:50:00Z)
+- Build/test: 35 extraction tests passed (unit + E2E)
+- Hybrid extraction pipeline implemented (Tasks 1-8)
+- Files created: quality_checker.py, docling_extractor.py, vision_extractor.py, hybrid_extractor.py
+- Blocker: Poppler not installed (required for Vision fallback)
+## Session Auto-Summary (2026-01-18T15:26:56.080Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-01-18T23:50:35.984Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-01-31T17:06:12.853Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-01-31T18:25:32.273Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-02-01T06:36:45.480Z)
+- Build/test: 158 passed, 0 failed

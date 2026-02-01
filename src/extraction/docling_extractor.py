@@ -30,10 +30,86 @@ class DoclingExtractionResult:
         return len(self.tables) > 0
 
 
+def _extract_with_pytesseract(
+    pdf_path: Path,
+    extract_tables: bool = True,
+) -> DoclingExtractionResult:
+    """
+    Extract text from PDF using pytesseract + PyMuPDF.
+
+    This is a fallback when tesserocr is not available but pytesseract is.
+    Uses PyMuPDF to render pages as images, then pytesseract for OCR.
+
+    Args:
+        pdf_path: Path to PDF file
+        extract_tables: Whether to extract table structures (not supported here)
+
+    Returns:
+        DoclingExtractionResult with text
+    """
+    try:
+        import fitz  # PyMuPDF
+        import pytesseract
+        from PIL import Image
+        import io
+
+        # Configure Tesseract path
+        tess_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        if Path(tess_path).exists():
+            pytesseract.pytesseract.tesseract_cmd = tess_path
+
+        logger.info(f"Extracting with pytesseract: {pdf_path.name}")
+
+        doc = fitz.open(pdf_path)
+        page_count = len(doc)
+        all_text = []
+
+        for page_num in range(page_count):
+            page = doc[page_num]
+            # Render at 300 DPI for better OCR
+            mat = fitz.Matrix(300 / 72, 300 / 72)
+            pix = page.get_pixmap(matrix=mat)
+
+            # Convert to PIL Image
+            img_data = pix.tobytes("png")
+            img = Image.open(io.BytesIO(img_data))
+
+            # OCR with Portuguese + English
+            text = pytesseract.image_to_string(img, lang="por+eng")
+            all_text.append(f"<!-- page {page_num + 1} -->\n{text}")
+
+            logger.debug(f"OCR page {page_num + 1}/{page_count}: {len(text)} chars")
+
+        doc.close()
+
+        combined_text = "\n\n".join(all_text)
+        logger.info(f"pytesseract extraction complete: {len(combined_text)} chars, {page_count} pages")
+
+        return DoclingExtractionResult(
+            text=combined_text,
+            markdown=combined_text,  # No markdown formatting from pytesseract
+            page_count=page_count,
+            tables=[],  # Tables not supported with pytesseract
+            success=True,
+        )
+
+    except Exception as e:
+        logger.error(f"pytesseract extraction failed: {e}")
+        return DoclingExtractionResult(
+            text="",
+            markdown="",
+            page_count=0,
+            success=False,
+            error=str(e),
+        )
+
+
 def extract_with_docling(
     pdf_path: str | Path,
     extract_tables: bool = True,
     force_ocr: bool = False,
+    ocr_engine: str = "tesseract",
+    tesseract_path: Optional[str] = None,
 ) -> DoclingExtractionResult:
     """
     Extract text from PDF using Docling.
@@ -48,6 +124,8 @@ def extract_with_docling(
         extract_tables: Whether to extract table structures
         force_ocr: Force OCR on all pages (useful for multi-column PDFs
                    where embedded text layer has column bleeding issues)
+        ocr_engine: OCR engine to use - "tesseract" (better for Portuguese) or "rapidocr"
+        tesseract_path: Path to Tesseract executable (auto-detected if None)
 
     Returns:
         DoclingExtractionResult with text, markdown, and tables
@@ -79,19 +157,76 @@ def extract_with_docling(
 
         # Configure OCR if forced (for multi-column PDFs with text layer issues)
         if force_ocr:
-            try:
-                from docling.datamodel.pipeline_options import RapidOcrOptions
+            pipeline_options.do_ocr = True
 
-                ocr_options = RapidOcrOptions(
-                    lang=["por"],  # Portuguese
-                    force_full_page_ocr=True,  # Force OCR on ALL pages
-                )
-                pipeline_options.do_ocr = True
-                pipeline_options.ocr_options = ocr_options
-                logger.info("Forced OCR enabled (RapidOCR with Portuguese)")
-            except ImportError:
-                logger.warning("RapidOCR not available, OCR disabled")
-                pipeline_options.do_ocr = False
+            if ocr_engine == "tesseract":
+                # Check if tesserocr is available before trying to use Tesseract
+                tesseract_available = False
+                try:
+                    import tesserocr  # noqa: F401
+                    tesseract_available = True
+                except ImportError:
+                    # Try pytesseract as alternative
+                    try:
+                        import pytesseract
+                        # Check if Tesseract executable exists
+                        tess_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+                        if Path(tess_path).exists():
+                            pytesseract.pytesseract.tesseract_cmd = tess_path
+                            logger.info("Using pytesseract with system Tesseract")
+                            # Use pytesseract-based extraction instead
+                            return _extract_with_pytesseract(pdf_path, extract_tables)
+                        else:
+                            logger.warning("Tesseract not found, falling back to RapidOCR")
+                            ocr_engine = "rapidocr"
+                    except ImportError:
+                        logger.warning("tesserocr/pytesseract not installed, falling back to RapidOCR")
+                        ocr_engine = "rapidocr"
+
+                if tesseract_available:
+                    try:
+                        from docling.datamodel.pipeline_options import TesseractOcrOptions
+
+                        # Auto-detect Tesseract path on Windows
+                        detected_path = tesseract_path
+                        if not detected_path and platform.system() == "Windows":
+                            import shutil
+                            # Try common installation paths
+                            common_paths = [
+                                r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                                r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                            ]
+                            for path in common_paths:
+                                if Path(path).exists():
+                                    detected_path = path
+                                    break
+                            if not detected_path:
+                                detected_path = shutil.which("tesseract")
+
+                        ocr_options = TesseractOcrOptions(
+                            lang=["por", "eng"],  # Portuguese + English
+                            force_full_page_ocr=True,
+                            path=detected_path,
+                        )
+                        pipeline_options.ocr_options = ocr_options
+                        logger.info(f"Forced OCR enabled (Tesseract with Portuguese, path={detected_path})")
+                    except ImportError:
+                        logger.warning("TesseractOcrOptions not available, falling back to RapidOCR")
+                        ocr_engine = "rapidocr"
+
+            if ocr_engine == "rapidocr":
+                try:
+                    from docling.datamodel.pipeline_options import RapidOcrOptions
+
+                    ocr_options = RapidOcrOptions(
+                        lang=["por"],  # Portuguese
+                        force_full_page_ocr=True,
+                    )
+                    pipeline_options.ocr_options = ocr_options
+                    logger.info("Forced OCR enabled (RapidOCR with Portuguese)")
+                except ImportError:
+                    logger.warning("RapidOCR not available, OCR disabled")
+                    pipeline_options.do_ocr = False
         else:
             pipeline_options.do_ocr = False
 

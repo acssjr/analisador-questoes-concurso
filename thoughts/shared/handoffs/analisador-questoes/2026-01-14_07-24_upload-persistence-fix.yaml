@@ -1,0 +1,60 @@
+---
+session: analisador-questoes
+date: 2026-01-14
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Fix upload endpoint to persist Prova and Questao records to PostgreSQL database
+now: Test full upload workflow - upload PDF via UI and verify questions appear in dashboard
+
+test: |
+  docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c "SELECT COUNT(*) FROM questoes;"
+
+done_this_session:
+  - task: Investigated why 60 extracted questions weren't appearing in dashboard
+    files: [src/api/routes/upload.py, frontend/src/services/api.ts, frontend/src/pages/projeto/ProvasQuestoes.tsx]
+  - task: Identified root cause - upload endpoint extracted but never persisted to DB
+    files: [src/api/routes/upload.py]
+  - task: Fixed upload endpoint to accept projeto_id parameter
+    files: [src/api/routes/upload.py]
+  - task: Added Prova record creation with queue_status tracking
+    files: [src/api/routes/upload.py]
+  - task: Added Questao record creation for each extracted question
+    files: [src/api/routes/upload.py]
+  - task: Added projeto counter updates (total_provas, total_questoes, etc.)
+    files: [src/api/routes/upload.py]
+  - task: Committed and pushed fix (commit a133a71)
+    files: []
+
+blockers: []
+
+questions:
+  - Should the upload also update the projeto.status from 'coletando' to something else after provas are uploaded?
+
+decisions:
+  - async_session_context: Used AsyncSessionLocal() context manager instead of get_db() dependency to keep session open throughout entire upload process
+  - graceful_db_failure: DB errors during persist don't fail the whole request - extraction results still returned
+
+findings:
+  - parameter_mismatch: Frontend ProvasQuestoes page sent projeto_id but endpoint only accepted edital_id
+  - no_persistence: Upload endpoint only returned extracted questions in response without saving to provas/questoes tables
+  - session_lifecycle: Using `async for db in get_db()` pattern closes session after iteration - needed proper context manager
+
+worked:
+  - Systematic debugging by tracing data flow from frontend to API to database
+  - Using AsyncSessionLocal() directly as context manager for long-running operations
+  - Committing after each file's Questao records to ensure partial success on multi-file uploads
+
+failed:
+  - Initial attempt using `async for db in get_db()` closed session prematurely
+
+next:
+  - Test upload by uploading a PDF via the ProvasQuestoes page dropzone
+  - Verify questions appear in dashboard after upload
+  - Consider adding progress/status feedback during LLM extraction (can take 30+ seconds)
+
+files:
+  created: []
+  modified:
+    - src/api/routes/upload.py

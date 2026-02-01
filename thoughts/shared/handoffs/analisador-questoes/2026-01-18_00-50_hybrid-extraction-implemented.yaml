@@ -1,0 +1,77 @@
+---
+session: analisador-questoes
+date: 2026-01-18
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Implemented complete Docling + Vision hybrid extraction pipeline (8 tasks)
+now: Install Poppler on Windows and test with real UNEB 2024 PDF
+test: pytest tests/extraction/ tests/integration/ -v
+
+done_this_session:
+  - task: Added dependencies (docling, pdf2image, pyspellchecker)
+    files: [pyproject.toml]
+  - task: Created quality_checker.py with spell checking and word analysis
+    files: [src/extraction/quality_checker.py, tests/extraction/test_quality_checker.py]
+  - task: Created docling_extractor.py for column-aware extraction
+    files: [src/extraction/docling_extractor.py, tests/extraction/test_docling_extractor.py]
+  - task: Created vision_extractor.py for Claude Vision fallback
+    files: [src/extraction/vision_extractor.py, tests/extraction/test_vision_extractor.py]
+  - task: Created hybrid_extractor.py orchestrating 3-tier pipeline
+    files: [src/extraction/hybrid_extractor.py, tests/extraction/test_hybrid_extractor.py]
+  - task: Integrated in upload.py with USE_HYBRID_EXTRACTION flag
+    files: [src/api/routes/upload.py]
+  - task: Added E2E integration tests
+    files: [tests/integration/test_hybrid_extraction_e2e.py]
+  - task: Updated documentation with Section 13
+    files: [docs/ARQUITETURA_COMPLETA.md]
+
+blockers:
+  - Poppler not installed on Windows (required for pdf2image Vision fallback)
+
+questions:
+  - Will quality thresholds (0.80/0.60) work well with real UNEB PDFs?
+  - Does Docling handle all UNEB column layouts correctly?
+
+decisions:
+  - three_tier_pipeline: Docling (free) → Haiku correction (cheap) → Vision (expensive)
+  - feature_flag: USE_HYBRID_EXTRACTION allows easy rollback to legacy extraction
+  - lazy_imports: Heavy dependencies (docling, fitz) imported inside functions
+  - quality_thresholds: score>=0.80 OK, 0.60-0.80 Haiku, <0.60 Vision
+
+findings:
+  - mock_patch_location: Lazy imports require patching at source module not import location
+  - tokenization_punctuation: isalpha() fails with punctuation - use regex cleaning
+  - file_existence_check: Vision fallback needed existence check before processing
+
+worked:
+  - TDD approach (write test first, verify fail, implement, verify pass)
+  - Fixing mock patches by tracing actual import locations
+  - Using tempfile for test PDF files
+
+failed:
+  - Initial mock patches at wrong location (patched import, not source)
+  - isalpha() tokenization (failed on punctuation-attached words)
+
+next:
+  - Install Poppler on Windows (choco install poppler or manual PATH setup)
+  - Run hybrid extraction on real UNEB 2024 PDF
+  - Tune quality thresholds based on real extraction results
+  - Create PR for hybrid extraction feature
+
+files:
+  created:
+    - src/extraction/quality_checker.py
+    - src/extraction/docling_extractor.py
+    - src/extraction/vision_extractor.py
+    - src/extraction/hybrid_extractor.py
+    - tests/extraction/test_quality_checker.py
+    - tests/extraction/test_docling_extractor.py
+    - tests/extraction/test_vision_extractor.py
+    - tests/extraction/test_hybrid_extractor.py
+    - tests/integration/test_hybrid_extraction_e2e.py
+  modified:
+    - pyproject.toml
+    - src/api/routes/upload.py
+    - docs/ARQUITETURA_COMPLETA.md

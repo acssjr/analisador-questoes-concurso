@@ -2,6 +2,7 @@
 Upload routes - for PDF upload and extraction
 """
 
+import re
 import unicodedata
 import uuid
 from typing import List, Optional
@@ -125,10 +126,15 @@ def remove_accents(text: str) -> str:
 
 
 def normalize_disciplina(nome: str) -> str:
-    """Normaliza nome de disciplina para comparação (lowercase, sem acentos)"""
+    """Normaliza nome de disciplina para comparação (lowercase, sem acentos, sem pontuação)"""
     if not nome:
         return ""
-    return remove_accents(nome.lower().strip())
+    cleaned = nome.lower().strip()
+    # Remove trailing punctuation (e.g., "matemática," or "matemática.")
+    cleaned = re.sub(r'[.,;:!?\s]+$', '', cleaned)
+    # Remove leading punctuation
+    cleaned = re.sub(r'^[.,;:!?\s]+', '', cleaned)
+    return remove_accents(cleaned)
 
 
 # Canonical display names for common disciplines (normalized key → display name)
@@ -562,6 +568,12 @@ async def upload_pdf(
                                 await db_session.flush()
                                 logger.info(
                                     f"Created {len(questoes_finais)} Questao records for prova {prova.id}"
+                                )
+
+                                # Commit provas + questoes first to avoid losing them
+                                await db_session.commit()
+                                logger.info(
+                                    f"Committed prova + {len(questoes_finais)} questoes to database"
                                 )
 
                                 # Classify questions and create Classificacao records

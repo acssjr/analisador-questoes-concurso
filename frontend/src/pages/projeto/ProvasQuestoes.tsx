@@ -16,7 +16,7 @@ interface ProjetoContext {
 // Polling interval in milliseconds
 const QUEUE_POLL_INTERVAL = 3000;
 
-// Helper to convert API incidence nodes to TaxonomyNode format
+// API incidence node type
 interface IncidenciaNode {
   id: string;
   nome: string;
@@ -24,14 +24,6 @@ interface IncidenciaNode {
   children?: IncidenciaNode[];
 }
 
-function convertIncidenciaToTaxonomyNodes(incidencia: IncidenciaNode[]): TaxonomyNode[] {
-  return incidencia.map((node) => ({
-    id: node.id,
-    nome: node.nome,
-    count: node.count,
-    children: node.children ? convertIncidenciaToTaxonomyNodes(node.children) : undefined,
-  }));
-}
 
 export default function ProvasQuestoes() {
   const { projeto } = useOutletContext<ProjetoContext>();
@@ -89,7 +81,7 @@ export default function ProvasQuestoes() {
       console.error('Error fetching questoes:', error);
       addNotification({
         type: 'error',
-        title: 'Erro ao carregar questoes',
+        title: 'Erro ao carregar questões',
         message: error instanceof Error ? error.message : 'Erro desconhecido',
       });
     } finally {
@@ -104,13 +96,23 @@ export default function ProvasQuestoes() {
       const taxonomiaResponse = await api.getProjetoTaxonomiaIncidencia(projeto.id);
 
       if (taxonomiaResponse.has_taxonomia && taxonomiaResponse.incidencia.length > 0) {
-        // Use the edital's taxonomy structure with counts
-        const nodes = convertIncidenciaToTaxonomyNodes(
-          taxonomiaResponse.incidencia as IncidenciaNode[]
-        );
+        // Use only first level (disciplinas) from edital taxonomy - no children
+        const nodes: TaxonomyNode[] = (taxonomiaResponse.incidencia as IncidenciaNode[]).map((node, index) => ({
+          id: `disciplina-${index}`,
+          nome: node.nome,
+          count: node.count,
+          // Explicitly no children - we only want disciplinas
+        }));
         setTaxonomyNodes(nodes);
         setHasTaxonomia(true);
         setTotalQuestoes(taxonomiaResponse.total_questoes);
+
+        // Auto-select first disciplina
+        if (nodes.length > 0) {
+          setSelectedNode(nodes[0].id);
+          setSelectedNodeName(nodes[0].nome);
+          fetchQuestoes(nodes[0].nome);
+        }
       } else {
         // Fall back to fetching all questions to build disciplina list with accurate counts
         // Get initial response to determine total
@@ -304,7 +306,7 @@ export default function ProvasQuestoes() {
       if (response.success) {
         addNotification({
           type: 'success',
-          title: 'Upload concluido',
+          title: 'Upload concluído',
           message: `${response.successful_files} de ${response.total_files} arquivo(s) enviado(s) com sucesso`,
         });
 
@@ -346,7 +348,7 @@ export default function ProvasQuestoes() {
       addNotification({
         type: 'info',
         title: 'Reprocessando',
-        message: 'A prova sera reprocessada em breve',
+        message: 'A prova será reprocessada em breve',
       });
 
       await fetchQueueStatus();
@@ -425,7 +427,7 @@ export default function ProvasQuestoes() {
   return (
     <div className="space-y-6" data-projeto-id={projeto.id}>
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Provas & Questoes</h2>
+        <h2 className="text-lg font-semibold text-white">Provas & Questões</h2>
         {isPolling && (
           <span className="text-xs text-blue-400 animate-pulse">
             Atualizando...
@@ -466,7 +468,7 @@ export default function ProvasQuestoes() {
           {/* Taxonomy Tree - Left Column */}
           <div className="lg:col-span-1">
             <h3 className="text-md font-medium text-white mb-4">
-              {hasTaxonomia ? 'Taxonomia do Edital' : 'Disciplinas'} ({totalQuestoes} questoes)
+              {hasTaxonomia ? 'Disciplinas do Edital' : 'Disciplinas'} ({totalQuestoes} questões)
             </h3>
             <TaxonomyTree
               nodes={taxonomyNodes}
@@ -478,7 +480,7 @@ export default function ProvasQuestoes() {
           {/* Questions Panel - Right Column */}
           <div className="lg:col-span-2">
             <h3 className="text-md font-medium text-white mb-4">
-              Questoes
+              Questões
               {selectedNodeName && (
                 <span className="text-gray-500 font-normal ml-2">- {selectedNodeName}</span>
               )}

@@ -1,18 +1,909 @@
 {
   "groq": {
-    "requests_today": 1,
-    "tokens_today": 3137,
-    "requests_this_minute": 1,
-    "tokens_this_minute": 3137,
-    "last_request_time": "2026-01-14T00:43:40.698767",
-    "minute_window_start": "2026-01-14T00:43:39.535419",
-    "day_start": "2026-01-14",
+    "requests_today": 4,
+    "tokens_today": 22286,
+    "requests_this_minute": 2,
+    "tokens_this_minute": 16390,
+    "last_request_time": "2026-02-01T09:13:58.100492",
+    "minute_window_start": "2026-02-01T09:13:36.293461",
+    "day_start": "2026-02-01",
     "history": [
       {
-        "timestamp": "2026-01-14T00:43:40.698767",
+        "timestamp": "2026-01-31T16:20:23.950291",
+        "tokens_used": 1947,
+        "prompt_tokens": 1716,
+        "completion_tokens": 231,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:25.522773",
+        "tokens_used": 1964,
+        "prompt_tokens": 1741,
+        "completion_tokens": 223,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:27.176732",
+        "tokens_used": 2084,
+        "prompt_tokens": 1762,
+        "completion_tokens": 322,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:28.515734",
+        "tokens_used": 1943,
+        "prompt_tokens": 1714,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:29.882114",
+        "tokens_used": 2054,
+        "prompt_tokens": 1812,
+        "completion_tokens": 242,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:31.197169",
+        "tokens_used": 2017,
+        "prompt_tokens": 1795,
+        "completion_tokens": 222,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:32.563366",
+        "tokens_used": 1943,
+        "prompt_tokens": 1693,
+        "completion_tokens": 250,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:33.916092",
+        "tokens_used": 2020,
+        "prompt_tokens": 1776,
+        "completion_tokens": 244,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:35.257691",
+        "tokens_used": 1976,
+        "prompt_tokens": 1747,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:36.586527",
+        "tokens_used": 1946,
+        "prompt_tokens": 1718,
+        "completion_tokens": 228,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:37.945259",
+        "tokens_used": 1978,
+        "prompt_tokens": 1738,
+        "completion_tokens": 240,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:39.258204",
+        "tokens_used": 1947,
+        "prompt_tokens": 1722,
+        "completion_tokens": 225,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:40.576765",
+        "tokens_used": 1974,
+        "prompt_tokens": 1744,
+        "completion_tokens": 230,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:41.930140",
+        "tokens_used": 1987,
+        "prompt_tokens": 1756,
+        "completion_tokens": 231,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:43.554870",
+        "tokens_used": 1954,
+        "prompt_tokens": 1714,
+        "completion_tokens": 240,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:44.867633",
+        "tokens_used": 1950,
+        "prompt_tokens": 1724,
+        "completion_tokens": 226,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:46.186180",
+        "tokens_used": 1967,
+        "prompt_tokens": 1737,
+        "completion_tokens": 230,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:47.537009",
+        "tokens_used": 1997,
+        "prompt_tokens": 1761,
+        "completion_tokens": 236,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:49.382211",
+        "tokens_used": 1940,
+        "prompt_tokens": 1702,
+        "completion_tokens": 238,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:50.739653",
+        "tokens_used": 1989,
+        "prompt_tokens": 1758,
+        "completion_tokens": 231,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:20:52.122801",
+        "tokens_used": 1934,
+        "prompt_tokens": 1699,
+        "completion_tokens": 235,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:16.182538",
+        "tokens_used": 3373,
+        "prompt_tokens": 1850,
+        "completion_tokens": 1523,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:20.253865",
+        "tokens_used": 3405,
+        "prompt_tokens": 1884,
+        "completion_tokens": 1521,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:24.432652",
+        "tokens_used": 3480,
+        "prompt_tokens": 1907,
+        "completion_tokens": 1573,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:30.279197",
+        "tokens_used": 4162,
+        "prompt_tokens": 2183,
+        "completion_tokens": 1979,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:34.232977",
+        "tokens_used": 3341,
+        "prompt_tokens": 1835,
+        "completion_tokens": 1506,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:37.850757",
+        "tokens_used": 3162,
+        "prompt_tokens": 1818,
+        "completion_tokens": 1344,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:42.049322",
+        "tokens_used": 3415,
+        "prompt_tokens": 1866,
+        "completion_tokens": 1549,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:43.981296",
+        "tokens_used": 1694,
+        "prompt_tokens": 1009,
+        "completion_tokens": 685,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:45.120485",
+        "tokens_used": 3020,
+        "prompt_tokens": 2694,
+        "completion_tokens": 326,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:26:51.202273",
+        "tokens_used": 5116,
+        "prompt_tokens": 2695,
+        "completion_tokens": 2421,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:00.230705",
+        "tokens_used": 6698,
+        "prompt_tokens": 3071,
+        "completion_tokens": 3627,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:07.307460",
+        "tokens_used": 5681,
+        "prompt_tokens": 2827,
+        "completion_tokens": 2854,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:14.452611",
+        "tokens_used": 5301,
+        "prompt_tokens": 2562,
+        "completion_tokens": 2739,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:16.532726",
+        "tokens_used": 3365,
+        "prompt_tokens": 2677,
+        "completion_tokens": 688,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:17.044331",
+        "tokens_used": 1462,
+        "prompt_tokens": 1429,
+        "completion_tokens": 33,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:18.519545",
+        "tokens_used": 1926,
+        "prompt_tokens": 1709,
+        "completion_tokens": 217,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:19.981551",
+        "tokens_used": 1911,
+        "prompt_tokens": 1682,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:21.434075",
+        "tokens_used": 1925,
+        "prompt_tokens": 1704,
+        "completion_tokens": 221,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:22.773530",
+        "tokens_used": 1895,
+        "prompt_tokens": 1672,
+        "completion_tokens": 223,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:24.129723",
+        "tokens_used": 1919,
+        "prompt_tokens": 1686,
+        "completion_tokens": 233,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:25.461446",
+        "tokens_used": 1892,
+        "prompt_tokens": 1672,
+        "completion_tokens": 220,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:26.772948",
+        "tokens_used": 1895,
+        "prompt_tokens": 1671,
+        "completion_tokens": 224,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:28.097784",
+        "tokens_used": 1976,
+        "prompt_tokens": 1768,
+        "completion_tokens": 208,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:29.483294",
+        "tokens_used": 1914,
+        "prompt_tokens": 1684,
+        "completion_tokens": 230,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:30.812892",
+        "tokens_used": 1897,
+        "prompt_tokens": 1662,
+        "completion_tokens": 235,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:32.097630",
+        "tokens_used": 1970,
+        "prompt_tokens": 1760,
+        "completion_tokens": 210,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:33.471404",
+        "tokens_used": 2094,
+        "prompt_tokens": 1885,
+        "completion_tokens": 209,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:34.845746",
+        "tokens_used": 1911,
+        "prompt_tokens": 1676,
+        "completion_tokens": 235,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:36.203476",
+        "tokens_used": 2057,
+        "prompt_tokens": 1811,
+        "completion_tokens": 246,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:37.469797",
+        "tokens_used": 1911,
+        "prompt_tokens": 1708,
+        "completion_tokens": 203,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:38.789441",
+        "tokens_used": 1932,
+        "prompt_tokens": 1706,
+        "completion_tokens": 226,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:40.075956",
+        "tokens_used": 1919,
+        "prompt_tokens": 1705,
+        "completion_tokens": 214,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:41.448108",
+        "tokens_used": 1942,
+        "prompt_tokens": 1692,
+        "completion_tokens": 250,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:42.777923",
+        "tokens_used": 1912,
+        "prompt_tokens": 1684,
+        "completion_tokens": 228,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:44.278513",
+        "tokens_used": 1919,
+        "prompt_tokens": 1689,
+        "completion_tokens": 230,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:45.618479",
+        "tokens_used": 1967,
+        "prompt_tokens": 1728,
+        "completion_tokens": 239,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:47.024930",
+        "tokens_used": 1965,
+        "prompt_tokens": 1749,
+        "completion_tokens": 216,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:48.372810",
+        "tokens_used": 1960,
+        "prompt_tokens": 1725,
+        "completion_tokens": 235,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:49.689904",
+        "tokens_used": 2000,
+        "prompt_tokens": 1777,
+        "completion_tokens": 223,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:50.963848",
+        "tokens_used": 1963,
+        "prompt_tokens": 1755,
+        "completion_tokens": 208,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:52.472965",
+        "tokens_used": 1982,
+        "prompt_tokens": 1765,
+        "completion_tokens": 217,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:54.028045",
+        "tokens_used": 2093,
+        "prompt_tokens": 1777,
+        "completion_tokens": 316,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:55.527212",
+        "tokens_used": 1962,
+        "prompt_tokens": 1709,
+        "completion_tokens": 253,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:56.882744",
+        "tokens_used": 1965,
+        "prompt_tokens": 1724,
+        "completion_tokens": 241,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:58.408018",
+        "tokens_used": 2070,
+        "prompt_tokens": 1786,
+        "completion_tokens": 284,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:27:59.828491",
+        "tokens_used": 1893,
+        "prompt_tokens": 1686,
+        "completion_tokens": 207,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:01.121832",
+        "tokens_used": 1853,
+        "prompt_tokens": 1667,
+        "completion_tokens": 186,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:02.428264",
+        "tokens_used": 1931,
+        "prompt_tokens": 1715,
+        "completion_tokens": 216,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:03.717713",
+        "tokens_used": 1919,
+        "prompt_tokens": 1712,
+        "completion_tokens": 207,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:05.076833",
+        "tokens_used": 1941,
+        "prompt_tokens": 1712,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:06.392010",
+        "tokens_used": 1956,
+        "prompt_tokens": 1739,
+        "completion_tokens": 217,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:07.718823",
+        "tokens_used": 1909,
+        "prompt_tokens": 1680,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:09.047193",
+        "tokens_used": 1929,
+        "prompt_tokens": 1708,
+        "completion_tokens": 221,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:10.322167",
+        "tokens_used": 1970,
+        "prompt_tokens": 1766,
+        "completion_tokens": 204,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:11.660760",
+        "tokens_used": 1948,
+        "prompt_tokens": 1716,
+        "completion_tokens": 232,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:12.999945",
+        "tokens_used": 1964,
+        "prompt_tokens": 1741,
+        "completion_tokens": 223,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:14.644126",
+        "tokens_used": 2084,
+        "prompt_tokens": 1762,
+        "completion_tokens": 322,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:16.000666",
+        "tokens_used": 1943,
+        "prompt_tokens": 1714,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:17.361094",
+        "tokens_used": 2054,
+        "prompt_tokens": 1812,
+        "completion_tokens": 242,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:18.773436",
+        "tokens_used": 2017,
+        "prompt_tokens": 1795,
+        "completion_tokens": 222,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:20.310049",
+        "tokens_used": 2060,
+        "prompt_tokens": 1774,
+        "completion_tokens": 286,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:21.672859",
+        "tokens_used": 2009,
+        "prompt_tokens": 1776,
+        "completion_tokens": 233,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:23.072105",
+        "tokens_used": 1976,
+        "prompt_tokens": 1747,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:24.384304",
+        "tokens_used": 1943,
+        "prompt_tokens": 1718,
+        "completion_tokens": 225,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:25.782000",
+        "tokens_used": 1978,
+        "prompt_tokens": 1738,
+        "completion_tokens": 240,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:27.403885",
+        "tokens_used": 1944,
+        "prompt_tokens": 1722,
+        "completion_tokens": 222,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:28.744950",
+        "tokens_used": 1974,
+        "prompt_tokens": 1744,
+        "completion_tokens": 230,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:30.107748",
+        "tokens_used": 1987,
+        "prompt_tokens": 1756,
+        "completion_tokens": 231,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:31.501952",
+        "tokens_used": 1954,
+        "prompt_tokens": 1714,
+        "completion_tokens": 240,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:32.946809",
+        "tokens_used": 1947,
+        "prompt_tokens": 1724,
+        "completion_tokens": 223,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:34.323707",
+        "tokens_used": 1967,
+        "prompt_tokens": 1737,
+        "completion_tokens": 230,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:35.689328",
+        "tokens_used": 1997,
+        "prompt_tokens": 1761,
+        "completion_tokens": 236,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:37.286934",
+        "tokens_used": 1940,
+        "prompt_tokens": 1702,
+        "completion_tokens": 238,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:38.703560",
+        "tokens_used": 1965,
+        "prompt_tokens": 1734,
+        "completion_tokens": 231,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-01-31T16:28:40.132821",
+        "tokens_used": 1936,
+        "prompt_tokens": 1699,
+        "completion_tokens": 237,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-02-01T09:12:29.401561",
+        "tokens_used": 2759,
+        "prompt_tokens": 2530,
+        "completion_tokens": 229,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-02-01T09:12:30.727957",
         "tokens_used": 3137,
         "prompt_tokens": 2954,
         "completion_tokens": 183,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-02-01T09:13:37.285185",
+        "tokens_used": 3138,
+        "prompt_tokens": 2894,
+        "completion_tokens": 244,
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "success": true,
+        "error": null
+      },
+      {
+        "timestamp": "2026-02-01T09:13:58.100492",
+        "tokens_used": 13252,
+        "prompt_tokens": 5060,
+        "completion_tokens": 8192,
         "model": "meta-llama/llama-4-scout-17b-16e-instruct",
         "success": true,
         "error": null
@@ -26,7 +917,7 @@
     "tokens_this_minute": 0,
     "last_request_time": null,
     "minute_window_start": null,
-    "day_start": null,
+    "day_start": "2026-02-01",
     "history": []
   }
 }

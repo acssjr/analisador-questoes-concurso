@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_db
+from src.models.classificacao import Classificacao
 from src.models.edital import Edital
 from src.models.projeto import Projeto
 from src.models.questao import Questao
@@ -567,12 +568,16 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
             disc_result = await db.execute(disc_stmt)
             disciplina_counts = {row[0]: row[1] for row in disc_result.all()}
 
-            # Count questions by assunto_pci (topic)
+            # Count questions by assunto from classificacoes table
             topic_stmt = (
-                select(Questao.assunto_pci, func.count(Questao.id).label("count"))
+                select(
+                    Classificacao.assunto,
+                    func.count(func.distinct(Classificacao.questao_id)).label("count"),
+                )
+                .join(Questao, Classificacao.questao_id == Questao.id)
                 .where(Questao.prova_id.in_(prova_ids))
-                .where(Questao.assunto_pci.isnot(None))
-                .group_by(Questao.assunto_pci)
+                .where(Classificacao.assunto.isnot(None))
+                .group_by(Classificacao.assunto)
             )
             topic_result = await db.execute(topic_stmt)
             topic_counts = {row[0]: row[1] for row in topic_result.all()}
@@ -601,8 +606,10 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _normalize_for_matching(text: str) -> str:
+def _normalize_for_matching(text: str | None) -> str:
     """Normalize text for case-insensitive matching."""
+    if not text:
+        return ""
     import unicodedata
 
     # Remove accents and convert to lowercase
@@ -759,7 +766,10 @@ def _build_item_children(itens: list, topic_counts: dict | None, parent_path: st
 
     for item in itens:
         item_id = item.get("id") or f"item-{len(children)}"
-        item_texto = item.get("texto", "")
+        # Handle malformed data where texto is null but actual text is in id field
+        item_texto = item.get("texto") or item.get("id") or ""
+        if not item_texto:
+            item_texto = ""
         item_count = _find_count_case_insensitive(item_texto, topic_counts)
 
         # Build full path for matching

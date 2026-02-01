@@ -1,0 +1,63 @@
+---
+session: analisador-questoes
+date: 2026-01-18
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Plan Docling + Vision extraction pipeline to replace PyMuPDF
+now: Execute implementation plan starting with Task 1 (dependencies)
+
+test: |
+  pytest tests/extraction/ -v
+  cd frontend && npm test -- --run
+
+done_this_session:
+  - task: Analyzed two research documents on document extraction (2026 tech update)
+    files: []
+  - task: Synthesized learnings from Docling vs Vision-First approaches
+    files: []
+  - task: Decided on hybrid 3-layer architecture (Docling → Haiku → Vision)
+    files: []
+  - task: Created comprehensive implementation plan with 8 tasks
+    files: [docs/plans/2026-01-17-docling-vision-extraction.md]
+
+blockers: []
+
+questions:
+  - Poppler installation on Windows needs manual setup (PATH configuration)
+  - Docling requires 16GB RAM - verify system has enough
+
+decisions:
+  - hybrid_over_vision_pure: Use Docling + Vision fallback instead of Vision-only (85-90% cost savings)
+  - docling_as_base: Docling's docling-parse backend resolves column issues that plagued PyMuPDF
+  - quality_routing: Route based on quality score (>=0.80 OK, <0.60 Vision fallback)
+  - three_tiers: Docling (free) → Haiku correction (cheap) → Vision (expensive fallback)
+
+findings:
+  - pymupdf_obsolete: PyMuPDF extracts in draw order, not reading order - causes column fusion
+  - docling_resolves_columns: docling-parse backend specifically designed for multi-column layouts
+  - vision_expensive: Claude Vision costs ~R$1.50/prova vs ~R$0.15 with hybrid approach
+  - quality_metrics: spell_error_rate + long_word_ratio detect corrupted extractions
+
+worked:
+  - Parallel agent research (two scouts reading documents simultaneously)
+  - Direct document reading for accurate analysis (vs agent summaries)
+
+failed:
+  - Initial agent summaries were superficial - missed key Docling details
+
+next:
+  - Execute Task 1: Add dependencies (docling, pdf2image, pyspellchecker)
+  - Execute Task 2: Create quality_checker.py module
+  - Execute Task 3: Create docling_extractor.py module
+  - Execute Task 4: Create vision_extractor.py module
+  - Execute Task 5: Create hybrid_extractor.py pipeline
+  - Execute Task 6: Integrate in upload.py API route
+  - Execute Task 7: Add E2E integration tests
+  - Execute Task 8: Update documentation
+
+files:
+  created:
+    - docs/plans/2026-01-17-docling-vision-extraction.md
+  modified: []

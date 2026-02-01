@@ -175,7 +175,7 @@ export function TaxonomyTree({
   return (
     <div
       role="tree"
-      aria-label="Arvore de disciplinas"
+      aria-label="Árvore de disciplinas"
       className={cn(
         'bg-gray-50 border border-gray-200 rounded-lg overflow-hidden',
         className
