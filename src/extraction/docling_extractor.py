@@ -6,6 +6,7 @@ Replaces PyMuPDF for text extraction with superior column handling
 and layout understanding via IBM's Docling library.
 """
 
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -174,9 +175,20 @@ def extract_with_docling(
                     try:
                         import pytesseract
 
-                        # Check if Tesseract executable exists
-                        tess_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-                        if Path(tess_path).exists():
+                        # Check if Tesseract executable exists (cross-platform)
+                        tess_path = shutil.which("tesseract")
+                        if not tess_path:
+                            # Fallback to Windows-specific paths
+                            windows_paths = [
+                                r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                                r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                            ]
+                            for path in windows_paths:
+                                if Path(path).exists():
+                                    tess_path = path
+                                    break
+
+                        if tess_path:
                             pytesseract.pytesseract.tesseract_cmd = tess_path
                             logger.info("Using pytesseract with system Tesseract")
                             # Use pytesseract-based extraction instead
@@ -194,22 +206,22 @@ def extract_with_docling(
                     try:
                         from docling.datamodel.pipeline_options import TesseractOcrOptions
 
-                        # Auto-detect Tesseract path on Windows
+                        # Auto-detect Tesseract path (cross-platform)
                         detected_path = tesseract_path
-                        if not detected_path and platform.system() == "Windows":
-                            import shutil
+                        if not detected_path:
+                            # Try shutil.which first (works on all platforms)
+                            detected_path = shutil.which("tesseract")
 
-                            # Try common installation paths
-                            common_paths = [
-                                r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-                                r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-                            ]
-                            for path in common_paths:
-                                if Path(path).exists():
-                                    detected_path = path
-                                    break
-                            if not detected_path:
-                                detected_path = shutil.which("tesseract")
+                            # Windows fallback: check common installation paths
+                            if not detected_path and platform.system() == "Windows":
+                                common_paths = [
+                                    r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                                    r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                                ]
+                                for path in common_paths:
+                                    if Path(path).exists():
+                                        detected_path = path
+                                        break
 
                         ocr_options = TesseractOcrOptions(
                             lang=["por", "eng"],  # Portuguese + English
@@ -237,8 +249,15 @@ def extract_with_docling(
                     pipeline_options.ocr_options = ocr_options
                     logger.info("Forced OCR enabled (RapidOCR with Portuguese)")
                 except ImportError:
-                    logger.warning("RapidOCR not available, OCR disabled")
-                    pipeline_options.do_ocr = False
+                    # RapidOCR also not available - fail if OCR was explicitly requested
+                    logger.error("RapidOCR not available and OCR was explicitly requested")
+                    return DoclingExtractionResult(
+                        text="",
+                        markdown="",
+                        page_count=0,
+                        success=False,
+                        error="OCR requested but no OCR engine available (install tesseract-ocr or rapidocr)",
+                    )
         else:
             pipeline_options.do_ocr = False
 

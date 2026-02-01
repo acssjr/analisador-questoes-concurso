@@ -18,7 +18,7 @@ from src.extraction.edital_extractor import WrongDocumentTypeError
 from src.extraction.hybrid_extractor import extract_questions_hybrid
 from src.extraction.llm_parser import extract_questions_chunked
 from src.extraction.pci_parser import parse_pci_pdf
-from src.extraction.pdf_detector import detect_pdf_format
+from src.extraction.pdf_detector import detect_pdf_format, inferir_banca_cargo_ano
 from src.llm.llm_orchestrator import LLMOrchestrator
 from src.models.classificacao import Classificacao
 from src.models.edital import Edital
@@ -442,10 +442,14 @@ async def upload_pdf(
                                         f"Hybrid extraction failed: {hybrid_result.error}"
                                     )
 
+                                # Infer banca/cargo/ano metadata from filename
+                                inferred_metadata = inferir_banca_cargo_ano(file_path, "")
+
                                 questoes_extraidas = hybrid_result.questions
                                 extraction_result = {
                                     "questoes": questoes_extraidas,
                                     "metadados": {
+                                        **inferred_metadata,
                                         "extraction_tier": hybrid_result.tier_used.value,
                                         "quality_score": hybrid_result.quality_score,
                                         "vision_fallback_rate": hybrid_result.vision_fallback_rate,
