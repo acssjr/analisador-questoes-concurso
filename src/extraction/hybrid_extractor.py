@@ -35,19 +35,20 @@ def preprocess_ocr_text(text: str) -> str:
         return text
 
     # 1. Add space after punctuation if missing
-    text = re.sub(r'([,;:])([a-záéíóúâêôãõç])', r'\1 \2', text)
+    text = re.sub(r"([,;:])([a-záéíóúâêôãõç])", r"\1 \2", text)
 
     # 2. Fix camelCase-like patterns (lowercase followed by uppercase word)
-    text = re.sub(r'([a-záéíóúâêôãõç])([A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç])', r'\1 \2', text)
+    text = re.sub(r"([a-záéíóúâêôãõç])([A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç])", r"\1 \2", text)
 
     # 3. Clean up multiple spaces
-    text = re.sub(r' +', ' ', text)
+    text = re.sub(r" +", " ", text)
 
     return text
 
 
 class ExtractionTier(Enum):
     """Extraction method tiers."""
+
     DOCLING = "docling"
     TEXT_LLM = "text_llm"  # Claude Haiku for text correction
     VISION_LLM = "vision_llm"  # Claude Sonnet Vision
@@ -115,6 +116,7 @@ class HybridExtractionPipeline:
         """Lazy load LLM orchestrator."""
         if self._llm is None:
             from src.llm.llm_orchestrator import LLMOrchestrator
+
             self._llm = LLMOrchestrator()
         return self._llm
 
@@ -160,7 +162,9 @@ class HybridExtractionPipeline:
 
             # Pre-process with regex to fix obvious concatenations
             preprocessed_text = preprocess_ocr_text(docling_result.text)
-            logger.debug(f"Pre-processed text: {len(docling_result.text)} -> {len(preprocessed_text)} chars")
+            logger.debug(
+                f"Pre-processed text: {len(docling_result.text)} -> {len(preprocessed_text)} chars"
+            )
 
             # Then use LLM for more nuanced correction
             corrected_text = self._correct_text_with_haiku(preprocessed_text)
@@ -252,7 +256,7 @@ class HybridExtractionPipeline:
                 # Try to break at a newline or space
                 if end < len(text):
                     for i in range(end, max(start + chunk_size - 500, start), -1):
-                        if text[i] in '\n ':
+                        if text[i] in "\n ":
                             end = i + 1
                             break
                 chunks.append(text[start:end])
@@ -302,10 +306,10 @@ TEXTO CORRIGIDO:"""
 
                 corrected = result.get("content", chunk)
                 corrected_chunks.append(corrected)
-                logger.debug(f"Corrected chunk {i+1}/{len(chunks)}")
+                logger.debug(f"Corrected chunk {i + 1}/{len(chunks)}")
 
             except Exception as e:
-                logger.error(f"Text correction failed for chunk {i+1}: {e}")
+                logger.error(f"Text correction failed for chunk {i + 1}: {e}")
                 corrected_chunks.append(chunk)  # Use original on error
 
         # Join corrected chunks
@@ -359,11 +363,11 @@ TEXTO CORRIGIDO:"""
 
             # Check if header ends with a preposition (à, a, ao, de, do, e, em, para)
             # indicating continuation on the next line
-            if re.search(r'\b(?:à|a|ao|de|do|e|em|para)\s*$', header_text, re.IGNORECASE):
+            if re.search(r"\b(?:à|a|ao|de|do|e|em|para)\s*$", header_text, re.IGNORECASE):
                 # Grab the next non-empty line as continuation
-                after_match = text[m.end():]
+                after_match = text[m.end() :]
                 # Skip leading whitespace/newlines to find next content line
-                lines_after = after_match.split('\n')
+                lines_after = after_match.split("\n")
                 continuation = ""
                 for line in lines_after:
                     stripped = line.strip()
@@ -371,8 +375,10 @@ TEXTO CORRIGIDO:"""
                         continuation = stripped
                         break
                 # Only merge if continuation is short (a title, not question text)
-                if continuation and len(continuation) < 60 and not re.search(
-                    r'quest[aã]o|correta|\d{2,}', continuation, re.IGNORECASE
+                if (
+                    continuation
+                    and len(continuation) < 60
+                    and not re.search(r"quest[aã]o|correta|\d{2,}", continuation, re.IGNORECASE)
                 ):
                     header_text = f"{header_text} {continuation}"
 
@@ -465,7 +471,7 @@ TEXTO CORRIGIDO:"""
 
         all_questions = []
         for i, chunk in enumerate(chunks):
-            logger.info(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk)} chars)")
+            logger.info(f"Processing chunk {i + 1}/{len(chunks)} ({len(chunk)} chars)")
 
             prompt = f"""Analise o texto abaixo extraído de uma prova de concurso e extraia TODAS as questões.
 
@@ -487,11 +493,11 @@ Extraia todas as questões no formato JSON especificado."""
 
                 if parsed:
                     questions = parsed.get("questoes", [])
-                    logger.info(f"Chunk {i+1}: found {len(questions)} questions")
+                    logger.info(f"Chunk {i + 1}: found {len(questions)} questions")
                     all_questions.extend(questions)
 
             except Exception as e:
-                logger.error(f"Chunk {i+1} parsing failed: {e}")
+                logger.error(f"Chunk {i + 1} parsing failed: {e}")
 
         # Deduplicate by question number, keeping most complete version
         questions_by_number: dict[int, dict] = {}
@@ -513,11 +519,12 @@ Extraia todas as questões no formato JSON especificado."""
 
         # Sort by question number and return
         unique_questions = [
-            questions_by_number[num]["question"]
-            for num in sorted(questions_by_number.keys())
+            questions_by_number[num]["question"] for num in sorted(questions_by_number.keys())
         ]
 
-        logger.info(f"Parsed {len(unique_questions)} unique questions from {len(all_questions)} total")
+        logger.info(
+            f"Parsed {len(unique_questions)} unique questions from {len(all_questions)} total"
+        )
         return unique_questions
 
     def _extract_all_with_vision_wrapped(
@@ -543,6 +550,7 @@ Extraia todas as questões no formato JSON especificado."""
 
             # Get page count
             import fitz
+
             doc = fitz.open(pdf_path)
             page_count = len(doc)
             doc.close()

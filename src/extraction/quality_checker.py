@@ -20,6 +20,7 @@ def _get_spell_checker():
     global _spell_checker
     if _spell_checker is None:
         from spellchecker import SpellChecker
+
         _spell_checker = SpellChecker(language="pt")
     return _spell_checker
 
@@ -29,9 +30,9 @@ class QualityMetrics:
     """Metrics for assessing extraction quality."""
 
     spell_error_rate: float  # Proportion of misspelled words (0-1)
-    long_word_ratio: float   # Proportion of words >18 chars (0-1)
+    long_word_ratio: float  # Proportion of words >18 chars (0-1)
     valid_word_ratio: float  # Proportion of recognized words (0-1)
-    word_count: int          # Total words analyzed
+    word_count: int  # Total words analyzed
     flagged_words: Optional[list[str]] = None  # Sample of problematic words
 
     def __post_init__(self):
@@ -86,9 +87,13 @@ def assess_extraction_quality(
     words = []
     for w in raw_words:
         # Strip punctuation from start and end
-        cleaned = re.sub(r'^[^\w]+|[^\w]+$', '', w)
+        cleaned = re.sub(r"^[^\w]+|[^\w]+$", "", w)
         # Check if remaining is alphabetic (allows accented chars)
-        if cleaned and len(cleaned) >= 3 and re.match(r'^[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]+$', cleaned):
+        if (
+            cleaned
+            and len(cleaned) >= 3
+            and re.match(r"^[a-zA-ZáéíóúâêîôûãõçÁÉÍÓÚÂÊÎÔÛÃÕÇ]+$", cleaned)
+        ):
             words.append(cleaned)
 
     if len(words) < 10:

@@ -552,7 +552,7 @@ def _repair_truncated_json(json_str: str) -> Optional[str]:
 
     if last_complete_pos > 0:
         # Truncate at the last complete question
-        repaired = json_str[:last_complete_pos + 1]
+        repaired = json_str[: last_complete_pos + 1]
 
         # Count what's still open
         open_braces = repaired.count("{") - repaired.count("}")

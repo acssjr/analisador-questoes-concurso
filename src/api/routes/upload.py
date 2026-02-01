@@ -131,9 +131,9 @@ def normalize_disciplina(nome: str) -> str:
         return ""
     cleaned = nome.lower().strip()
     # Remove trailing punctuation (e.g., "matemática," or "matemática.")
-    cleaned = re.sub(r'[.,;:!?\s]+$', '', cleaned)
+    cleaned = re.sub(r"[.,;:!?\s]+$", "", cleaned)
     # Remove leading punctuation
-    cleaned = re.sub(r'^[.,;:!?\s]+', '', cleaned)
+    cleaned = re.sub(r"^[.,;:!?\s]+", "", cleaned)
     return remove_accents(cleaned)
 
 
@@ -438,7 +438,9 @@ async def upload_pdf(
                                 hybrid_result = extract_questions_hybrid(file_path)
 
                                 if not hybrid_result.success:
-                                    raise Exception(f"Hybrid extraction failed: {hybrid_result.error}")
+                                    raise Exception(
+                                        f"Hybrid extraction failed: {hybrid_result.error}"
+                                    )
 
                                 questoes_extraidas = hybrid_result.questions
                                 extraction_result = {

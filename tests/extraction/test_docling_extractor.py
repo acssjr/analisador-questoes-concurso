@@ -47,6 +47,7 @@ class TestDoclingExtractor:
 
         # Create a temp file for the test
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             f.write(b"%PDF-1.4 fake content")
             temp_path = f.name
@@ -61,6 +62,7 @@ class TestDoclingExtractor:
             assert result.markdown is not None
         finally:
             import os
+
             os.unlink(temp_path)
 
     @patch("docling.document_converter.DocumentConverter")
@@ -72,6 +74,7 @@ class TestDoclingExtractor:
 
         # Create a temp file for the test
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             f.write(b"%PDF-1.4 fake content")
             temp_path = f.name
@@ -83,6 +86,7 @@ class TestDoclingExtractor:
             assert "PDF corrupted" in result.error
         finally:
             import os
+
             os.unlink(temp_path)
 
     def test_extract_file_not_found(self):

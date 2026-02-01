@@ -97,7 +97,8 @@ class TestHybridExtractionPipeline:
             needs_correction=lambda threshold=0.8: True,
         )
 
-        pipeline = HybridExtractionPipeline()
+        # force_ocr=False so quality check path is exercised (default is True which skips it)
+        pipeline = HybridExtractionPipeline(force_ocr=False)
 
         # Mock the vision wrapper directly since score < vision_threshold (0.60)
         # skips Tier 2 and goes straight to _extract_all_with_vision_wrapped

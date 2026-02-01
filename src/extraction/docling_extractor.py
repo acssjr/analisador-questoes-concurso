@@ -84,7 +84,9 @@ def _extract_with_pytesseract(
         doc.close()
 
         combined_text = "\n\n".join(all_text)
-        logger.info(f"pytesseract extraction complete: {len(combined_text)} chars, {page_count} pages")
+        logger.info(
+            f"pytesseract extraction complete: {len(combined_text)} chars, {page_count} pages"
+        )
 
         return DoclingExtractionResult(
             text=combined_text,
@@ -165,11 +167,13 @@ def extract_with_docling(
                 tesseract_available = False
                 try:
                     import tesserocr  # noqa: F401
+
                     tesseract_available = True
                 except ImportError:
                     # Try pytesseract as alternative
                     try:
                         import pytesseract
+
                         # Check if Tesseract executable exists
                         tess_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
                         if Path(tess_path).exists():
@@ -181,7 +185,9 @@ def extract_with_docling(
                             logger.warning("Tesseract not found, falling back to RapidOCR")
                             ocr_engine = "rapidocr"
                     except ImportError:
-                        logger.warning("tesserocr/pytesseract not installed, falling back to RapidOCR")
+                        logger.warning(
+                            "tesserocr/pytesseract not installed, falling back to RapidOCR"
+                        )
                         ocr_engine = "rapidocr"
 
                 if tesseract_available:
@@ -192,6 +198,7 @@ def extract_with_docling(
                         detected_path = tesseract_path
                         if not detected_path and platform.system() == "Windows":
                             import shutil
+
                             # Try common installation paths
                             common_paths = [
                                 r"C:\Program Files\Tesseract-OCR\tesseract.exe",
@@ -210,9 +217,13 @@ def extract_with_docling(
                             path=detected_path,
                         )
                         pipeline_options.ocr_options = ocr_options
-                        logger.info(f"Forced OCR enabled (Tesseract with Portuguese, path={detected_path})")
+                        logger.info(
+                            f"Forced OCR enabled (Tesseract with Portuguese, path={detected_path})"
+                        )
                     except ImportError:
-                        logger.warning("TesseractOcrOptions not available, falling back to RapidOCR")
+                        logger.warning(
+                            "TesseractOcrOptions not available, falling back to RapidOCR"
+                        )
                         ocr_engine = "rapidocr"
 
             if ocr_engine == "rapidocr":
@@ -237,6 +248,7 @@ def extract_with_docling(
         if platform.system() == "Windows":
             try:
                 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
+
                 backend = PyPdfiumDocumentBackend
                 logger.debug("Using PyPdfium backend (Windows workaround)")
             except ImportError:
@@ -268,14 +280,16 @@ def extract_with_docling(
 
         # Extract tables if present
         tables = []
-        if extract_tables and hasattr(doc, 'tables'):
+        if extract_tables and hasattr(doc, "tables"):
             for table in doc.tables:
                 try:
-                    tables.append({
-                        "header": table.header if hasattr(table, 'header') else [],
-                        "rows": table.rows if hasattr(table, 'rows') else [],
-                        "page": table.page if hasattr(table, 'page') else None,
-                    })
+                    tables.append(
+                        {
+                            "header": table.header if hasattr(table, "header") else [],
+                            "rows": table.rows if hasattr(table, "rows") else [],
+                            "page": table.page if hasattr(table, "page") else None,
+                        }
+                    )
                 except Exception as e:
                     logger.warning(f"Failed to extract table: {e}")
 
@@ -345,12 +359,12 @@ def extract_page_with_docling(
     # Docling uses <!-- page N --> markers
     import re
 
-    pages = re.split(r'<!-- page \d+ -->', full_result.markdown)
+    pages = re.split(r"<!-- page \d+ -->", full_result.markdown)
 
     if page_number < len(pages):
         page_content = pages[page_number]
         # Convert markdown back to plain text (simple strip)
-        plain_text = re.sub(r'[#*_`]', '', page_content).strip()
+        plain_text = re.sub(r"[#*_`]", "", page_content).strip()
 
         return DoclingExtractionResult(
             text=plain_text,

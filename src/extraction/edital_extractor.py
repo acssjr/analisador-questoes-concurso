@@ -111,37 +111,35 @@ def _repair_taxonomy_json(content: str) -> dict:
             if escape_next:
                 escape_next = False
                 continue
-            if ch == '\\' and in_string:
+            if ch == "\\" and in_string:
                 escape_next = True
                 continue
             if ch == '"' and not escape_next:
                 in_string = not in_string
-            if not in_string and ch == '}':
+            if not in_string and ch == "}":
                 last_brace = i
         if last_brace > 0:
-            truncated = content[:last_brace + 1]
+            truncated = content[: last_brace + 1]
         else:
             raise json.JSONDecodeError("Cannot repair JSON", content, 0)
 
     # Close remaining open brackets/braces in paired ]} order
     # Taxonomy structure is nested {[{[...]}]} so pairs close together
-    open_braces = truncated.count('{') - truncated.count('}')
-    open_brackets = truncated.count('[') - truncated.count(']')
+    open_braces = truncated.count("{") - truncated.count("}")
+    open_brackets = truncated.count("[") - truncated.count("]")
 
     pairs = min(max(0, open_braces), max(0, open_brackets))
-    repaired = truncated + ']}' * pairs
+    repaired = truncated + "]}" * pairs
     extra_braces = max(0, open_braces) - pairs
     extra_brackets = max(0, open_brackets) - pairs
-    repaired += ']' * extra_brackets + '}' * extra_braces
+    repaired += "]" * extra_brackets + "}" * extra_braces
 
     try:
         result = json.loads(repaired)
         logger.info(f"Taxonomy JSON repair succeeded (truncated at char {last_pos})")
         return result
     except json.JSONDecodeError as e:
-        raise json.JSONDecodeError(
-            f"JSON repair failed after truncation: {e}", content, 0
-        )
+        raise json.JSONDecodeError(f"JSON repair failed after truncation: {e}", content, 0)
 
 
 class DocumentType(Enum):
@@ -482,15 +480,15 @@ def extract_conteudo_programatico(
             cargo_pos = text_upper.find(cargo_upper)
             if cargo_pos >= 0:
                 # Found cargo section, extract from there
-                remaining = text[cargo_pos + len(cargo):]
+                remaining = text[cargo_pos + len(cargo) :]
                 # Find next cargo/section boundary (all-caps line with 10+ chars)
                 import re as _re_local
+
                 next_heading = _re_local.search(
-                    r'\n\s*[A-ZÁÉÍÓÚÃÕÂÊÔÇ][A-ZÁÉÍÓÚÃÕÂÊÔÇ\s]{10,}\n',
-                    remaining
+                    r"\n\s*[A-ZÁÉÍÓÚÃÕÂÊÔÇ][A-ZÁÉÍÓÚÃÕÂÊÔÇ\s]{10,}\n", remaining
                 )
                 if next_heading:
-                    text = text[cargo_pos:cargo_pos + len(cargo) + next_heading.start()]
+                    text = text[cargo_pos : cargo_pos + len(cargo) + next_heading.start()]
                 else:
                     text = text[cargo_pos:]
                 logger.info(f"Pre-filtered text to cargo '{cargo}' section: {len(text)} chars")

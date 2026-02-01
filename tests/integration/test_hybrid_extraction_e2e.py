@@ -35,9 +35,9 @@ class TestHybridExtractionE2E:
 
         # Should return a result (success or failure)
         assert result is not None
-        assert hasattr(result, 'success')
-        assert hasattr(result, 'questions')
-        assert hasattr(result, 'tier_used')
+        assert hasattr(result, "success")
+        assert hasattr(result, "questions")
+        assert hasattr(result, "tier_used")
 
     def test_extraction_tier_tracking(self, sample_pdf_path):
         """Verify tier usage is tracked correctly."""
@@ -48,9 +48,7 @@ class TestHybridExtractionE2E:
 
         # At least one tier should have pages if successful
         if result.success:
-            total_tracked = sum(
-                len(pages) for pages in result.pages_by_tier.values()
-            )
+            total_tracked = sum(len(pages) for pages in result.pages_by_tier.values())
             assert total_tracked > 0
 
     def test_quality_score_in_range(self, sample_pdf_path):

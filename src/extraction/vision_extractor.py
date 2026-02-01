@@ -208,23 +208,25 @@ def extract_page_with_vision(
         response = api_client.messages.create(
             model=model,
             max_tokens=4000,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/png",
-                            "data": image_b64,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": image_b64,
+                            },
                         },
-                    },
-                    {
-                        "type": "text",
-                        "text": VISION_EXTRACTION_PROMPT,
-                    },
-                ],
-            }],
+                        {
+                            "type": "text",
+                            "text": VISION_EXTRACTION_PROMPT,
+                        },
+                    ],
+                }
+            ],
         )
 
         content = response.content[0].text

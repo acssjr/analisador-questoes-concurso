@@ -41,6 +41,7 @@ class TestRasterizePdfPage:
         # Mock save method to write to buffer
         def mock_save(buffer, format):
             buffer.write(b"fake_png_data")
+
         mock_image.save.side_effect = mock_save
 
         mock_convert.return_value = [mock_image]
@@ -75,8 +76,10 @@ class TestExtractPageWithVision:
         """Successful Vision extraction should return questions."""
         # Setup pdf2image mock
         mock_image = MagicMock()
+
         def mock_save(buffer, format):
             buffer.write(b"fake_png_data")
+
         mock_image.save.side_effect = mock_save
         mock_convert.return_value = [mock_image]
 
@@ -85,9 +88,11 @@ class TestExtractPageWithVision:
 
         # Setup anthropic mock
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(
-            text='{"questoes": [{"numero": 1, "enunciado": "Test", "alternativas": {"A": "a", "B": "b", "C": "c", "D": "d", "E": "e"}}]}'
-        )]
+        mock_response.content = [
+            MagicMock(
+                text='{"questoes": [{"numero": 1, "enunciado": "Test", "alternativas": {"A": "a", "B": "b", "C": "c", "D": "d", "E": "e"}}]}'
+            )
+        ]
         mock_response.usage.input_tokens = 1000
         mock_response.usage.output_tokens = 500
 
@@ -121,4 +126,7 @@ class TestVisionPrompt:
 
     def test_prompt_includes_portuguese_handling(self):
         """Prompt should mention Portuguese characters."""
-        assert "português" in VISION_EXTRACTION_PROMPT.lower() or "acentos" in VISION_EXTRACTION_PROMPT.lower()
+        assert (
+            "português" in VISION_EXTRACTION_PROMPT.lower()
+            or "acentos" in VISION_EXTRACTION_PROMPT.lower()
+        )
