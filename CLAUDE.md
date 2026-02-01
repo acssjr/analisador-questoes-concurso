@@ -98,6 +98,12 @@ Migrations via Alembic. Supports pgvector for embeddings.
 Required: `GROQ_API_KEY` in `.env`
 Optional: `ANTHROPIC_API_KEY` (Vision fallback), `DATABASE_URL` (default: SQLite)
 
+## Git Workflow
+
+- **Never push directly to `main`.** Always create a feature branch and open a PR.
+- Branch naming: `feature/`, `fix/`, `docs/` prefixes
+- Commits follow conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
+
 ## Important Patterns
 
 - Taxonomy incidence counts come from the `classificacoes` table (not `questoes.assunto_pci` which is legacy/unused)
