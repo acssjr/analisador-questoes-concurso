@@ -334,7 +334,7 @@ export function QuestionPanel({
       <div className={cn('bg-gray-50 border border-gray-200 rounded-lg p-8', className)}>
         <div className="flex items-center justify-center gap-2 text-gray-500">
           <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-          <span className="text-sm">Carregando questoes...</span>
+          <span className="text-sm">Carregando questões...</span>
         </div>
       </div>
     );
@@ -343,7 +343,7 @@ export function QuestionPanel({
   if (!selectedDisciplina) {
     return (
       <div className={cn('bg-gray-50 border border-gray-200 rounded-lg p-8 text-center', className)}>
-        <p className="text-gray-500 text-sm">Selecione uma disciplina para ver as questoes</p>
+        <p className="text-gray-500 text-sm">Selecione uma disciplina para ver as questões</p>
       </div>
     );
   }
@@ -351,7 +351,7 @@ export function QuestionPanel({
   if (questoes.length === 0) {
     return (
       <div className={cn('bg-gray-50 border border-gray-200 rounded-lg p-8 text-center', className)}>
-        <p className="text-gray-500 text-sm">Nenhuma questao encontrada para esta disciplina</p>
+        <p className="text-gray-500 text-sm">Nenhuma questão encontrada para esta disciplina</p>
       </div>
     );
   }
@@ -363,7 +363,7 @@ export function QuestionPanel({
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-700">{selectedDisciplina}</h3>
           <span className="text-xs text-gray-500">
-            {questoes.length} de {total} questoes
+            {questoes.length} de {total} questões
           </span>
         </div>
       </div>

@@ -1,0 +1,59 @@
+---
+session: analisador-questoes
+date: 2026-01-18
+status: complete
+outcome: PARTIAL_PLUS
+---
+
+goal: Fixed hybrid extraction to extract all 60 questions from multi-column PDFs
+now: Merge PR #5 and test with other PDF formats
+test: uv run python -c "from src.extraction.hybrid_extractor import extract_questions_hybrid; r = extract_questions_hybrid('data/raw/provas/PROVA UNEB 2024 TÉCNICO UNIVERSITÁRIO.pdf'); print(f'{len(r.questions)} questions')"
+
+done_this_session:
+  - task: Added force_ocr parameter to docling_extractor
+    files: [src/extraction/docling_extractor.py]
+  - task: Added force_ocr and chunked processing to hybrid_extractor
+    files: [src/extraction/hybrid_extractor.py]
+  - task: Fixed JSON repair for truncated LLM responses
+    files: [src/extraction/llm_parser.py]
+  - task: Fixed disciplina filter with PostgreSQL unaccent()
+    files: [src/api/routes/projetos.py]
+
+blockers: []
+
+questions: []
+
+decisions:
+  - force_ocr_default_true: RapidOCR bypasses problematic embedded text layer that causes column bleeding
+  - chunk_size_8000: 8000 chars with 1000 overlap prevents token limit truncation
+  - json_repair_regex: Find last complete question object using regex patterns for motivo_anulacao/anulada/gabarito
+
+findings:
+  - column_bleeding: Multi-column PDFs have embedded text that reads horizontally across columns
+  - ocr_fixes_bleeding: Forced OCR renders page as image, OCR reads columns correctly
+  - llm_fixes_ocr: LLM parser fixes concatenated words and missing accents from OCR
+  - json_truncation: LLM responses truncate mid-string when hitting 8192 token limit
+
+worked:
+  - RapidOCR with force_full_page_ocr=True
+  - Chunked text processing (8000 chars, 1000 overlap)
+  - Regex-based JSON repair finding last complete question
+  - PyPdfium backend on Windows (docling-parse has path bug)
+
+failed:
+  - Direct text extraction from multi-column PDFs (column bleeding)
+  - Quality checker on OCR text (rejects concatenated words)
+  - Simple brace-counting JSON repair (fails on truncated strings)
+
+next:
+  - Merge PR #5 to main
+  - Test with other PDF formats (different bancas)
+  - Consider increasing max_tokens if Groq supports higher limits
+
+files:
+  created: []
+  modified:
+    - src/extraction/docling_extractor.py
+    - src/extraction/hybrid_extractor.py
+    - src/extraction/llm_parser.py
+    - src/api/routes/projetos.py

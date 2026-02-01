@@ -2,7 +2,7 @@
 
 **Session**: analisador-questoes
 **Created**: 2026-01-09
-**Last Updated**: 2026-01-16T17:15:00Z
+**Last Updated**: 2026-02-01T12:00:00Z
 
 ---
 
@@ -16,6 +16,7 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 2. **Classificação com LLM sem erros de API** ✅
 3. **Pipeline de Análise Profunda (4 fases)** ✅
 4. **Frontend completo com 3 abas** ✅
+5. **Extração híbrida Docling + Vision** ✅ COMPLETE
 
 ---
 
@@ -50,16 +51,34 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
     - Merged feature branch to main with 11 conflict resolutions
     - Added new layout components (AppLayout, GlobalNavbar, GlobalSidebar)
     - Added new pages (Configuracoes, Perfil, Projetos with full functionality)
+  - [x] **Session 14: Docling + Vision Extraction Plan** (2026-01-18)
+    - Analyzed two research documents on document extraction tech 2026
+    - Decided hybrid 3-layer architecture: Docling → Haiku → Vision
+    - Created comprehensive implementation plan (8 tasks)
+    - Plan saved: `docs/plans/2026-01-17-docling-vision-extraction.md`
+  - [x] **Session 15: Docling + Vision Implementation** (2026-01-18)
+    - [x] Task 1: Added dependencies (docling, pdf2image, pyspellchecker)
+    - [x] Task 2: Created quality_checker.py module (TDD)
+    - [x] Task 3: Created docling_extractor.py module (TDD)
+    - [x] Task 4: Created vision_extractor.py module (TDD)
+    - [x] Task 5: Created hybrid_extractor.py pipeline (TDD)
+    - [x] Task 6: Integrated in upload.py API route (USE_HYBRID_EXTRACTION flag)
+    - [x] Task 7: Added E2E integration tests
+    - [x] Task 8: Updated documentation (ARQUITETURA_COMPLETA.md §13)
+    - All 35 tests passing (unit + E2E)
+    - Feature flag enabled by default
+  - [x] **Session 16: Taxonomy fixes, frontend accents, CLAUDE.md** (2026-02-01)
+    - Fixed taxonomy incidence to query classificacoes table (not legacy assunto_pci)
+    - Fixed null texto in edital taxonomy nodes
+    - Fixed 19 Portuguese accent strings in frontend
+    - Added CLAUDE.md with project guidance and git workflow rule
 
-- Now: [->] PDF Extraction Strategy Decision
+- Now: [->] PR #5 merge to main
 
 - Next:
-  - [ ] **Decide extraction approach**: Vision-First (simpler, 95%+ accuracy) vs Hybrid 3-layer (cheaper, 93-97%)
-  - [ ] Test Vision LLM on problematic pages (43-55) with pdf2image + Claude
-  - [ ] Install Docling (`pip install docling`) - replace PyMuPDF
-  - [ ] Implement quality metrics (spell_error_rate, long_word_ratio)
-  - [ ] Reprocess affected questions with new pipeline
   - [ ] Production deployment
+  - [ ] Consider normalizing discipline names against edital taxonomy during upload
+  - [ ] Consider deprecating Questao.assunto_pci field
 
 ### Fixes Applied (Session 8)
 - [x] Real upload progress with XMLHttpRequest (Option A)
@@ -78,6 +97,9 @@ Sistema completo de análise de questões de concursos públicos brasileiros com
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
+| Hybrid extraction (Docling + Vision) | Docling resolves column issues; Vision as 5% fallback (85-90% cost savings vs Vision-only) | 2026-01-18 |
+| Three-tier routing | Quality score >=0.80 → Docling; <0.80 → Haiku correction; <0.60 → Vision | 2026-01-18 |
+| PyMuPDF deprecated | Extracts in draw order, not reading order; causes column fusion and mojibake | 2026-01-18 |
 | Pipeline 4 fases | Vetorização → Map → Reduce → CoVe (baseado em pesquisa) | 2026-01-13 |
 | HDBSCAN clustering | Auto-detects number of clusters | 2026-01-14 |
 | Multi-Pass voting | 3/5 = high confidence, 2/5 = medium | 2026-01-14 |
@@ -478,3 +500,19 @@ cd frontend && npm run dev
 - Build/test: 111 passed, 0 failed
 ## Session Auto-Summary (2026-01-16T00:06:34.170Z)
 - Build/test: 132 passed, 0 failed
+
+## Session Auto-Summary (2026-01-18T00:50:00Z)
+- Build/test: 35 extraction tests passed (unit + E2E)
+- Hybrid extraction pipeline implemented (Tasks 1-8)
+- Files created: quality_checker.py, docling_extractor.py, vision_extractor.py, hybrid_extractor.py
+- Blocker: Poppler not installed (required for Vision fallback)
+## Session Auto-Summary (2026-01-18T15:26:56.080Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-01-18T23:50:35.984Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-01-31T17:06:12.853Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-01-31T18:25:32.273Z)
+- Build/test: 158 passed, 0 failed
+## Session Auto-Summary (2026-02-01T06:36:45.480Z)
+- Build/test: 158 passed, 0 failed

@@ -1,0 +1,58 @@
+---
+session: analisador-questoes
+date: 2026-02-01
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: Created CLAUDE.md, fixed taxonomy cross-referencing, fixed 3 UI issues, fixed frontend accents
+now: Verify UI displays correctly and commit all changes
+
+test: |
+  curl -s http://localhost:8003/api/projetos/8d965326-d4b3-4686-9591-0a10c15965c4/taxonomia-incidencia | python -c "import sys,json; d=json.load(sys.stdin); print('topic_counts:', bool(d.get('topic_counts'))); print('null_nomes:', '\"nome\":null' in json.dumps(d))"
+
+done_this_session:
+  - task: Created CLAUDE.md with full project guidance (commands, architecture, patterns)
+    files: [CLAUDE.md]
+  - task: Fixed taxonomy topic-level cross-referencing (was querying Questao.assunto_pci which is always NULL, changed to JOIN classificacoes table)
+    files: [src/api/routes/projetos.py]
+  - task: Fixed discipline name in DB ("Legislação e Administração Pública" → "Legislação Básica aplicada À Administração Pública")
+    files: []
+  - task: Fixed 6 null taxonomy nodes in edital (items with texto=null, text was in id field)
+    files: [src/api/routes/projetos.py]
+  - task: Fixed 19 Portuguese accent strings in frontend
+    files: [frontend/src/pages/projeto/AnaliseProfunda.tsx, frontend/src/components/features/QuestionPanel.tsx, frontend/src/components/features/TaxonomyTree.tsx]
+  - task: Updated README.md with hybrid extraction pipeline documentation
+    files: [README.md]
+
+blockers: []
+
+questions:
+  - The hybrid extractor's _assign_disciplines_from_headers() produced "Legislação e Administração Pública" instead of the correct edital name - the regex captures the header text from OCR which may differ from edital. Consider normalizing against edital taxonomy after extraction.
+
+decisions:
+  - taxonomy_query_source: Changed from Questao.assunto_pci (legacy, always NULL) to Classificacao.assunto via JOIN. The classificacoes table has 60 records with LLM-assigned topics.
+  - null_texto_fallback: Added fallback in _build_item_children to use item.id when item.texto is null, rather than fixing only the data.
+  - discipline_db_fix: Direct SQL UPDATE rather than re-extraction, since the extraction pipeline assigns from OCR text which may vary.
+
+findings:
+  - two_classification_systems: Legacy Questao.assunto_pci (unused) vs Classificacao table (active). Incidence API was querying the wrong one.
+  - edital_taxonomy_data_issue: 6 items under "Constituição Federal de 1988" had texto=null with actual text in id field (edital extraction bug).
+  - classification_data_exists: All 60 questions have classifications in classificacoes table with assunto, topico, subtopico and confidence scores.
+
+worked:
+  - JOIN Classificacao table for topic counts instead of querying legacy assunto_pci field
+  - Fallback logic in _build_item_children (texto || id) handles malformed taxonomy data gracefully
+  - SQL UPDATE for discipline name fix was instant and correct
+
+failed: []
+
+next:
+  - Commit all changes on feature/hybrid-extraction-pipeline branch
+  - Consider normalizing discipline names against edital taxonomy during upload (upload.py) to prevent mismatches
+  - Consider deprecating Questao.assunto_pci field since Classificacao table is the source of truth
+  - Frontend port config: .env has VITE_API_URL=http://localhost:8003/api (non-standard port from debugging)
+
+files:
+  created: [CLAUDE.md]
+  modified: [README.md, src/api/routes/projetos.py, frontend/src/pages/projeto/AnaliseProfunda.tsx, frontend/src/components/features/QuestionPanel.tsx, frontend/src/components/features/TaxonomyTree.tsx]

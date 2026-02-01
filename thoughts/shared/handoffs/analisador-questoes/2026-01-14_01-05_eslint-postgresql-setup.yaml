@@ -1,0 +1,79 @@
+---
+session: analisador-questoes
+date: 2026-01-14
+status: complete
+outcome: SUCCEEDED
+---
+
+goal: ESLint cleanup (23 errors) + PostgreSQL with pgvector setup complete
+now: Test full workflow with PostgreSQL - upload edital, process provas
+test: curl -s http://localhost:8000/api/editais/ && docker exec analisador-questoes-postgres psql -U analisador -d analisador_questoes -c "\dt"
+
+done_this_session:
+  - task: Fixed all 23 ESLint errors across 8 files
+    files: [frontend/src/components/charts/TreemapChart.tsx, frontend/src/components/features/EditaisList.tsx, frontend/src/components/features/UploadModal.tsx, frontend/src/components/ui/Modal.test.tsx, frontend/src/pages/Dashboard.test.tsx, frontend/src/services/api.ts, frontend/src/test/mocks.ts, frontend/src/utils/calculations.ts]
+  - task: Configured PostgreSQL 16 with pgvector 0.8.1 via Docker
+    files: [docker-compose.yml, POSTGRESQL_SETUP.md]
+  - task: Created Alembic migration for pgvector extension
+    files: [alembic/versions/b1c2d3e4f5g6_enable_pgvector_extension.py]
+  - task: Updated .env for PostgreSQL connection
+    files: [.env]
+  - task: Installed psycopg2-binary for Alembic migrations
+    files: [pyproject.toml]
+  - task: Created all database tables in PostgreSQL
+    files: []
+  - task: Committed and pushed all changes (commit 0eed5c5)
+    files: []
+
+blockers: []
+
+questions: []
+
+decisions:
+  - postgresql_over_sqlite: pgvector enables semantic search for question similarity and classification
+  - docker_compose: Simple setup with persistent volume for data
+  - dual_driver: asyncpg for app runtime, psycopg2 for Alembic migrations
+
+findings:
+  - pgvector_version: 0.8.1 installed with vector(768) support
+  - alembic_sync_driver: Alembic requires sync driver (psycopg2), app uses async (asyncpg)
+  - fresh_db_migration: Fresh PostgreSQL needs tables created first, then stamp head
+
+worked:
+  - Docker compose up -d for PostgreSQL container
+  - SQLAlchemy create_all for initial table creation
+  - Alembic stamp head after manual table creation
+  - Killing old Python processes before restarting backend
+
+failed:
+  - Direct alembic upgrade head on fresh DB (tables don't exist yet)
+  - taskkill on Windows (needed PowerShell to kill Python processes)
+
+next:
+  - Test complete workflow: upload edital -> extract taxonomy -> upload provas -> extract questoes
+  - Implement embedding generation for questions
+  - Add similarity search using pgvector
+  - Create classification endpoint using embeddings
+
+files:
+  created:
+    - docker-compose.yml
+    - POSTGRESQL_SETUP.md
+    - alembic/versions/b1c2d3e4f5g6_enable_pgvector_extension.py
+  modified:
+    - .env
+    - pyproject.toml
+    - frontend/src/components/charts/TreemapChart.tsx
+    - frontend/src/components/features/EditaisList.tsx
+    - frontend/src/components/features/EditalWorkflowModal.tsx
+    - frontend/src/components/features/UploadModal.tsx
+    - frontend/src/components/ui/Modal.test.tsx
+    - frontend/src/pages/Dashboard.test.tsx
+    - frontend/src/services/api.ts
+    - frontend/src/test/mocks.ts
+    - frontend/src/utils/calculations.ts
+
+services_running:
+  - PostgreSQL: localhost:5432 (container: analisador-questoes-postgres)
+  - Backend: localhost:8000 (FastAPI + asyncpg)
+  - Frontend: localhost:5175 (Vite dev server)

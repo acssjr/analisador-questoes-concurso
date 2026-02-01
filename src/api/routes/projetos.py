@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_db
+from src.models.classificacao import Classificacao
 from src.models.edital import Edital
 from src.models.projeto import Projeto
 from src.models.questao import Questao
@@ -530,15 +531,20 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
             disc_result = await db.execute(disc_stmt)
             disciplina_counts = {row[0]: row[1] for row in disc_result.all()}
 
-            # Count questions by assunto_pci (topic)
+            # Count questions by (disciplina, assunto) from classificacoes table
             topic_stmt = (
-                select(Questao.assunto_pci, func.count(Questao.id).label("count"))
+                select(
+                    Classificacao.disciplina,
+                    Classificacao.assunto,
+                    func.count(func.distinct(Classificacao.questao_id)).label("count"),
+                )
+                .join(Questao, Classificacao.questao_id == Questao.id)
                 .where(Questao.prova_id.in_(prova_ids))
-                .where(Questao.assunto_pci.isnot(None))
-                .group_by(Questao.assunto_pci)
+                .where(Classificacao.assunto.isnot(None))
+                .group_by(Classificacao.disciplina, Classificacao.assunto)
             )
             topic_result = await db.execute(topic_stmt)
-            topic_counts = {row[0]: row[1] for row in topic_result.all()}
+            topic_counts = {(row[0], row[1]): row[2] for row in topic_result.all()}
 
             # Get total questions
             total_stmt = select(func.count(Questao.id)).where(Questao.prova_id.in_(prova_ids))
@@ -564,8 +570,11 @@ async def get_projeto_taxonomia_incidencia(projeto_id: uuid.UUID):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def _normalize_for_matching(text: str) -> str:
+def _normalize_for_matching(text: str | None) -> str:
     """Normalize text for case-insensitive matching."""
+    if not text:
+        return ""
+    text = str(text)  # Defensive coercion for non-string input
     import unicodedata
 
     # Remove accents and convert to lowercase
@@ -574,7 +583,9 @@ def _normalize_for_matching(text: str) -> str:
     return without_accents.lower().strip()
 
 
-def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
+def _find_count_case_insensitive(
+    name: str, counts: dict | None, disciplina: str | None = None
+) -> int:
     """Find count using case-insensitive and flexible matching.
 
     Matches discipline names flexibly:
@@ -582,9 +593,48 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
     - "LÍNGUA PORTUGUESA" matches "Língua Portuguesa"
 
     Uses first-word prefix matching when exact match fails.
+
+    Args:
+        name: The name to search for (disciplina or assunto)
+        counts: Dictionary of counts (either {name: count} or {(disciplina, assunto): count})
+        disciplina: Optional disciplina context for assunto lookup in tuple-keyed dicts
     """
     if counts is None:
         return 0
+
+    # If disciplina is provided, we're looking up assunto in a (disciplina, assunto) dict
+    if disciplina is not None:
+        disciplina_normalized = _normalize_for_matching(disciplina)
+        name_normalized = _normalize_for_matching(name)
+
+        # Try exact match with tuple key
+        for key, value in counts.items():
+            if isinstance(key, tuple) and len(key) == 2:
+                disc_key, assunto_key = key
+                if (
+                    _normalize_for_matching(disc_key) == disciplina_normalized
+                    and _normalize_for_matching(assunto_key) == name_normalized
+                ):
+                    return value
+
+        # Try first-word prefix matching for assunto within disciplina
+        first_word = name_normalized.split()[0] if name_normalized else ""
+        if first_word:
+            total = 0
+            for key, value in counts.items():
+                if isinstance(key, tuple) and len(key) == 2:
+                    disc_key, assunto_key = key
+                    if _normalize_for_matching(disc_key) == disciplina_normalized:
+                        assunto_normalized = _normalize_for_matching(assunto_key)
+                        assunto_first = assunto_normalized.split()[0] if assunto_normalized else ""
+                        if assunto_first == first_word:
+                            total += value
+            if total > 0:
+                return total
+
+        return 0
+
+    # Original logic for non-tuple dicts (disciplina counts)
     # Try exact match first
     if name in counts:
         return counts[name]
@@ -592,7 +642,7 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
     # Try case-insensitive match
     name_normalized = _normalize_for_matching(name)
     for key, value in counts.items():
-        if _normalize_for_matching(key) == name_normalized:
+        if not isinstance(key, tuple) and _normalize_for_matching(key) == name_normalized:
             return value
 
     # Try first-word prefix matching
@@ -601,10 +651,11 @@ def _find_count_case_insensitive(name: str, counts: dict | None) -> int:
     if first_word:
         total = 0
         for key, value in counts.items():
-            key_normalized = _normalize_for_matching(key)
-            key_first = key_normalized.split()[0] if key_normalized else ""
-            if key_first == first_word:
-                total += value
+            if not isinstance(key, tuple):
+                key_normalized = _normalize_for_matching(key)
+                key_first = key_normalized.split()[0] if key_normalized else ""
+                if key_first == first_word:
+                    total += value
         if total > 0:
             return total
 
@@ -656,13 +707,15 @@ def _build_incidencia_tree(
         children = []
         itens = disciplina.get("itens", [])
         if itens:
-            children = _build_item_children(itens, topic_counts, disc_nome)
+            children = _build_item_children(itens, topic_counts, disc_nome, disciplina=disc_nome)
         else:
             # Legacy format with assuntos
             assuntos = disciplina.get("assuntos", [])
             for assunto in assuntos:
                 assunto_nome = assunto.get("nome", "")
-                assunto_count = _find_count_case_insensitive(assunto_nome, topic_counts)
+                assunto_count = _find_count_case_insensitive(
+                    assunto_nome, topic_counts, disciplina=disc_nome
+                )
 
                 topico_children = []
                 for topico in assunto.get("topicos", []):
@@ -714,23 +767,39 @@ def _build_incidencia_tree(
     return incidencia
 
 
-def _build_item_children(itens: list, topic_counts: dict | None, parent_path: str = "") -> list:
+def _build_item_children(
+    itens: list, topic_counts: dict | None, parent_path: str = "", disciplina: str | None = None
+) -> list:
     """
     Recursively build children from ItemConteudo format.
+
+    Args:
+        itens: List of item dictionaries from taxonomy
+        topic_counts: Dictionary of topic counts (either {name: count} or {(disciplina, assunto): count})
+        parent_path: Full hierarchical path for nested items
+        disciplina: The disciplina name for context when looking up assunto counts
     """
     children = []
 
     for item in itens:
         item_id = item.get("id") or f"item-{len(children)}"
-        item_texto = item.get("texto", "")
-        item_count = _find_count_case_insensitive(item_texto, topic_counts)
+        # Handle malformed data where texto is null but actual text is in id field
+        item_texto = item.get("texto") or str(item.get("id") or "") or ""
+        if not item_texto:
+            item_texto = ""
+        # Pass disciplina to lookup assunto counts in (disciplina, assunto) dict
+        item_count = _find_count_case_insensitive(item_texto, topic_counts, disciplina=disciplina)
 
         # Build full path for matching
         full_path = f"{parent_path} > {item_texto}" if parent_path else item_texto
 
         # Recursively process children (filhos)
         filhos = item.get("filhos", [])
-        item_children = _build_item_children(filhos, topic_counts, full_path) if filhos else []
+        item_children = (
+            _build_item_children(filhos, topic_counts, full_path, disciplina=disciplina)
+            if filhos
+            else []
+        )
 
         children.append(
             {

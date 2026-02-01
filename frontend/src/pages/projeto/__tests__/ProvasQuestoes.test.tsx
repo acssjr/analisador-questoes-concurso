@@ -91,7 +91,7 @@ describe('ProvasQuestoes', () => {
       });
 
       // Check header
-      expect(screen.getByText('Provas & Questoes')).toBeInTheDocument();
+      expect(screen.getByText('Provas & Questões')).toBeInTheDocument();
 
       // Check upload dropzone is rendered
       expect(screen.getByTestId('upload-dropzone')).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('ProvasQuestoes', () => {
       expect(mockAddNotification).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'success',
-          title: 'Upload concluido',
+          title: 'Upload concluído',
         })
       );
     });
@@ -568,7 +568,7 @@ describe('ProvasQuestoes', () => {
       });
 
       // Component should still render
-      expect(screen.getByText('Provas & Questoes')).toBeInTheDocument();
+      expect(screen.getByText('Provas & Questões')).toBeInTheDocument();
     });
   });
 });

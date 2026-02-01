@@ -5,7 +5,8 @@ Sistema para analise de **incidencia de assuntos** em provas de concursos public
 ## Funcionalidades
 
 - **Extracao de Editais**: Processa PDFs de editais e extrai taxonomia hierarquica do conteudo programatico
-- **Processamento de Provas**: Extrai questoes de PDFs de provas anteriores (formato PCI Concursos e generico)
+- **Processamento de Provas**: Extrai questoes de PDFs de provas anteriores via pipeline hibrido (Docling + OCR + LLM)
+- **Atribuicao de Disciplinas**: Detecta cabecalhos de secao no texto do PDF e atribui disciplinas por posicao (sem LLM)
 - **Classificacao Inteligente**: Classifica cada questao de acordo com a taxonomia do edital usando LLM
 - **Analise de Incidencia**: Calcula frequencia de assuntos nas provas para direcionar estudos
 - **Interface Visual**: Dashboard com visualizacao hierarquica e estatisticas
@@ -18,9 +19,10 @@ Sistema para analise de **incidencia de assuntos** em provas de concursos public
 |------------|-----|
 | Python 3.11+ | Linguagem principal |
 | FastAPI | API REST |
-| Groq (Llama 4 Scout) | LLM para classificacao |
-| PyMuPDF | Extracao de PDFs |
-| SQLite/PostgreSQL | Persistencia |
+| Groq (Llama 4 Scout) | LLM para correcao de texto OCR e classificacao |
+| Docling + PyMuPDF | Extracao de PDFs (hibrido) |
+| pytesseract | OCR forçado para PDFs multi-coluna |
+| PostgreSQL (asyncpg) | Persistencia |
 
 ### Frontend
 
@@ -76,7 +78,7 @@ Interface disponivel em: http://localhost:5173
 analisador-questoes-concurso/
 ├── src/                    # Backend Python
 │   ├── api/               # Rotas FastAPI
-│   ├── extraction/        # Parsers de PDF (edital, provas)
+│   ├── extraction/        # Parsers de PDF (edital, provas, hibrido)
 │   ├── llm/               # Integracao com LLMs (Groq)
 │   ├── classification/    # Pipeline de classificacao
 │   ├── schemas/           # Modelos Pydantic
@@ -109,7 +111,9 @@ O workflow basico consiste em 3 etapas:
 
 - Com o projeto criado, faca upload dos PDFs das provas anteriores
 - Formatos suportados: PCI Concursos (com gabarito inline), provas genericas
-- O sistema extrai as questoes e seus gabaritos
+- Pipeline hibrido de extracao: Docling (texto nativo) → OCR forcado (pytesseract) para PDFs multi-coluna → correcao de texto via LLM (Groq) → parsing de questoes
+- Disciplinas sao atribuidas automaticamente por deteccao de cabecalhos de secao no texto (posicao), nao por LLM
+- Cabecalhos multi-linha (ex: "Legislacao Basica aplicada a\nAdministracao Publica") sao mesclados automaticamente
 
 ### 3. Visualizar Analise
 
@@ -136,11 +140,13 @@ O projeto esta em desenvolvimento ativo. Funcionalidades implementadas:
 
 - [x] Extracao de editais com taxonomia hierarquica
 - [x] Parser de provas formato PCI Concursos
+- [x] Pipeline hibrido de extracao (Docling + OCR + LLM)
+- [x] Atribuicao de disciplinas por cabecalho de secao (position-based)
 - [x] Integracao com Groq/Llama 4 Scout
 - [x] Interface web com upload de arquivos
-- [x] Visualizacao de taxonomia extraida
-- [ ] Classificacao automatica de questoes (em progresso)
-- [ ] Dashboard de incidencia completo
+- [x] Visualizacao de taxonomia extraida com incidencia por disciplina
+- [ ] Classificacao automatica de questoes por topico/assunto (em progresso)
+- [ ] Dashboard de incidencia completo por topico
 - [ ] Exportacao de relatorios
 
 ## Licenca

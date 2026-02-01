@@ -5,7 +5,7 @@ Editais routes - for edital upload, conteúdo programático, and management
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from loguru import logger
 from sqlalchemy import select
 
@@ -131,7 +131,7 @@ async def upload_edital(file: UploadFile = File(...)):
 
 @router.post("/{edital_id}/conteudo-programatico", response_model=ConteudoProgramaticoResponse)
 async def upload_conteudo_programatico(
-    edital_id: uuid.UUID, file: UploadFile = File(...), cargo: Optional[str] = None
+    edital_id: uuid.UUID, file: UploadFile = File(...), cargo: Optional[str] = Form(None)
 ):
     """
     Upload and extract conteúdo programático taxonomy

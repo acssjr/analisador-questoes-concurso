@@ -1,0 +1,67 @@
+---
+session: analisador-questoes
+date: 2026-01-18
+status: partial
+outcome: PARTIAL_PLUS
+---
+
+goal: Fix Docling on Windows + Frontend taxonomy display
+now: Test question display on right panel when selecting disciplina
+test: uv run pytest tests/extraction/ -v
+
+done_this_session:
+  - task: Installed Poppler on Windows (manual download, not chocolatey)
+    files: []
+  - task: Fixed Docling path bug using PyPdfium backend on Windows
+    files: [src/extraction/docling_extractor.py]
+  - task: Added poppler_path detection for Vision extractor
+    files: [src/extraction/vision_extractor.py]
+  - task: Fixed frontend to show only disciplinas (not full taxonomy tree)
+    files: [frontend/src/pages/projeto/ProvasQuestoes.tsx]
+  - task: Fixed accents in Portuguese strings
+    files: [frontend/src/pages/projeto/ProvasQuestoes.tsx]
+  - task: Installed missing lucide-react dependency
+    files: [frontend/package.json]
+
+blockers:
+  - LLM parser only extracts 44/60 questions (max_tokens=8192 limit)
+  - TypeScript hook gives false positive (can't find tsc in PATH)
+
+questions:
+  - Are questions displaying correctly in right panel when clicking disciplina?
+  - Should we chunk text for LLM parsing to get all 60 questions?
+
+decisions:
+  - pypdfium_backend: Use PyPdfiumDocumentBackend on Windows to avoid docling-parse path bug (double slash)
+  - taxonomy_display: Show only first-level disciplinas, not full edital taxonomy tree
+  - auto_select: Auto-select first disciplina and load questions on mount
+
+findings:
+  - docling_parse_bug: C++ code joins paths incorrectly causing "glyphs//standard" double slash
+  - poppler_location: Manual install at ~/poppler/poppler-24.08.0/Library/bin
+  - quality_score: Docling extracted with 0.941 quality score (excellent)
+
+worked:
+  - PyPdfium backend as workaround for docling-parse Windows bug
+  - PowerShell for npm install (bash npm was silent)
+  - _get_poppler_path() function to auto-detect Poppler location
+
+failed:
+  - Chocolatey install (needs admin)
+  - Bash npm commands (no output on Windows)
+  - docling-parse v4.7.3 on Windows (path handling bug)
+
+next:
+  - Test question display in frontend after selecting disciplina
+  - Consider chunking text for LLM parsing to get all 60 questions
+  - Create PR for hybrid extraction feature
+  - Fix TypeScript preflight hook PATH issue
+
+files:
+  created: []
+  modified:
+    - src/extraction/docling_extractor.py
+    - src/extraction/vision_extractor.py
+    - tests/extraction/test_docling_extractor.py
+    - frontend/src/pages/projeto/ProvasQuestoes.tsx
+    - frontend/package.json

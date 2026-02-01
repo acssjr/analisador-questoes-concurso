@@ -3,6 +3,7 @@ Edital extraction logic - extracts metadata and taxonomy from exam notices
 """
 
 import json
+import re as _re
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -76,6 +77,69 @@ def _sanitize_json_string(json_str: str) -> str:
             result.append(char)
 
     return "".join(result)
+
+
+def _repair_taxonomy_json(content: str) -> dict:
+    """
+    Repair truncated taxonomy JSON from LLM output.
+
+    Groq models have 8192 max output tokens, so large taxonomies get truncated mid-JSON.
+    This function finds the last complete item and closes all open brackets/braces.
+    """
+    # Find the last complete "filhos": [] or "filhos": [...]} pattern
+    # These mark the end of complete taxonomy items
+    last_complete_patterns = [
+        _re.compile(r'"filhos"\s*:\s*\[\s*\]\s*\}'),  # "filhos": []}
+        _re.compile(r'"texto"\s*:\s*"[^"]+"\s*,\s*"filhos"\s*:\s*\[\s*\]\s*\}'),
+    ]
+
+    last_pos = -1
+    for pattern in last_complete_patterns:
+        for match in pattern.finditer(content):
+            end_pos = match.end()
+            if end_pos > last_pos:
+                last_pos = end_pos
+
+    if last_pos > 0:
+        truncated = content[:last_pos]
+    else:
+        # Fallback: find last complete } that's not inside a string
+        in_string = False
+        escape_next = False
+        last_brace = -1
+        for i, ch in enumerate(content):
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == "\\" and in_string:
+                escape_next = True
+                continue
+            if ch == '"' and not escape_next:
+                in_string = not in_string
+            if not in_string and ch == "}":
+                last_brace = i
+        if last_brace > 0:
+            truncated = content[: last_brace + 1]
+        else:
+            raise json.JSONDecodeError("Cannot repair JSON", content, 0)
+
+    # Close remaining open brackets/braces in paired ]} order
+    # Taxonomy structure is nested {[{[...]}]} so pairs close together
+    open_braces = truncated.count("{") - truncated.count("}")
+    open_brackets = truncated.count("[") - truncated.count("]")
+
+    pairs = min(max(0, open_braces), max(0, open_brackets))
+    repaired = truncated + "]}" * pairs
+    extra_braces = max(0, open_braces) - pairs
+    extra_brackets = max(0, open_brackets) - pairs
+    repaired += "]" * extra_brackets + "}" * extra_braces
+
+    try:
+        result = json.loads(repaired)
+        logger.info(f"Taxonomy JSON repair succeeded (truncated at char {last_pos})")
+        return result
+    except json.JSONDecodeError as e:
+        raise json.JSONDecodeError(f"JSON repair failed after truncation: {e}", content, 0)
 
 
 class DocumentType(Enum):
@@ -407,19 +471,38 @@ def extract_conteudo_programatico(
                 text, DocumentType.CONTEUDO_PROGRAMATICO, "Upload do Conteúdo Programático"
             )
 
-        # Build cargo-specific instruction
+        # Pre-filter text by cargo if provided (extract only relevant section)
         cargo_instruction = ""
         if cargo:
+            # Simple case-insensitive search for cargo name
+            cargo_upper = cargo.upper()
+            text_upper = text.upper()
+            cargo_pos = text_upper.find(cargo_upper)
+            if cargo_pos >= 0:
+                # Found cargo section, extract from there
+                remaining = text[cargo_pos + len(cargo) :]
+                # Find next cargo/section boundary (all-caps line with 10+ chars)
+                import re as _re_local
+
+                next_heading = _re_local.search(
+                    r"\n\s*[A-ZÁÉÍÓÚÃÕÂÊÔÇ][A-ZÁÉÍÓÚÃÕÂÊÔÇ\s]{10,}\n", remaining
+                )
+                if next_heading:
+                    text = text[cargo_pos : cargo_pos + len(cargo) + next_heading.start()]
+                else:
+                    text = text[cargo_pos:]
+                logger.info(f"Pre-filtered text to cargo '{cargo}' section: {len(text)} chars")
+            else:
+                logger.warning(f"Could not find cargo '{cargo}' in text, using full text")
+
             cargo_instruction = f"""
 ATENÇÃO - CARGO ESPECÍFICO:
-Extraia APENAS o conteúdo programático do cargo: "{cargo}"
-Ignore disciplinas e conteúdos de outros cargos.
-Se o documento tiver seções por cargo, foque apenas na seção deste cargo.
+O texto abaixo já foi filtrado para o cargo: "{cargo}"
+Extraia TODAS as disciplinas e itens presentes.
 """
 
-        # Build LLM prompt for taxonomy extraction - use more text for complete extraction
-        # Use up to 25000 chars to capture full content
-        text_to_analyze = text[:25000]
+        # Build LLM prompt for taxonomy extraction
+        text_to_analyze = text[:15000]
 
         prompt = f"""Analise este conteúdo programático de concurso público e extraia a estrutura hierárquica EXATA como aparece no documento.
 
@@ -501,16 +584,25 @@ IMPORTANTE: Retorne APENAS o JSON. Extraia TODOS os itens do documento com a hie
         # Parse JSON response
         content = response["content"].strip()
 
-        # Remove markdown code blocks if present
-        if content.startswith("```"):
-            content = content.split("```")[1]
-            if content.startswith("json"):
-                content = content[4:]
+        # Remove markdown code blocks if present (robust: handles whitespace before ```)
+        if "```" in content:
+            parts = content.split("```")
+            for part in parts:
+                stripped = part.strip()
+                if stripped.startswith("json"):
+                    stripped = stripped[4:].strip()
+                if stripped.startswith("{"):
+                    content = stripped
+                    break
 
         # Sanitize JSON - remove invalid control characters
         content = _sanitize_json_string(content.strip())
 
-        taxonomia = json.loads(content)
+        try:
+            taxonomia = json.loads(content)
+        except json.JSONDecodeError as je:
+            logger.warning(f"JSON parse failed ({je}), attempting truncated JSON repair...")
+            taxonomia = _repair_taxonomy_json(content)
 
         total_disciplinas = len(taxonomia.get("disciplinas", []))
         cargo_info = f" for cargo '{cargo}'" if cargo else ""

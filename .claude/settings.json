@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:\\Program Files\\Git\\usr\\bin\\bash.exe\" $CLAUDE_PROJECT_DIR/.claude/hooks/dev-servers.sh"
+            "command": "node C:/Users/Antônio/Documents/analisador-questoes-concurso/.claude/hooks/dev-servers.mjs"
           }
         ]
       }

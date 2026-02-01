@@ -1,0 +1,1385 @@
+{
+  "edges": [
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "extraction\\vision_extractor.py",
+      "from_func": "extract_page_with_vision",
+      "to_file": "extraction\\vision_extractor.py",
+      "to_func": "VisionExtractionResult"
+    },
+    {
+      "from_file": "llm\\providers\\anthropic_client.py",
+      "from_func": "generate_with_image",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMAPIError"
+    },
+    {
+      "from_file": "analysis\\map_service.py",
+      "from_func": "__init__",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "get_edital",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "list_projetos",
+      "to_file": "schemas\\projeto.py",
+      "to_func": "ProjetoReadWithEdital"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "list_editais",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "__init__",
+      "to_file": "analysis\\reduce_service.py",
+      "to_func": "ReduceService"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_edital",
+      "to_file": "schemas\\edital.py",
+      "to_func": "EditalUploadResponse"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "extract_edital_text"
+    },
+    {
+      "from_file": "llm\\providers\\groq_client.py",
+      "from_func": "generate",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMAPIError"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "_build_item_children",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_find_count_case_insensitive"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_conteudo_programatico",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_repair_incomplete_questions",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_parse_content_to_question_parts"
+    },
+    {
+      "from_file": "cli\\commands\\analyze.py",
+      "from_func": "similarity",
+      "to_file": "analysis\\similarity.py",
+      "to_func": "find_most_similar_pairs"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "get_edital_disciplinas",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "normalize_disciplina"
+    },
+    {
+      "from_file": "extraction\\prova_extractor.py",
+      "from_func": "extract_questoes_with_llm",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "extraction\\hybrid_extractor.py",
+      "to_func": "extract_questions_hybrid"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_extract_page_text_robust"
+    },
+    {
+      "from_file": "extraction\\pdf_validator.py",
+      "from_func": "validate",
+      "to_file": "extraction\\pdf_validator.py",
+      "to_func": "ValidationResult"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "analysis\\cove_service.py",
+      "from_func": "verify_report",
+      "to_file": "analysis\\cove_service.py",
+      "to_func": "VerifiedReport"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "classification\\classifier.py",
+      "to_func": "QuestionClassifier"
+    },
+    {
+      "from_file": "extraction\\quality_checker.py",
+      "from_func": "assess_extraction_quality",
+      "to_file": "extraction\\quality_checker.py",
+      "to_func": "_get_spell_checker"
+    },
+    {
+      "from_file": "classification\\classifier.py",
+      "from_func": "classify_question",
+      "to_file": "optimization\\token_utils.py",
+      "to_func": "estimate_tokens"
+    },
+    {
+      "from_file": "extraction\\pci_parser.py",
+      "from_func": "parse_pci_pdf",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "models\\classificacao.py",
+      "to_func": "Classificacao"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "create_projeto",
+      "to_file": "models\\projeto.py",
+      "to_func": "Projeto"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "normalize_disciplina",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "remove_accents"
+    },
+    {
+      "from_file": "services\\queue_processor.py",
+      "from_func": "__init__",
+      "to_file": "extraction\\pdf_validator.py",
+      "to_func": "PDFValidator"
+    },
+    {
+      "from_file": "llm\\providers\\groq_client.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "extraction\\vision_extractor.py",
+      "from_func": "extract_pages_with_vision",
+      "to_file": "extraction\\vision_extractor.py",
+      "to_func": "extract_page_with_vision"
+    },
+    {
+      "from_file": "extraction\\pci_parser.py",
+      "from_func": "parse_pci_pdf",
+      "to_file": "extraction\\pci_parser.py",
+      "to_func": "get_discipline_for_position"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "filter_questoes_by_edital"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "schemas\\questao.py",
+      "to_func": "Questao"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "list_analise_jobs",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseStatusResponse"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_extract_page_text_robust"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "_extract_all_with_vision",
+      "to_file": "extraction\\vision_extractor.py",
+      "to_func": "extract_page_with_vision"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "__init__",
+      "to_file": "analysis\\clustering.py",
+      "to_func": "ClusteringService"
+    },
+    {
+      "from_file": "classification\\classifier.py",
+      "from_func": "__init__",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "detect_document_type",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "canonicalize_disciplina"
+    },
+    {
+      "from_file": "report\\report_generator.py",
+      "from_func": "generate_disciplina_report",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ReportError"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resumo",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "_build_disciplina_result",
+      "to_file": "schemas\\analise.py",
+      "to_func": "VerificationResultSchema"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_conteudo_programatico",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "_sanitize_json_string"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "run",
+      "to_file": "analysis\\pipeline.py",
+      "to_func": "PipelineResult"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "get_provider_quota",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "get_quota_tracker"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_edital_metadata",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "analysis\\similarity.py",
+      "from_func": "find_most_similar_pairs",
+      "to_file": "analysis\\similarity.py",
+      "to_func": "calculate_similarity_matrix"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_extract_page_text_robust",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_detect_columns"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "cli\\commands\\analyze.py",
+      "from_func": "similarity",
+      "to_file": "analysis\\embeddings.py",
+      "to_func": "EmbeddingGenerator"
+    },
+    {
+      "from_file": "extraction\\quality_checker.py",
+      "from_func": "needs_vision_fallback",
+      "to_file": "extraction\\quality_checker.py",
+      "to_func": "assess_extraction_quality"
+    },
+    {
+      "from_file": "extraction\\quality_checker.py",
+      "from_func": "score",
+      "to_file": "extraction\\quality_checker.py",
+      "to_func": "score"
+    },
+    {
+      "from_file": "llm\\llm_orchestrator.py",
+      "from_func": "generate",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMError"
+    },
+    {
+      "from_file": "analysis\\reduce_service.py",
+      "from_func": "__init__",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_status",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "analysis\\cove_service.py",
+      "from_func": "_verify_claim",
+      "to_file": "analysis\\cove_service.py",
+      "to_func": "VerificationResult"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "iniciar_analise",
+      "to_file": "api\\routes\\analise.py",
+      "to_func": "run_analysis_pipeline"
+    },
+    {
+      "from_file": "extraction\\vision_extractor.py",
+      "from_func": "rasterize_pdf_page",
+      "to_file": "extraction\\vision_extractor.py",
+      "to_func": "_get_poppler_path"
+    },
+    {
+      "from_file": "llm\\llm_orchestrator.py",
+      "from_func": "__init__",
+      "to_file": "llm\\providers\\groq_client.py",
+      "to_func": "GroqClient"
+    },
+    {
+      "from_file": "analysis\\embeddings.py",
+      "from_func": "__init__",
+      "to_file": "core\\exceptions.py",
+      "to_func": "EmbeddingError"
+    },
+    {
+      "from_file": "analysis\\map_service.py",
+      "from_func": "_parse_response",
+      "to_file": "analysis\\map_service.py",
+      "to_func": "ChunkDigest"
+    },
+    {
+      "from_file": "analysis\\reduce_service.py",
+      "from_func": "_build_final_report",
+      "to_file": "analysis\\reduce_service.py",
+      "to_func": "AnalysisReport"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "__init__",
+      "to_file": "analysis\\embeddings.py",
+      "to_func": "EmbeddingGenerator"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "filter_questoes_by_edital",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "disciplina_matches_edital"
+    },
+    {
+      "from_file": "core\\logging.py",
+      "from_func": "<module>",
+      "to_file": "core\\logging.py",
+      "to_func": "setup_logging"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_conteudo_programatico",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "_repair_taxonomy_json"
+    },
+    {
+      "from_file": "classification\\classifier.py",
+      "from_func": "_parse_llm_response",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMResponseError"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "_run_phase_1",
+      "to_file": "analysis\\similarity.py",
+      "to_func": "find_most_similar_pairs"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "llm\\llm_orchestrator.py",
+      "from_func": "generate_with_image",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMError"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "_build_disciplina_result",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseResultadoDisciplinaResponse"
+    },
+    {
+      "from_file": "extraction\\prova_extractor.py",
+      "from_func": "extract_prova_text",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "extraction\\prova_extractor.py",
+      "from_func": "extract_questoes_with_llm",
+      "to_file": "extraction\\prova_extractor.py",
+      "to_func": "detect_questions_start_page"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "_build_incidencia_tree",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_find_count_case_insensitive"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_conteudo_programatico",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "extract_conteudo_programatico"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "_build_disciplina_result",
+      "to_file": "schemas\\analise.py",
+      "to_func": "VerifiedReportSchema"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "list_projetos",
+      "to_file": "schemas\\projeto.py",
+      "to_func": "ProjetoListResponse"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "get_system_stats",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "models\\projeto.py",
+      "to_func": "Projeto"
+    },
+    {
+      "from_file": "cli\\commands\\extract.py",
+      "from_func": "pdf",
+      "to_file": "extraction\\pdf_detector.py",
+      "to_func": "detect_pdf_format"
+    },
+    {
+      "from_file": "cli\\commands\\extract.py",
+      "from_func": "pdf",
+      "to_file": "extraction\\pci_parser.py",
+      "to_func": "parse_pci_pdf"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_edital_metadata",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "classification\\classifier.py",
+      "from_func": "classify_question",
+      "to_file": "llm\\prompts\\classificacao.py",
+      "to_func": "build_classification_prompt"
+    },
+    {
+      "from_file": "services\\queue_processor.py",
+      "from_func": "__init__",
+      "to_file": "extraction\\confidence_scorer.py",
+      "to_func": "ConfidenceScorer"
+    },
+    {
+      "from_file": "analysis\\embeddings.py",
+      "from_func": "generate_embeddings_batch",
+      "to_file": "core\\exceptions.py",
+      "to_func": "EmbeddingError"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "update_projeto",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "_find_count_case_insensitive",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_normalize_for_matching"
+    },
+    {
+      "from_file": "core\\database.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "extraction\\pci_parser.py",
+      "from_func": "parse_pci_pdf",
+      "to_file": "extraction\\pdf_detector.py",
+      "to_func": "inferir_banca_cargo_ano"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "validate_document_type",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "WrongDocumentTypeError"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_conteudo_programatico",
+      "to_file": "schemas\\edital.py",
+      "to_func": "ConteudoProgramaticoResponse"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "extract",
+      "to_file": "extraction\\docling_extractor.py",
+      "to_func": "extract_with_docling"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_edital_metadata",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "extract_edital_text"
+    },
+    {
+      "from_file": "extraction\\prova_extractor.py",
+      "from_func": "extract_questoes_with_llm",
+      "to_file": "extraction\\prova_extractor.py",
+      "to_func": "_extract_metadata_from_cover"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "_build_disciplina_result",
+      "to_file": "schemas\\analise.py",
+      "to_func": "ClusterResultSchema"
+    },
+    {
+      "from_file": "api\\main.py",
+      "from_func": "lifespan",
+      "to_file": "core\\database.py",
+      "to_func": "init_db"
+    },
+    {
+      "from_file": "analysis\\reduce_service.py",
+      "from_func": "_consolidate_patterns",
+      "to_file": "analysis\\reduce_service.py",
+      "to_func": "PatternFinding"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "reset_provider_quota",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "get_quota_tracker"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "create_projeto",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto_questoes",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_edital",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "delete_projeto",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "iniciar_analise",
+      "to_file": "models\\analise_job.py",
+      "to_func": "AnaliseJob"
+    },
+    {
+      "from_file": "analysis\\map_service.py",
+      "from_func": "analyze_chunk",
+      "to_file": "analysis\\map_service.py",
+      "to_func": "ChunkDigest"
+    },
+    {
+      "from_file": "extraction\\vision_extractor.py",
+      "from_func": "extract_page_with_vision",
+      "to_file": "extraction\\vision_extractor.py",
+      "to_func": "rasterize_pdf_page"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "extraction\\pdf_detector.py",
+      "to_func": "detect_pdf_format"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "extract_questions_chunked"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "extraction\\pci_parser.py",
+      "to_func": "parse_pci_pdf"
+    },
+    {
+      "from_file": "analysis\\embeddings.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "api\\main.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "extraction\\pdf_detector.py",
+      "to_func": "inferir_banca_cargo_ano"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "extract",
+      "to_file": "extraction\\hybrid_extractor.py",
+      "to_func": "preprocess_ocr_text"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto",
+      "to_file": "schemas\\projeto.py",
+      "to_func": "ProjetoReadWithEdital"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "get_system_stats",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "get_quota_tracker"
+    },
+    {
+      "from_file": "extraction\\docling_extractor.py",
+      "from_func": "extract_page_with_docling",
+      "to_file": "extraction\\docling_extractor.py",
+      "to_func": "extract_with_docling"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "list_analise_jobs",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "extraction\\docling_extractor.py",
+      "from_func": "_extract_with_pytesseract",
+      "to_file": "extraction\\docling_extractor.py",
+      "to_func": "DoclingExtractionResult"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "_build_disciplina_result",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnalysisReportSchema"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "extract_questions_hybrid",
+      "to_file": "extraction\\hybrid_extractor.py",
+      "to_func": "HybridExtractionPipeline"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_edital_metadata",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "validate_document_type"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_repair_incomplete_questions",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "parse_llm_response"
+    },
+    {
+      "from_file": "extraction\\image_extractor.py",
+      "from_func": "extract_images_from_page",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ImageExtractionError"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_repair_incomplete_questions",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_is_incomplete_question"
+    },
+    {
+      "from_file": "llm\\providers\\anthropic_client.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "canonicalize_disciplina",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "fix_mojibake"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "health_check",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "get_quota_tracker"
+    },
+    {
+      "from_file": "cli\\commands\\report.py",
+      "from_func": "generate",
+      "to_file": "report\\report_generator.py",
+      "to_func": "ReportGenerator"
+    },
+    {
+      "from_file": "core\\logging.py",
+      "from_func": "setup_logging",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "extraction\\docling_extractor.py",
+      "from_func": "extract_page_with_docling",
+      "to_file": "extraction\\docling_extractor.py",
+      "to_func": "DoclingExtractionResult"
+    },
+    {
+      "from_file": "llm\\llm_orchestrator.py",
+      "from_func": "__init__",
+      "to_file": "llm\\providers\\anthropic_client.py",
+      "to_func": "AnthropicClient"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\pdf_detector.py",
+      "to_func": "inferir_banca_cargo_ano"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "_parse_questions_from_text",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "parse_llm_response"
+    },
+    {
+      "from_file": "extraction\\prova_extractor.py",
+      "from_func": "extract_questoes_with_llm",
+      "to_file": "extraction\\prova_extractor.py",
+      "to_func": "_extract_batch_with_llm"
+    },
+    {
+      "from_file": "services\\queue_processor.py",
+      "from_func": "process_prova",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "llm\\llm_orchestrator.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "cli\\commands\\classify.py",
+      "from_func": "questions",
+      "to_file": "classification\\classifier.py",
+      "to_func": "QuestionClassifier"
+    },
+    {
+      "from_file": "extraction\\image_extractor.py",
+      "from_func": "extract_all_images_from_pdf",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ImageExtractionError"
+    },
+    {
+      "from_file": "analysis\\clustering.py",
+      "from_func": "cluster_embeddings",
+      "to_file": "analysis\\clustering.py",
+      "to_func": "ClusterResult"
+    },
+    {
+      "from_file": "llm\\quota_tracker.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "_build_item_children",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_build_item_children"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "services\\queue_processor.py",
+      "from_func": "process_prova",
+      "to_file": "services\\queue_processor.py",
+      "to_func": "ProcessingResult"
+    },
+    {
+      "from_file": "api\\main.py",
+      "from_func": "lifespan",
+      "to_file": "core\\database.py",
+      "to_func": "close_db"
+    },
+    {
+      "from_file": "extraction\\image_extractor.py",
+      "from_func": "extract_all_images_from_pdf",
+      "to_file": "extraction\\image_extractor.py",
+      "to_func": "extract_images_from_page"
+    },
+    {
+      "from_file": "services\\queue_processor.py",
+      "from_func": "process_prova",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "extract_questions_chunked"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "iniciar_analise",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_edital",
+      "to_file": "models\\edital.py",
+      "to_func": "Edital"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto_questoes",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_normalize_for_matching"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_conteudo_programatico",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "validate_document_type",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "detect_document_type"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_edital",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "extract_edital_metadata"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto_taxonomia_incidencia",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "disciplina_matches_edital",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "normalize_disciplina"
+    },
+    {
+      "from_file": "extraction\\prova_extractor.py",
+      "from_func": "_extract_batch_with_llm",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "_extract_all_with_vision_wrapped",
+      "to_file": "extraction\\hybrid_extractor.py",
+      "to_func": "HybridExtractionResult"
+    },
+    {
+      "from_file": "api\\main.py",
+      "from_func": "<module>",
+      "to_file": "api\\main.py",
+      "to_func": "lifespan"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_repair_incomplete_questions"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "_assign_disciplines_from_headers",
+      "to_file": "extraction\\hybrid_extractor.py",
+      "to_func": "get_discipline_for_position"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "parse_llm_response"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resultado_disciplina",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto_taxonomia_incidencia",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_build_incidencia_tree"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "__init__",
+      "to_file": "analysis\\map_service.py",
+      "to_func": "MapService"
+    },
+    {
+      "from_file": "extraction\\pci_parser.py",
+      "from_func": "parse_pci_pdf",
+      "to_file": "extraction\\pci_parser.py",
+      "to_func": "parse_pci_question_block"
+    },
+    {
+      "from_file": "extraction\\docling_extractor.py",
+      "from_func": "extract_with_docling",
+      "to_file": "extraction\\docling_extractor.py",
+      "to_func": "_extract_with_pytesseract"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "iniciar_analise",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseIniciarResponse"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resumo",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseResumoResponse"
+    },
+    {
+      "from_file": "extraction\\docling_extractor.py",
+      "from_func": "extract_with_docling",
+      "to_file": "extraction\\docling_extractor.py",
+      "to_func": "DoclingExtractionResult"
+    },
+    {
+      "from_file": "llm\\providers\\anthropic_client.py",
+      "from_func": "generate",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMAPIError"
+    },
+    {
+      "from_file": "analysis\\cove_service.py",
+      "from_func": "__init__",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto_stats",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "llm\\prompts\\classificacao.py",
+      "from_func": "build_classification_prompt",
+      "to_file": "llm\\prompts\\classificacao.py",
+      "to_func": "format_taxonomia"
+    },
+    {
+      "from_file": "cli\\commands\\extract.py",
+      "from_func": "batch",
+      "to_file": "extraction\\pci_parser.py",
+      "to_func": "parse_pci_pdf"
+    },
+    {
+      "from_file": "api\\routes\\editais.py",
+      "from_func": "upload_conteudo_programatico",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "health_check",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "parse_llm_response"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_edital_text",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ExtractionError"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resultado",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_is_incomplete_question"
+    },
+    {
+      "from_file": "extraction\\pdf_detector.py",
+      "from_func": "detect_pdf_format",
+      "to_file": "core\\exceptions.py",
+      "to_func": "PDFFormatError"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_reconstruct_text_from_blocks",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_detect_columns"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "cancel_analise_job",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_conteudo_programatico",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "extract_edital_text"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "_build_disciplina_result",
+      "to_file": "schemas\\analise.py",
+      "to_func": "PatternFindingSchema"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "extract",
+      "to_file": "extraction\\quality_checker.py",
+      "to_func": "assess_extraction_quality"
+    },
+    {
+      "from_file": "extraction\\vision_extractor.py",
+      "from_func": "extract_page_with_vision",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resultado",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseResultadoResponse"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "list_projetos",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "validate_document_type"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "extract",
+      "to_file": "extraction\\hybrid_extractor.py",
+      "to_func": "HybridExtractionResult"
+    },
+    {
+      "from_file": "llm\\llm_orchestrator.py",
+      "from_func": "__init__",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "get_quota_tracker"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "canonicalize_disciplina",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "normalize_disciplina"
+    },
+    {
+      "from_file": "classification\\classifier.py",
+      "from_func": "classify_question",
+      "to_file": "core\\exceptions.py",
+      "to_func": "ClassificationError"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "list_analise_jobs",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseJobListResponse"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_status",
+      "to_file": "schemas\\analise.py",
+      "to_func": "AnaliseStatusResponse"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "vincular_edital",
+      "to_file": "core\\database.py",
+      "to_func": "get_db"
+    },
+    {
+      "from_file": "analysis\\pipeline.py",
+      "from_func": "__init__",
+      "to_file": "analysis\\cove_service.py",
+      "to_func": "CoVeService"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_extract_page_text_robust",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_reconstruct_text_from_blocks"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "run_analysis_pipeline",
+      "to_file": "analysis\\pipeline.py",
+      "to_func": "AnalysisPipeline"
+    },
+    {
+      "from_file": "api\\routes\\sistema.py",
+      "from_func": "get_quota_stats",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "get_quota_tracker"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "_build_incidencia_tree",
+      "to_file": "api\\routes\\projetos.py",
+      "to_func": "_build_item_children"
+    },
+    {
+      "from_file": "extraction\\confidence_scorer.py",
+      "from_func": "calculate",
+      "to_file": "extraction\\confidence_scorer.py",
+      "to_func": "normalize_text"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_repair_incomplete_questions",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_extract_orphan_content_between_questions"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "parse_llm_response",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_repair_truncated_json"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resultado_disciplina",
+      "to_file": "api\\routes\\analise.py",
+      "to_func": "_build_disciplina_result"
+    },
+    {
+      "from_file": "classification\\classifier.py",
+      "from_func": "classify_question",
+      "to_file": "optimization\\token_utils.py",
+      "to_func": "prune_questao"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_reconstruct_text_from_blocks",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_spans_to_text"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_chunked",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "validate_document_type"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "filter_questoes_by_edital",
+      "to_file": "api\\routes\\upload.py",
+      "to_func": "get_edital_disciplinas"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "_repair_incomplete_questions",
+      "to_file": "extraction\\llm_parser.py",
+      "to_func": "_extract_page_text_robust"
+    },
+    {
+      "from_file": "analysis\\map_service.py",
+      "from_func": "_parse_response",
+      "to_file": "analysis\\map_service.py",
+      "to_func": "QuestionAnalysis"
+    },
+    {
+      "from_file": "api\\routes\\upload.py",
+      "from_func": "upload_pdf",
+      "to_file": "schemas\\prova.py",
+      "to_func": "Prova"
+    },
+    {
+      "from_file": "analysis\\embeddings.py",
+      "from_func": "generate_embedding",
+      "to_file": "core\\exceptions.py",
+      "to_func": "EmbeddingError"
+    },
+    {
+      "from_file": "extraction\\edital_extractor.py",
+      "from_func": "extract_conteudo_programatico",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "validate_document_type"
+    },
+    {
+      "from_file": "core\\config.py",
+      "from_func": "get_settings",
+      "to_file": "core\\config.py",
+      "to_func": "Settings"
+    },
+    {
+      "from_file": "extraction\\image_extractor.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "extraction\\llm_parser.py",
+      "from_func": "extract_questions_with_llm",
+      "to_file": "extraction\\edital_extractor.py",
+      "to_func": "extract_edital_text"
+    },
+    {
+      "from_file": "optimization\\token_utils.py",
+      "from_func": "prune_questao",
+      "to_file": "optimization\\token_utils.py",
+      "to_func": "prune_context"
+    },
+    {
+      "from_file": "report\\report_generator.py",
+      "from_func": "<module>",
+      "to_file": "core\\config.py",
+      "to_func": "get_settings"
+    },
+    {
+      "from_file": "llm\\quota_tracker.py",
+      "from_func": "get_quota_tracker",
+      "to_file": "llm\\quota_tracker.py",
+      "to_func": "QuotaTracker"
+    },
+    {
+      "from_file": "extraction\\hybrid_extractor.py",
+      "from_func": "llm",
+      "to_file": "llm\\llm_orchestrator.py",
+      "to_func": "LLMOrchestrator"
+    },
+    {
+      "from_file": "llm\\providers\\groq_client.py",
+      "from_func": "generate",
+      "to_file": "core\\exceptions.py",
+      "to_func": "LLMRateLimitError"
+    },
+    {
+      "from_file": "api\\routes\\projetos.py",
+      "from_func": "get_projeto_stats",
+      "to_file": "schemas\\projeto.py",
+      "to_func": "ProjetoStats"
+    },
+    {
+      "from_file": "api\\routes\\analise.py",
+      "from_func": "get_analise_resultado",
+      "to_file": "api\\routes\\analise.py",
+      "to_func": "_build_disciplina_result"
+    },
+    {
+      "from_file": "extraction\\quality_checker.py",
+      "from_func": "assess_extraction_quality",
+      "to_file": "extraction\\quality_checker.py",
+      "to_func": "QualityMetrics"
+    }
+  ],
+  "timestamp": 1769947903.2354083
+}

@@ -801,5 +801,67 @@ O sistema implementa várias estratégias para reduzir custos com LLM:
 
 ---
 
-*Documento gerado em: 2026-01-12*
-*Versão: 1.0*
+## 13. Pipeline de Extração Híbrida (2026)
+
+### Visão Geral
+
+O sistema utiliza um pipeline de 3 camadas para extração de questões:
+
+```
+PDF → Docling → Quality Check → [OK] → LLM Parse
+                      ↓ [ruim]
+               Claude Haiku (correção)
+                      ↓ [ainda ruim]
+               Claude Vision (fallback)
+```
+
+### Componentes
+
+| Camada | Tecnologia | Custo | Accuracy | Uso Estimado |
+|--------|------------|-------|----------|--------------|
+| 1 | Docling (IBM) | Grátis | 85-90% | ~80% páginas |
+| 2 | Claude Haiku | ~R$0.001/pág | 90%+ | ~15% páginas |
+| 3 | Claude Vision | ~R$0.10/pág | 95%+ | ~5% páginas |
+
+### Métricas de Qualidade
+
+O sistema avalia a qualidade da extração usando métricas automáticas:
+
+- **`spell_error_rate`**: Taxa de palavras não reconhecidas pelo dicionário português (threshold: 15%)
+- **`long_word_ratio`**: Proporção de palavras >18 caracteres, indicador de concatenação (threshold: 5%)
+- **`quality_score`**: Score composto 0-1 (threshold: 0.80 para aceitar Docling direto)
+
+### Roteamento Inteligente
+
+1. **Docling OK (score ≥ 0.80)**: Usa extração Docling direto, parseia com LLM
+2. **Docling médio (0.60 ≤ score < 0.80)**: Tenta correção via Claude Haiku
+3. **Docling ruim (score < 0.60)**: Fallback para Claude Vision (OCR visual)
+
+### Arquivos Principais
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `src/extraction/hybrid_extractor.py` | Pipeline principal com roteamento inteligente |
+| `src/extraction/docling_extractor.py` | Camada 1 - Extração via IBM Docling |
+| `src/extraction/quality_checker.py` | Métricas de qualidade e decisão de roteamento |
+| `src/extraction/vision_extractor.py` | Camada 3 - Fallback via Claude Vision |
+
+### Vantagens sobre PyMuPDF
+
+1. **Colunas**: Docling processa colunas na ordem de leitura correta
+2. **Tabelas**: Estruturação automática de tabelas
+3. **Fallback**: Vision garante alta acurácia em PDFs problemáticos
+4. **Custo**: 85-90% do processamento é grátis (Docling)
+
+### Feature Flag
+
+A extração híbrida é controlada pela flag `USE_HYBRID_EXTRACTION` em `src/api/routes/upload.py`:
+
+```python
+USE_HYBRID_EXTRACTION = True  # True = nova pipeline, False = LLM chunked (legacy)
+```
+
+---
+
+*Documento atualizado em: 2026-01-18*
+*Versão: 1.1*
